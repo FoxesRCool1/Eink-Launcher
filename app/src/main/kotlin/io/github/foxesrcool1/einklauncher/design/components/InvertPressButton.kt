@@ -26,6 +26,9 @@ import java.util.Locale
  * E-ink rule 5: the pressed state is an instant colour invert. There is no
  * ripple, no shadow and no fade, because each of those is an animation or a
  * grey wash, and both look bad on the panel.
+ *
+ * A control that is [selected] stays inverted, which is how this design shows
+ * the chosen item of a small group.
  */
 @Composable
 fun InvertPressButton(
@@ -33,12 +36,13 @@ fun InvertPressButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    selected: Boolean = false,
     bordered: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val inverted = pressed && enabled
+    val inverted = (pressed || selected) && enabled
 
     val background = if (inverted) EinkColors.Ink else EinkColors.Paper
     val foreground = when {

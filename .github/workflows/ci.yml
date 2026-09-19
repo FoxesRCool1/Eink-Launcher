@@ -33,11 +33,10 @@ jobs:
       - name: Build both flavours
         run: ./gradlew --no-daemon assembleViwoodsDebug assembleGenericDebug
 
-      - name: Unit tests
+      # The unit tests also write the Roborazzi screenshots, because the test
+      # task carries roborazzi.test.record = true. See app/build.gradle.kts.
+      - name: Unit tests and screenshots
         run: ./gradlew --no-daemon testViwoodsDebugUnitTest testGenericDebugUnitTest
-
-      - name: Screenshot tests
-        run: ./gradlew --no-daemon recordRoborazziViwoodsDebug
 
       - name: Lint
         run: ./gradlew --no-daemon lintViwoodsDebug lintGenericDebug

@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Needed for the Wi-Fi word in the status line on Today. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      Package visibility. A launcher has to see every app that can be started,
+      every other home app, and the system settings. Android 11 and later hide
+      other packages unless the app asks like this.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.HOME_SETTINGS" />
+        </intent>
+    </queries>
+
     <application
         android:name=".EinkLauncherApp"
         android:allowBackup="true"
@@ -12,17 +37,44 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.EinkLauncher">
 
+        <!--
+          The home screen.
+
+          singleTask plus stateNotNeeded is what a launcher needs: the Home key
+          brings this same task forward instead of starting a second copy, and
+          the system can kill it and bring it back without saved state.
+
+          The LAUNCHER category is here as well as HOME, so the owner can open
+          the app from the stock launcher before it is the default one. The
+          stock launcher on this tablet hides a lot, so that route matters.
+        -->
         <activity
-            android:name=".MainActivity"
+            android:name=".HomeActivity"
+            android:configChanges="keyboardHidden|navigation"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
+            android:stateNotNeeded="true"
             android:theme="@style/Theme.EinkLauncher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          The design system demo. A separate activity, so the launcher task
+          stays clean and the Home key still goes to Today.
+        -->
+        <activity
+            android:name=".DemoActivity"
+            android:exported="false"
+            android:label="@string/demo_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.EinkLauncher" />
+
     </application>
 
 </manifest>

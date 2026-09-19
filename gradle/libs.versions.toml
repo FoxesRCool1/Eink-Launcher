@@ -3,8 +3,9 @@
 # Checked on 2026-09-19.
 
 [versions]
+# AGP 9 compiles Kotlin itself. There is no Kotlin Gradle plugin version to
+# set here: AGP brings its own Kotlin compiler and its own Compose compiler.
 agp = "9.4.0"
-kotlin = "2.4.20"
 composeBom = "2026.09.00"
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
@@ -52,6 +53,3 @@ roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "robora
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

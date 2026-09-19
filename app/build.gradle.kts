@@ -1,10 +1,9 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
+    // AGP 9 compiles Kotlin itself and supplies the Compose compiler that
+    // matches its own Kotlin version. Applying org.jetbrains.kotlin.android
+    // now fails the build, and applying the Compose compiler plugin would
+    // override a set of coordinates that already line up.
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -65,6 +64,11 @@ android {
         buildConfig = true
     }
 
+    // Keep the Kotlin sources under src/<set>/kotlin rather than src/<set>/java.
+    sourceSets.configureEach {
+        kotlin.srcDir("src/$name/kotlin")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -90,10 +94,14 @@ android {
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
+// Roborazzi writes a PNG only when this property is set. The Roborazzi Gradle
+// plugin normally sets it, but that plugin is not needed for a record only
+// setup, and one less plugin is one less thing to break on an AGP upgrade.
+// The unit test JVM runs with the module directory as its working directory,
+// so the paths in the tests land in app/build/outputs/roborazzi/.
+tasks.withType<Test>().configureEach {
+    systemProperty("roborazzi.test.record", "true")
+    systemProperty("robolectric.graphicsMode", "NATIVE")
 }
 
 dependencies {
