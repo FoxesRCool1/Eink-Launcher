@@ -37,18 +37,31 @@ jobs:
         timeout-minutes: 5
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME/platforms" || true
-          ls "$ANDROID_HOME/build-tools" || true
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platforms" || true
+          ls "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools" || true
+          ls "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools" || true
 
       # Install the SDK pieces here rather than letting Gradle fetch them in
-      # the middle of a build. A failure then names the package and does not
-      # look like a slow compile.
+      # the middle of a build, so a slow package download names itself instead
+      # of looking like a slow compile. This step can never fail the job: if
+      # sdkmanager is missing or refuses, Gradle downloads what it needs.
       - name: Install the Android SDK packages
         timeout-minutes: 15
         run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          set -x
+          SDKROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ] && [ -n "$SDKROOT" ]; then
+            SDKMANAGER="$(find "$SDKROOT" -name sdkmanager -type f 2>/dev/null | head -1)"
+          fi
+          if [ -z "$SDKMANAGER" ]; then
+            echo "No sdkmanager on this runner. Gradle will fetch the SDK itself."
+            exit 0
+          fi
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
-          "$SDKMANAGER" --install "platforms;android-37" "build-tools;36.0.0" < /dev/null
+          "$SDKMANAGER" --install "platforms;android-37" "build-tools;36.0.0" < /dev/null \
+            || echo "sdkmanager could not install those packages. Gradle will try instead."
 
       - name: Make the wrapper runnable
         run: chmod +x ./gradlew
