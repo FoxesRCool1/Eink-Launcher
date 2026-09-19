@@ -55,12 +55,17 @@ purpose.
 
 ## 3. What to do next, in order
 
-### 3.1 Get CI green if it is not
+### 3.1 CI is green
 
-Check the CI badge or the Actions tab. The workflow prints a compact failure
-summary on any failure: failing test names with their messages, the lint text
-report, and whether the screenshots were written. That step is called "Show
-what failed".
+It went green on 2026-09-19 at commit `9cbfc04`, run 9: both flavours build,
+every unit test passes, all twelve screenshots are recorded, and lint passes
+with `abortOnError = true`.
+
+Keep it that way. The workflow prints a compact failure summary on any
+failure: failing test names with their messages, the lint text report, and
+whether the screenshots were written. That step is called "Show what failed".
+It exists because Gradle's own `--stacktrace` output says nothing about the
+code.
 
 ### 3.2 Turn the screenshots into a real check
 

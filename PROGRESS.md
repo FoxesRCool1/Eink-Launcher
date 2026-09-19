@@ -4,6 +4,37 @@ One section per step. Newest step at the top.
 
 ---
 
+## CI went green
+
+2026-09-19, at commit `9cbfc04`, run 9.
+
+Everything passes at once for the first time:
+
+- Both flavours build. The APKs are about 24 MB together.
+- Every unit test passes.
+- All twelve screenshots are recorded at 1440 by 1920 and uploaded.
+- Lint passes with `abortOnError = true`.
+
+It took nine runs. What was wrong each time, in order:
+
+1. AGP 9 compiles Kotlin itself and refuses `org.jetbrains.kotlin.android`.
+2. AGP still needs the Compose compiler plugin, which I had removed too eagerly.
+3. The SDK install step looked for `sdkmanager` in a place this runner does
+   not keep it.
+4. Robolectric could not reach into `java.io` on a sealed JDK, and at API 36 it
+   takes a path that needs to. Fixed with `--add-opens` and by pinning the test
+   sandbox to API 35.
+5. One test was wrong: it expected `///` to mean the data folder.
+
+Two of those runs were cancelled by my own pushes before they could report.
+The workflow no longer cancels a run that is already going.
+
+**The screenshots have no baseline yet.** CI records them and uploads them as
+an artifact; it does not compare them. Look at them, commit them, then turn on
+comparison. That is the next thing to do.
+
+---
+
 ## Step 6. Writing tab, typed half
 
 Model: Opus. Date: 2026-09-19. State: the typed half is built. The handwritten

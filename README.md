@@ -1,5 +1,7 @@
 # Eink Launcher
 
+[![CI](https://github.com/FoxesRCool1/Eink-Launcher/actions/workflows/ci.yml/badge.svg?branch=claude/initial-steps-0ijaly)](https://github.com/FoxesRCool1/Eink-Launcher/actions/workflows/ci.yml)
+
 An Android launcher for e-ink tablets. It replaces the home screen with a
 calm, text first screen: Reading, Writing, Journal and Apps.
 
