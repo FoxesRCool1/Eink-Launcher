@@ -4,6 +4,71 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 4. Storage layer
+
+Model: Opus. Date: 2026-09-19. State: code and tests complete, waiting for CI
+and for a device test.
+
+### What was built
+
+- `FileStore`: everything the app may do with the data folder, as one
+  interface. `LocalFileStore` is the only implementation today and uses plain
+  `java.io.File`.
+- `StorageLayout`: which folder and which file name for every kind of thing,
+  plus a name cleaner that survives FAT32 and a synced Windows folder.
+- `RelativePaths`: the path rules. `..`, a leading slash, a drive letter and a
+  stray space are all refused rather than repaired.
+- Safe writes: every write goes to a temporary file next to the target and is
+  renamed over it, so a tablet that loses power keeps the last good version.
+- `BackupArchive`: backup to zip and restore from zip, with the zip slip attack
+  refused and counted.
+- `LibraryIndex`: a list of what is in the folder, thrown away and rebuilt from
+  the folder on demand. Written as lines, so no library is needed and a
+  damaged line does not lose the rest.
+- `DataRepository`: the one way in. Import a book, read and write notes and
+  journal entries, find a free file name, back up, restore, rebuild the index.
+- `StorageBenchmark`: the 500 file measurement the plan asks for, run from the
+  Dev screen.
+- Settings now shows the data folder path and has Back up, Restore and Rebuild
+  index. Restore asks first.
+- 60 or so unit tests across paths, layout, the file store, backup and
+  restore, the index and the repository. All plain JUnit, no Robolectric, so
+  they run fast.
+- `docs/decisions/0005-storage-layer.md`.
+
+### What does not work yet
+
+- **The measurement is not done.** The plan asks for 500 files through the
+  Storage Access Framework before choosing where the data folder lives. That
+  has to happen on the tablet. Until then the folder is
+  `Android/data/<package>/files/EinkLauncher`, which needs no permission but
+  which a sync program cannot reach on Android 11 and later. The decision file
+  explains what would change the choice.
+- **Room is not in.** The plan names Room for the index. Room needs KSP, AGP 9
+  compiles Kotlin itself now, and the KSP version has to match the Kotlin
+  version AGP brings. That pairing cannot be tested on this machine. The index
+  works without it and keeps the same shape, so swapping it in later is a
+  contained change. The app writes its Kotlin version into the log at start-up
+  so the right KSP version can be picked.
+- No `SafFileStore` yet. It fits behind `FileStore` when the measurement says
+  it is fast enough.
+
+### Device test list for the owner
+
+1. Open Settings. Read the data folder path. It should start with
+   `/storage/emulated/0/Android/data/io.github.foxesrcool1.einklauncher`.
+2. Press "Back up". A file picker should open. Save the zip somewhere you can
+   find it.
+3. Copy that zip to a computer and open it. It should hold `notes/`,
+   `journal/` and the rest, with readable names.
+4. Press "Rebuild index". Write down how long it takes.
+5. Press "Restore" and pick the zip back. It should ask first, then say how
+   many files it read.
+6. Open Settings, then Design demo, then the Dev tab. Press "Time 500 files".
+   Send me every number. That measurement decides where the data folder lives.
+
+---
+
 ## Step 3. Launcher shell
 
 Model: Opus. Date: 2026-09-19. State: code complete, waiting for CI and for a

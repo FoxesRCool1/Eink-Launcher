@@ -102,7 +102,15 @@ object StorageLayout {
      */
     fun bookIdFor(fileName: String, sizeBytes: Long): String {
         val stem = fileName.substringBeforeLast('.', fileName)
-        return "${safeName(stem).lowercase(Locale.ROOT)}-$sizeBytes"
+        val slug = safeName(stem)
+            .lowercase(Locale.ROOT)
+            .replace(' ', '-')
+            .replace('.', '-')
+            .replace('_', '-')
+            .replace(Regex("-{2,}"), "-")
+            .trim('-')
+            .ifBlank { "book" }
+        return "$slug-$sizeBytes"
     }
 
     /** True when the file is something the Reading tab can open. */

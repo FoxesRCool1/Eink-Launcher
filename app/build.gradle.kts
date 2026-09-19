@@ -102,8 +102,31 @@ android {
 // The unit test JVM runs with the module directory as its working directory,
 // so the paths in the tests land in app/build/outputs/roborazzi/.
 tasks.withType<Test>().configureEach {
+    // Robolectric reaches into java.io and java.lang internals to build its
+    // Android sandbox. A modern JDK seals those packages, and the failure
+    // reads "Failed to interact with raw FileDescriptor internals", which
+    // says nothing about the cause. These flags open exactly what it needs.
+    jvmArgs(
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+        "--add-opens=java.base/java.net=ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "--add-opens=java.base/java.security=ALL-UNNAMED",
+        "--add-opens=java.base/java.text=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+    )
+
     systemProperty("roborazzi.test.record", "true")
     systemProperty("robolectric.graphicsMode", "NATIVE")
+
+    // The screenshot tests are told exactly where to write, as an absolute
+    // path. A relative path would depend on the working directory of the test
+    // JVM, and then the pictures land somewhere CI does not look.
+    val screenshotDir = layout.buildDirectory.dir("outputs/roborazzi").get().asFile
+    systemProperty("roborazzi.output.dir", screenshotDir.absolutePath)
+    systemProperty("eink.screenshot.dir", screenshotDir.absolutePath)
 }
 
 dependencies {

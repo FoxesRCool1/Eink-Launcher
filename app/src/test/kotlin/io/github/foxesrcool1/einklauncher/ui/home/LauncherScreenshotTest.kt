@@ -2,7 +2,7 @@ package io.github.foxesrcool1.einklauncher.ui.home
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import com.github.takahirom.roborazzi.captureRoboImage
+import io.github.foxesrcool1.einklauncher.support.captureTo
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +28,7 @@ class LauncherScreenshotTest {
     private val fixedTime = LocalDateTime.of(2026, 9, 19, 8, 4)
 
     private fun capture(name: String) {
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
+        compose.onRoot().captureTo(name)
     }
 
     @Test

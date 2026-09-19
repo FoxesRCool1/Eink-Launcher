@@ -64,12 +64,25 @@ The key signs debug builds only. The release key never enters the repository.
 `.gitignore` blocks `keystore/release.keystore`, `*.jks` and
 `*.keystore.properties`.
 
-## Robolectric sandbox level
+## Robolectric sandbox level and the JDK
 
-Robolectric 4.17 runs the tests at API 36, set in
-`app/src/test/resources/robolectric.properties`. The app itself compiles and
-ships against API 37. Raise the test level when a Robolectric release adds a
-full API 37 sandbox.
+Robolectric runs the tests at API 35, set in
+`app/src/test/resources/robolectric.properties`. The app compiles and ships
+against API 37; only the sandbox is pinned.
+
+Two things forced this, and CI found both:
+
+1. **A sealed JDK.** Robolectric reaches into `java.io` and `java.lang`
+   internals to build its sandbox. A modern JDK refuses that, and the failure
+   reads "Failed to interact with raw FileDescriptor internals; perhaps JRE has
+   changed?", which points nowhere. The `--add-opens` flags in
+   `app/build.gradle.kts` open exactly the packages it needs.
+2. **API 36 takes a worse path.** At API 36 the sandbox builds an
+   `ApplicationSharedMemory`, new in Android 16, and that is where the
+   FileDescriptor call happens. API 35 does not go there at all.
+
+Raise the sandbox when a Robolectric release handles API 36 cleanly, and look
+at the screenshots afterwards to check nothing moved.
 
 ## Open points
 

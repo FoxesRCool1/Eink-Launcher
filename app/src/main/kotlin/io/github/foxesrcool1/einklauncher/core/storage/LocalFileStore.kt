@@ -74,12 +74,19 @@ class LocalFileStore(private val root: File) : FileStore {
         if (!start.exists()) return emptyList()
 
         val found = mutableListOf<StoredEntry>()
+
         // An explicit stack rather than recursion: a deep folder tree that a
-        // sync program made should not overflow the stack.
+        // sync program made should not overflow the stack. The visited set
+        // stops a link that points back at a parent from looping for ever.
         val pending = ArrayDeque<File>()
+        val visited = mutableSetOf<String>()
         pending.addLast(start)
+
         while (pending.isNotEmpty()) {
             val current = pending.removeFirst()
+            val key = runCatching { current.canonicalPath }.getOrDefault(current.path)
+            if (!visited.add(key)) continue
+
             val children = current.listFiles() ?: continue
             children.forEach { child ->
                 if (child.isDirectory) pending.addLast(child) else found += entryOf(child)
@@ -120,28 +127,38 @@ class LocalFileStore(private val root: File) : FileStore {
      */
     private fun writeAtomically(relativePath: String, body: (OutputStream) -> Unit): Boolean {
         return runCatching {
-            val target = resolve(relativePath)
-            target.parentFile?.mkdirs()
+            if (RelativePaths.normalise(relativePath).isEmpty()) return@runCatching false
 
-            val temporary = File(target.parentFile, "${target.name}.part-${System.nanoTime()}")
+            val target = resolve(relativePath)
+            val parent = target.parentFile ?: return@runCatching false
+            parent.mkdirs()
+
+            val temporary = File(parent, "${target.name}.part-${System.nanoTime()}")
             try {
                 temporary.outputStream().use { output ->
                     body(output)
                     output.flush()
                 }
-                if (target.exists() && !target.delete()) {
-                    // Some file systems refuse a rename onto an existing file.
-                    temporary.delete()
-                    return@runCatching false
-                }
+
+                // On every file system this app will meet except Windows, a
+                // rename replaces the file that is there, in one step.
+                if (temporary.renameTo(target)) return@runCatching true
+
+                // Windows and some memory cards refuse that. Move the old file
+                // aside rather than delete it, so it can be put back if the
+                // rename fails again. Deleting first would mean a failure here
+                // loses the note.
+                val aside = File(parent, "${target.name}.old-${System.nanoTime()}")
+                val movedAside = target.exists() && target.renameTo(aside)
+
                 if (temporary.renameTo(target)) {
-                    true
-                } else {
-                    // Last resort: copy the bytes across and drop the temporary.
-                    temporary.copyTo(target, overwrite = true)
-                    temporary.delete()
-                    target.exists()
+                    if (movedAside) aside.delete()
+                    return@runCatching true
                 }
+
+                if (movedAside) aside.renameTo(target)
+                temporary.delete()
+                false
             } catch (error: Throwable) {
                 temporary.delete()
                 throw error

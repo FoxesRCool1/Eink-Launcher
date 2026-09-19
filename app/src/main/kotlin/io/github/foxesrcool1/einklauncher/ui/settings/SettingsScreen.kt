@@ -137,6 +137,9 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        StorageSection()
+
+        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
         CapsLabel(text = "Trouble shooting", style = EinkType.capsSmall)
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(10.dp))

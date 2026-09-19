@@ -49,11 +49,29 @@ Read this file at the start of every session. It is the short form of
 - Every reflection call into a vendor API is wrapped in `runCatching` and
   writes its result to `AppLog`. A vendor API must never crash the app.
 
+## Storage rules
+
+- Plain files are the truth. The index is a cache and must always be
+  rebuildable from the folder. If a file the user copied in by hand would be
+  invisible, the design is wrong.
+- Screens talk to `DataRepository`, never to `FileStore` and never to a raw
+  path string.
+- Every path goes through `RelativePaths.normalise`. A path that leaves the
+  data folder is refused, not repaired. This matters most on restore: a zip
+  can name an entry `../../somewhere`.
+- Every write is atomic: temporary file, then rename. `LocalFileStore.write`
+  already does this, so use it rather than opening a stream yourself.
+- New kinds of file get a path builder in `StorageLayout`, not a string
+  somewhere in a screen.
+
 ## Layout of the code
 
 ```
 app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
   core/log/      file logger, crash handler
+  core/storage/  data folder, file store, backup, index
+  core/settings/ the few values that live in DataStore
+  core/launcher/ becoming the home app
   design/        colours, type, sizes, theme
   design/components/  the design system
   ui/            screens
@@ -61,6 +79,11 @@ app/src/debug/   the dev panel, internet permission, file provider
 app/src/release/ stubs for the debug only parts
 app/src/test/    unit tests and Roborazzi screenshot tests
 ```
+
+## Before you start
+
+Read `docs/HANDOFF.md`. It says what is finished, what is deliberately not
+finished, and which traps have already cost a day.
 
 ## Useful commands
 

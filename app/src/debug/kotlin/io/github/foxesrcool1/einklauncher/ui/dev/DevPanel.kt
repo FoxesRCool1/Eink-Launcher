@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
+import io.github.foxesrcool1.einklauncher.core.storage.StorageBenchmark
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
@@ -64,6 +66,7 @@ fun DevPanel(modifier: Modifier = Modifier) {
 
     var url by remember { mutableStateOf(prefs.getString(KEY_URL, DEFAULT_URL) ?: DEFAULT_URL) }
     var status by remember { mutableStateOf("Ready") }
+    var benchmark by remember { mutableStateOf("Not measured yet") }
     var busy by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -121,6 +124,47 @@ fun DevPanel(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(EinkDimens.targetGap))
         EinkText(text = status, style = EinkType.body)
+
+        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        CapsLabel(text = "Storage speed", style = EinkType.capsSmall)
+        Spacer(modifier = Modifier.height(6.dp))
+        EinkText(
+            text = "Plan step 4 asks for a measurement with 500 files before choosing " +
+                "how the data folder is reached. Run this on the tablet and send me " +
+                "the numbers. It cleans up after itself.",
+            style = EinkType.body,
+        )
+        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+
+        InvertPressButton(
+            text = "Time 500 files",
+            enabled = !busy,
+            onClick = {
+                busy = true
+                benchmark = "Running"
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        runCatching { StorageBenchmark.run(DataRoot.repository(context).store) }
+                    }
+                    busy = false
+                    benchmark = result.fold(
+                        onSuccess = { measured ->
+                            measured.asLines().forEach { line ->
+                                AppLog.i(TAG, "Storage benchmark: $line")
+                            }
+                            measured.asLines().joinToString("\n")
+                        },
+                        onFailure = { error ->
+                            AppLog.e(TAG, "Storage benchmark failed", error)
+                            "Failed: ${error.message}"
+                        },
+                    )
+                }
+            },
+        )
+
+        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+        EinkText(text = benchmark, style = EinkType.body)
     }
 }
 

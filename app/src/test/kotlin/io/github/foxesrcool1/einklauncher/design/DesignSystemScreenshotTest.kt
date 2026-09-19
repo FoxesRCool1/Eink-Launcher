@@ -18,7 +18,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
-import com.github.takahirom.roborazzi.captureRoboImage
+import io.github.foxesrcool1.einklauncher.support.captureTo
 import io.github.foxesrcool1.einklauncher.design.components.BotanicalCorner
 import io.github.foxesrcool1.einklauncher.design.components.BotanicalSprig
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
@@ -54,7 +54,7 @@ class DesignSystemScreenshotTest {
     val compose = createComposeRule()
 
     private fun capture(name: String) {
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
+        compose.onRoot().captureTo(name)
     }
 
     @Test
