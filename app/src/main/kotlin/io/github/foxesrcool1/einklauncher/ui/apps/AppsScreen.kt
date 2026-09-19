@@ -72,7 +72,7 @@ fun AppsScreen(
     LaunchedEffect(repository) {
         repository.packageChanges().collect {
             val loaded = withContext(Dispatchers.IO) { repository.loadAll() }
-            val ways = withContext(Dispatchers.IO) { repository.escapeEntries() }
+            val ways = withContext(Dispatchers.IO) { repository.escapeEntries(loaded) }
             apps = loaded
             escapes = ways
         }

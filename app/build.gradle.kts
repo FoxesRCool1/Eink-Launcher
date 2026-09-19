@@ -90,6 +90,8 @@ android {
     lint {
         warningsAsErrors = false
         abortOnError = true
+        // A text report can be read straight out of the CI log.
+        textReport = true
         disable += "GradleDependency"
     }
 }

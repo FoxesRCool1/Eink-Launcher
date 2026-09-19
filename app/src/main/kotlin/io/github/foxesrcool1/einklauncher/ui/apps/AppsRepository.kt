@@ -82,8 +82,11 @@ class AppsRepository(context: Context) {
      * The fixed entries that always let the user leave. Plan section 3.2: the
      * user must always be able to reach the ViWoods settings and the stock
      * launcher from our Apps tab.
+     *
+     * It takes the list from [loadAll] rather than reading it again. Listing
+     * every app twice on a tablet with a slow processor is a visible pause.
      */
-    fun escapeEntries(): List<EscapeEntry> {
+    fun escapeEntries(apps: List<LauncherEntry>): List<EscapeEntry> {
         val result = mutableListOf<EscapeEntry>()
 
         runCatching {
@@ -106,7 +109,7 @@ class AppsRepository(context: Context) {
         // Wi-Fi. Its package name is not documented, so look for it by name.
         // Step 3 device testing has to confirm what it really is.
         runCatching {
-            loadAll()
+            apps
                 .filter { it.packageName.contains("viwoods", ignoreCase = true) }
                 .forEach { entry ->
                     result += EscapeEntry(

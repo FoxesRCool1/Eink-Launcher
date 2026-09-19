@@ -75,10 +75,51 @@ jobs:
       - name: Build, test and lint
         timeout-minutes: 30
         run: |
-          ./gradlew --stacktrace \
+          ./gradlew \
             assembleViwoodsDebug assembleGenericDebug \
             testViwoodsDebugUnitTest testGenericDebugUnitTest \
             lintViwoodsDebug lintGenericDebug < /dev/null
+
+      # Gradle prints a stack trace of its own internals, which says nothing
+      # about the code. This reads the reports and prints the part that does.
+      - name: Show what failed
+        if: failure()
+        timeout-minutes: 5
+        run: |
+          echo "===== Failing unit tests ====="
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+
+          found = False
+          for path in sorted(glob.glob("app/build/test-results/**/*.xml", recursive=True)):
+              try:
+                  root = ET.parse(path).getroot()
+              except Exception:
+                  continue
+              for case in root.iter("testcase"):
+                  bad = list(case.findall("failure")) + list(case.findall("error"))
+                  for problem in bad:
+                      found = True
+                      print(f'{case.get("classname")}.{case.get("name")}')
+                      body = (problem.get("message") or "") + "\n" + (problem.text or "")
+                      for line in body.strip().splitlines()[:15]:
+                          print("    " + line)
+                      print("-" * 70)
+          if not found:
+              print("No failing test case was recorded. The failure is somewhere else.")
+          PY
+
+          echo
+          echo "===== Lint ====="
+          shopt -s nullglob
+          for report in app/build/reports/lint-results-*.txt; do
+            echo "--- $report"
+            head -100 "$report"
+          done
+          echo
+          echo "===== Screenshot output ====="
+          ls -la app/build/outputs/roborazzi 2>/dev/null || echo "no screenshots were written"
 
       - name: Upload the debug APKs
         if: always()

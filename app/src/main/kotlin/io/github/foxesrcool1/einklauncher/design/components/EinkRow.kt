@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -38,25 +39,38 @@ fun EinkRow(
 ) {
     var pressed by remember { mutableStateOf(false) }
 
-    // detectTapGestures wants ((Offset) -> Unit)?, so the parameter type has
-    // to be written out. Without it the lambda has nothing to infer from.
-    val longPress: ((Offset) -> Unit)? = onLongClick?.let { action ->
-        { _: Offset -> action() }
-    }
+    // A new lambda arrives on every recomposition. If those lambdas were the
+    // pointerInput keys, the gesture detector would be torn down and rebuilt
+    // every time, and a press in flight would be lost. Key on Unit and read
+    // the newest lambdas through these instead.
+    val currentClick by rememberUpdatedState(onClick)
+    val currentLongClick by rememberUpdatedState(onLongClick)
+    val hasLongClick = onLongClick != null
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = minHeight)
             .background(if (pressed) EinkColors.Ink else EinkColors.Paper)
-            .pointerInput(onClick, longPress) {
+            .pointerInput(hasLongClick) {
+                // detectTapGestures wants ((Offset) -> Unit)?, so the parameter
+                // type has to be written out. Passing null when there is no
+                // long press keeps the normal tap fast: with a long press
+                // handler the detector has to wait before it reports a tap.
+                val longPress: ((Offset) -> Unit)? =
+                    if (hasLongClick) {
+                        { _: Offset -> currentLongClick?.invoke() }
+                    } else {
+                        null
+                    }
+
                 detectTapGestures(
                     onPress = {
                         pressed = true
                         tryAwaitRelease()
                         pressed = false
                     },
-                    onTap = { onClick() },
+                    onTap = { currentClick() },
                     onLongPress = longPress,
                 )
             }

@@ -45,10 +45,12 @@ class SettingsStore(context: Context) {
                 ?.split('\n')
                 ?.filter { it.isNotBlank() }
                 ?: emptyList()
-            val next = if (current.contains(key)) {
-                current - key
-            } else {
-                (current + key).take(MAX_PINNED)
+            val next = when {
+                current.contains(key) -> current - key
+                // A full list keeps what it has. Dropping the app the user
+                // just chose, or the oldest one, would both be a surprise.
+                current.size >= MAX_PINNED -> current
+                else -> current + key
             }
             prefs[KEY_PINNED] = next.joinToString("\n")
         }
