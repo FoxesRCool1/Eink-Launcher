@@ -43,7 +43,7 @@ because it is committed.
 | 4. Storage layer | Opus | Code and tests complete. One measurement still open, see below. |
 | 5. Ink engine | **Fable** | Not started. Blocks the handwriting half of steps 6, 8 and 9. |
 | 6. Writing tab | Opus | Typed half built: file browser, Markdown editor, autosave, keyboard shortcuts, quick note. Handwritten notebook and export are left. |
-| 7. Reading tab, library and EPUB | Opus | Not started. Needs the Readium toolkit added. |
+| 7. Reading tab, library and EPUB | Opus | Library, import and EPUB title reading built. The reader is not: it needs Readium, and Readium needs judging on the real panel first. |
 | 8. Reading tab, PDF | **Fable** | Not started. |
 | 9. Journal tab | Opus | Built: day view, month view, habits with streaks and dots, the routine list and the "Next" line on Today. Only the handwritten entry is missing, and that needs step 5. |
 | 10. Audit and release | Opus | Not started. |
@@ -101,11 +101,12 @@ which and why.
 
 ### 3.5 Then pick a step
 
-- **Step 7, Reading**, is the next Opus step with real size to it. It needs
-  the Readium Kotlin toolkit added. Check its current version on the web first
-  and check the licence, which should be BSD-3. Weigh it carefully: Readium
-  draws with a WebView, and plan section 8 lists "Readium is slow or ghosts on
-  e-ink" as a risk to judge before building more on it.
+- **Step 7's reader** is the next Opus step with real size to it. The library
+  and the import are already done, so what is left is the reader itself on the
+  Readium toolkit. Check its current version and licence on the web first; it
+  should be BSD-3. Judge it on the panel before building more on it: plan
+  section 8 lists "Readium is slow or ghosts on e-ink" as a real risk, and a
+  paginated WebView is exactly the thing that ghosts.
 - **Smaller pieces still open:** export to PDF and PNG (step 6), and the
   handwritten halves of steps 6 and 9, which both wait on step 5.
 - **Step 6, Writing**, can be built for typed notes now. Leave a gap where the

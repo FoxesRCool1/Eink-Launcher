@@ -4,6 +4,59 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 7 part one. The library and import
+
+Model: Opus. Date: 2026-09-19. State: the library is built. **The reader is
+not**, and that is on purpose. See below.
+
+### What was built
+
+- Import with the system file picker. The file is copied into `books/`. The
+  app never reads a book from where the user picked it: a file outside the
+  data folder can be moved or deleted, and then the reading position and every
+  note point at nothing.
+- `EpubMetadata`: reads the title and the author out of an EPUB by hand. An
+  EPUB is a zip, `META-INF/container.xml` says which file inside is the
+  package document, and that document holds `dc:title` and `dc:creator`. About
+  a hundred lines, with 14 tests that build real EPUB files and read them
+  back.
+  - It refuses a document that declares a doctype. A book is a file from
+    somewhere else, and an XML document can name an external entity and make a
+    careless parser read a file off the device. There is a test for that
+    attack.
+- The library list: title, author, kind and size, sorted by recent or by
+  title, paginated. Hold a row for the details and Delete.
+- Deleting a book takes its annotations with it, so nothing is left behind
+  that no book can open.
+
+### Why there is no reader yet
+
+Step 7 builds the reader on the Readium toolkit. Plan section 8 lists
+"Readium WebView is slow or ghosts on e-ink" as a risk and says to judge it
+before building more on it. That judgement needs the tablet.
+
+The library, the import and the title reading do not depend on that decision,
+so they are here now. Tapping a book says so rather than pretending.
+
+**When you add Readium:** check its current version and licence on the web
+first. It should be BSD-3. `EpubMetadata` can go once Readium is reading the
+same fields, or stay as the fast path for the list. Either is fine; say which
+in a decision file.
+
+### Device test list for the owner
+
+1. Open Read from Today. It should say the library is empty.
+2. Press Import. Pick a public domain EPUB from Standard Ebooks.
+3. The row should show the real title and author from inside the file, not the
+   file name.
+4. Import the same file again. It should say it is already in the library.
+5. Import a PDF. It should appear with the file name as its title.
+6. Hold a row and delete it.
+7. Check the data folder with a file manager. The books should be in
+   `EinkLauncher/books/`.
+
+---
+
 ## CI went green
 
 2026-09-19, at commit `9cbfc04`, run 9.

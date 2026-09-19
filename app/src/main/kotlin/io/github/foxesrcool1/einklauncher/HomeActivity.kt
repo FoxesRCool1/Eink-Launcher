@@ -27,9 +27,9 @@ import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import io.github.foxesrcool1.einklauncher.ui.apps.AppsScreen
 import io.github.foxesrcool1.einklauncher.ui.home.LauncherRoute
-import io.github.foxesrcool1.einklauncher.ui.home.PlaceholderScreen
 import io.github.foxesrcool1.einklauncher.ui.home.TodayScreen
 import io.github.foxesrcool1.einklauncher.ui.journal.JournalScreen
+import io.github.foxesrcool1.einklauncher.ui.reading.ReadingScreen
 import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorActivity
 import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
 import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
@@ -215,11 +215,7 @@ private fun LauncherHost(
             },
         )
 
-        LauncherRoute.Reading -> PlaceholderScreen(
-            route = route,
-            plannedStep = "Step 7 and step 8",
-            summary = "The library, the EPUB reader and the PDF reader live here. " +
-                "Import, highlights, typed notes and handwritten notes come with them.",
+        LauncherRoute.Reading -> ReadingScreen(
             onBack = { onRoute(LauncherRoute.Today) },
         )
 
