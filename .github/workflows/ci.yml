@@ -8,7 +8,10 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A new push does not kill the run that is already going. Twice now a push
+  # has cancelled a build at the lint stage, which is the one stage that had
+  # not yet reported. Two runs finishing is worth more than one saved minute.
+  cancel-in-progress: false
 
 env:
   # Never wait on a console prompt. A build that asks a question on a runner

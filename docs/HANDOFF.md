@@ -42,7 +42,7 @@ because it is committed.
 | 3. Launcher shell | Opus | Code complete. |
 | 4. Storage layer | Opus | Code and tests complete. One measurement still open, see below. |
 | 5. Ink engine | **Fable** | Not started. Blocks the handwriting half of steps 6, 8 and 9. |
-| 6. Writing tab | Opus | Not started. The typed half can be built without step 5. |
+| 6. Writing tab | Opus | Typed half built: file browser, Markdown editor, autosave, keyboard shortcuts, quick note. Handwritten notebook and export are left. |
 | 7. Reading tab, library and EPUB | Opus | Not started. Needs the Readium toolkit added. |
 | 8. Reading tab, PDF | **Fable** | Not started. |
 | 9. Journal tab | Opus | Mostly built: day view, month view, habits with streaks and dots, all tested. Missing the handwritten entry (needs step 5) and the routine list. |
@@ -96,12 +96,13 @@ which and why.
 
 ### 3.5 Then pick a step
 
-- **Step 6, Writing**, is the best next Opus step. The typed half can be built
-  now on the storage layer: a file browser over `DataRepository.listNotes`, a
-  Markdown editor, and Bluetooth keyboard shortcuts. Leave a gap where the
-  handwritten notebook goes and fill it after step 5.
-- **Step 9, Journal**, is nearly done. What is left is the routine list and
-  the "Next" line on Today, plus the handwritten entry once step 5 exists.
+- **Step 7, Reading**, is the next Opus step with real size to it. It needs
+  the Readium Kotlin toolkit added. Check its current version on the web first
+  and check the licence, which should be BSD-3. Weigh it carefully: Readium
+  draws with a WebView, and plan section 8 lists "Readium is slow or ghosts on
+  e-ink" as a risk to judge before building more on it.
+- **Smaller pieces still open:** the routine list and the "Next" line on Today
+  (step 9), and export to PDF and PNG (step 6).
 - **Step 6, Writing**, can be built for typed notes now. Leave a gap where the
   handwritten notebook goes and fill it after step 5.
 - **Step 7, Reading**, needs the Readium Kotlin toolkit added. Check its

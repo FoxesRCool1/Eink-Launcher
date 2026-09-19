@@ -65,6 +65,18 @@
         </activity>
 
         <!--
+          The typed note editor. Its own activity, so the Home key closes the
+          launcher and not the note the user is in the middle of writing.
+        -->
+        <activity
+            android:name=".ui.writing.NoteEditorActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.EinkLauncher"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!--
           The design system demo. A separate activity, so the launcher task
           stays clean and the Home key still goes to Today.
         -->

@@ -4,6 +4,56 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 6. Writing tab, typed half
+
+Model: Opus. Date: 2026-09-19. State: the typed half is built. The handwritten
+notebook waits for the ink engine, which is step 5 and is tagged for Fable.
+
+### What was built
+
+- `NotesRepository`: list, read, write, make a note, make a folder, rename,
+  move and delete, all over the storage layer, so a note can never be written
+  outside the user's folder. A folder cannot be moved into itself, which would
+  otherwise make it and everything in it disappear.
+- `NoteText`: word count, character count, and the title of a note. The title
+  is the first Markdown heading, or the first line with something on it, or
+  the file name. A heading marker does not make the word count go up.
+- The file browser: folders first, paginated at five rows a page. A row shows
+  the title from inside the note and the first line after it.
+- Moving is done by marking something and pressing "Paste here" in the folder
+  it should land in. Typing a path on a tablet with no keyboard is worse than
+  two taps, and dragging on e-ink needs an animation, which rule 1 forbids.
+- Delete asks first, and says whether it is about to take a folder with it.
+- `NoteEditorActivity`: its own activity, as the plan says, so the Home key
+  closes the launcher and not the note being written. It autosaves once the
+  typing stops for a second and a half, and again on the way out.
+- Bluetooth keyboard: Escape leaves the editor, Ctrl+S saves, Ctrl+N makes a
+  note from anywhere and opens the Writing tab.
+- Quick note from Today: one tap makes a note named after the moment and opens
+  it.
+
+### What is left
+
+- The handwritten notebook, after step 5.
+- Export to PDF and PNG.
+
+### Device test list for the owner
+
+1. Open Write from Today. Press "New note", type a title, press Write.
+2. The editor should open. Type a sentence. Wait two seconds. The line under
+   the text should change from "Not saved yet" to "Saved".
+3. Press the Home key. You should land on Today, not in the note.
+4. Open Write again. The note should be there with your first line under the
+   title.
+5. Make a folder. Hold the note, choose Move, open the folder, press "Paste
+   here".
+6. Hold the note and delete it. It should ask first.
+7. From Today, press "Quick note". A note named after the time should open.
+8. With a Bluetooth keyboard: press Ctrl+N from Today, then Escape in the
+   editor. Write down whether both worked.
+
+---
+
 ## Step 9. Journal tab
 
 Model: Opus. Date: 2026-09-19. State: most of it built. Waiting for CI and for

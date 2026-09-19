@@ -41,6 +41,7 @@ import java.time.LocalDateTime
 fun TodayScreen(
     onOpenTab: (LauncherRoute) -> Unit,
     onOpenSettings: () -> Unit,
+    onQuickNote: () -> Unit = {},
     modifier: Modifier = Modifier,
     now: LocalDateTime? = null,
     use24Hour: Boolean = true,
@@ -105,11 +106,18 @@ fun TodayScreen(
                     text = HomeStrings.status(batteryPercent, onWifi),
                     style = EinkType.capsSmall,
                 )
-                InvertPressButton(
-                    text = "Settings",
-                    onClick = onOpenSettings,
-                    bordered = false,
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+                    InvertPressButton(
+                        text = "Quick note",
+                        onClick = onQuickNote,
+                        bordered = false,
+                    )
+                    InvertPressButton(
+                        text = "Settings",
+                        onClick = onOpenSettings,
+                        bordered = false,
+                    )
+                }
             }
         }
     }
