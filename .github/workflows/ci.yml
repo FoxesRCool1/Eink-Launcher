@@ -10,11 +10,17 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Never wait on a console prompt. A build that asks a question on a runner
+  # is a build that hangs until the job times out.
+  GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.daemon=false
+  TERM: dumb
+
 jobs:
   build:
     name: Build, test and screenshot
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 40
 
     steps:
       - name: Check out the code
@@ -27,19 +33,39 @@ jobs:
           java-version: "21"
           cache: gradle
 
+      - name: Show what the runner already has
+        timeout-minutes: 5
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
+
+      # Install the SDK pieces here rather than letting Gradle fetch them in
+      # the middle of a build. A failure then names the package and does not
+      # look like a slow compile.
+      - name: Install the Android SDK packages
+        timeout-minutes: 15
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install "platforms;android-37" "build-tools;36.0.0" < /dev/null
+
       - name: Make the wrapper runnable
         run: chmod +x ./gradlew
 
-      - name: Build both flavours
-        run: ./gradlew --no-daemon assembleViwoodsDebug assembleGenericDebug
-
+      # One Gradle run, not three. Each extra run pays for a fresh JVM and a
+      # fresh configuration pass. Reading from /dev/null makes sure nothing can
+      # block on a prompt.
+      #
       # The unit tests also write the Roborazzi screenshots, because the test
       # task carries roborazzi.test.record = true. See app/build.gradle.kts.
-      - name: Unit tests and screenshots
-        run: ./gradlew --no-daemon testViwoodsDebugUnitTest testGenericDebugUnitTest
-
-      - name: Lint
-        run: ./gradlew --no-daemon lintViwoodsDebug lintGenericDebug
+      - name: Build, test and lint
+        timeout-minutes: 30
+        run: |
+          ./gradlew --stacktrace \
+            assembleViwoodsDebug assembleGenericDebug \
+            testViwoodsDebugUnitTest testGenericDebugUnitTest \
+            lintViwoodsDebug lintGenericDebug < /dev/null
 
       - name: Upload the debug APKs
         if: always()

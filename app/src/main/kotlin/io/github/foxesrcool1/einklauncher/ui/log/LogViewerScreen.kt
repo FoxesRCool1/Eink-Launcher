@@ -105,7 +105,7 @@ private fun LogRow(line: LogLine) {
         )
         EinkText(
             text = line.message,
-            style = EinkType.body.copy(fontSize = EinkType.body.fontSize),
+            style = EinkType.body,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )

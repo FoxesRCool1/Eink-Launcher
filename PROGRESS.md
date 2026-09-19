@@ -40,6 +40,11 @@ device test.
 
 - The build still has not run on this machine, for the same network reason as
   Step 1. `tools/parse-check.sh` is clean. CI decides.
+- The third CI run got past configuration and then sat in the build step until
+  the job timed out. The workflow now installs the Android SDK packages in a
+  step of its own, runs Gradle once instead of three times, reads from
+  `/dev/null` so nothing can block on a console prompt, and gives every long
+  step its own timeout. A hang now names the step it is in.
 - The ViWoods settings app is found by looking for "viwoods" in a package name.
   That is a guess. The owner must read the real package name off the tablet
   from the log, and then this becomes an exact match.
