@@ -45,7 +45,7 @@ because it is committed.
 | 6. Writing tab | Opus | Not started. The typed half can be built without step 5. |
 | 7. Reading tab, library and EPUB | Opus | Not started. Needs the Readium toolkit added. |
 | 8. Reading tab, PDF | **Fable** | Not started. |
-| 9. Journal tab | Opus | Groundwork done: the habit logic, the streak rules and both file formats, with tests. No screens yet. |
+| 9. Journal tab | Opus | Mostly built: day view, month view, habits with streaks and dots, all tested. Missing the handwritten entry (needs step 5) and the routine list. |
 | 10. Audit and release | Opus | Not started. |
 
 Steps 2, 5 and 8 are tagged for Fable in the plan and were left alone on
@@ -96,12 +96,12 @@ which and why.
 
 ### 3.5 Then pick a step
 
-- **Step 9, Journal**, is the best next Opus step, and half of it is already
-  done. `core/habits/` holds the streak rules, the day boundary and both file
-  formats, all tested. What is missing is the screens: the daily entry, the
-  month view, the habit rows with their dots, the routine list and the "Next"
-  line on Today. `HabitsRepository.summaries(today)` already returns
-  everything one habit row needs.
+- **Step 6, Writing**, is the best next Opus step. The typed half can be built
+  now on the storage layer: a file browser over `DataRepository.listNotes`, a
+  Markdown editor, and Bluetooth keyboard shortcuts. Leave a gap where the
+  handwritten notebook goes and fill it after step 5.
+- **Step 9, Journal**, is nearly done. What is left is the routine list and
+  the "Next" line on Today, plus the handwritten entry once step 5 exists.
 - **Step 6, Writing**, can be built for typed notes now. Leave a gap where the
   handwritten notebook goes and fill it after step 5.
 - **Step 7, Reading**, needs the Readium Kotlin toolkit added. Check its

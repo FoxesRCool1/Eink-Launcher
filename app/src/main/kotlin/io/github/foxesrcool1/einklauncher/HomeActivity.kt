@@ -19,6 +19,7 @@ import io.github.foxesrcool1.einklauncher.ui.apps.AppsScreen
 import io.github.foxesrcool1.einklauncher.ui.home.LauncherRoute
 import io.github.foxesrcool1.einklauncher.ui.home.PlaceholderScreen
 import io.github.foxesrcool1.einklauncher.ui.home.TodayScreen
+import io.github.foxesrcool1.einklauncher.ui.journal.JournalScreen
 import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
 
@@ -109,11 +110,7 @@ private fun LauncherHost(
             onBack = { onRoute(LauncherRoute.Today) },
         )
 
-        LauncherRoute.Journal -> PlaceholderScreen(
-            route = route,
-            plannedStep = "Step 9",
-            summary = "One entry per day, a month view, habits with streaks and the " +
-                "routine list live here.",
+        LauncherRoute.Journal -> JournalScreen(
             onBack = { onRoute(LauncherRoute.Today) },
         )
 

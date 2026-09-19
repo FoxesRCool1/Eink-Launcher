@@ -4,13 +4,14 @@ One section per step. Newest step at the top.
 
 ---
 
-## Step 9 groundwork. Habits, streaks and the file formats
+## Step 9. Journal tab
 
-Model: Opus. Date: 2026-09-19. State: logic and file formats complete with
-tests. **No screens yet.** Step 9 builds those.
+Model: Opus. Date: 2026-09-19. State: most of it built. Waiting for CI and for
+a device test.
 
-This is not step 9 finished. It is the part of step 9 that needs nothing from
-the Fable steps and nothing from a tablet, built while the rest waits.
+Two parts are missing on purpose. The handwritten entry needs the ink engine,
+which is step 5 and is tagged for Fable. The routine list and the "Next" line
+on Today are still to build.
 
 ### What was built
 
@@ -37,10 +38,38 @@ the Fable steps and nothing from a tablet, built while the rest waits.
   be lost to one tap.
 - About 60 more unit tests.
 
+### The screens
+
+- Day view: the date, Previous and Next, the typed entry with Write, Edit,
+  Save and Cancel, and the habits.
+- Month view: whole weeks starting on Monday. A day with an entry carries a
+  short rule under its number, not a filled cell, because a filled cell on
+  this panel ghosts. Tap a day to open it.
+- Habit rows: the name, the streak in words, and fourteen dots for the last
+  fourteen days. Tap to mark today done or undone. Hold for rename, archive
+  and the longest streak.
+- Add a habit through a one line prompt.
+- New design system parts: `TextPromptDialog`.
+
 ### What is left for step 9
 
-The screens: the daily entry, the month view, the habit rows with their dots,
-the routine list, and the "Next" line on Today.
+- The handwritten entry. The "Handwrite" control is there and disabled until
+  step 5 exists.
+- The routine list and the "Next" line on Today.
+
+### Device test list for the owner
+
+1. Open Journal from Today. You should land on today's date.
+2. Press "Write", type a line, press "Save". Leave the tab and come back. The
+   line should still be there.
+3. Press "Add habit" and add one. Tap its row. The big dot should fill.
+4. Tap it again. It should empty.
+5. Press "Month". The month should fill one screen with no scrolling. The days
+   you wrote on should carry a rule under the number.
+6. Tap a day in the month. It should open that day.
+7. Hold a habit row. Rename it. The streak must not reset.
+8. Watch for ghosting when you turn from Day to Month and back. Write down
+   what you see.
 
 ---
 
