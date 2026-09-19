@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.cxx/
+
+# Screenshot test output is a build product. CI uploads it as an artifact.
+app/build/outputs/roborazzi/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.kotlin/
+
+# OS
+.DS_Store
+
+# Release signing material must never enter the repository.
+# The debug key in keystore/debug.keystore is safe and is checked in on purpose.
+keystore/release.keystore
+keystore/*.jks
+*.keystore.properties

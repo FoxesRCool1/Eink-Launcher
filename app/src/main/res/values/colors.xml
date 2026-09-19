@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pure black on pure white. No tint. A tint dithers into dirty grey on e-ink. -->
+    <color name="eink_ink">#FF000000</color>
+    <color name="eink_paper">#FFFFFFFF</color>
+</resources>

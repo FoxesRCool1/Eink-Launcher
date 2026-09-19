@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Original line art for this project. A single stem with six leaves.
+  Drawn by hand as vector paths. It is not traced from any other drawing.
+  Licence: same as the app (see LICENSE).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- stem -->
+    <path
+        android:pathData="M54,82 C54,70 55,58 58,46 C60,37 63,30 67,25"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+
+    <!-- leaves on the left of the stem -->
+    <path
+        android:pathData="M56,66 C48,66 42,62 39,56 C46,54 53,57 56,66 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M58,54 C51,53 46,49 44,43 C51,42 57,46 58,54 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M61,42 C55,40 51,36 50,30 C56,30 61,34 61,42 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+
+    <!-- leaves on the right of the stem -->
+    <path
+        android:pathData="M56,68 C63,69 69,66 73,60 C66,57 59,60 56,68 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M59,56 C65,57 71,54 74,48 C67,46 61,49 59,56 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M62,44 C68,44 73,41 75,36 C69,34 64,37 62,44 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+
+</vector>

@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and screenshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Make the wrapper runnable
+        run: chmod +x ./gradlew
+
+      - name: Build both flavours
+        run: ./gradlew --no-daemon assembleViwoodsDebug assembleGenericDebug
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testViwoodsDebugUnitTest testGenericDebugUnitTest
+
+      - name: Screenshot tests
+        run: ./gradlew --no-daemon recordRoborazziViwoodsDebug
+
+      - name: Lint
+        run: ./gradlew --no-daemon lintViwoodsDebug lintGenericDebug
+
+      - name: Upload the debug APKs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: debug-apks
+          path: app/build/outputs/apk/**/debug/*.apk
+          if-no-files-found: warn
+
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: app/build/outputs/roborazzi/**
+          if-no-files-found: warn
+
+      - name: Upload the test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            app/build/reports/**
+            app/build/test-results/**
+          if-no-files-found: warn
