@@ -132,11 +132,25 @@ on Today are still to build.
 - Add a habit through a one line prompt.
 - New design system parts: `TextPromptDialog`.
 
+### The routine
+
+- `habits/routine.json` holds the list, `habits/routine-log.csv` holds what
+  was ticked off on which day. Two files, so ticking something off never
+  rewrites the list.
+- The Journal tab has a Routine page. A tap ticks an item off. The order is
+  changed with Up and Down arrows rather than by dragging, because a drag
+  needs a moving picture under the finger and rule 1 has no exceptions.
+- Today shows the next item that is not ticked off, with a Start control.
+  "Next" means the first one in the user's own order, not the nearest in time.
+  When the routine is empty or finished the line is left out entirely rather
+  than shown blank, because a blank line on e-ink is a repaint for nothing.
+- An item can open a tab in this app, open another app, or open nothing at
+  all. An item that opens nothing is ticked off by its own Start control.
+
 ### What is left for step 9
 
 - The handwritten entry. The "Handwrite" control is there and disabled until
   step 5 exists.
-- The routine list and the "Next" line on Today.
 
 ### Device test list for the owner
 
@@ -148,6 +162,9 @@ on Today are still to build.
 5. Press "Month". The month should fill one screen with no scrolling. The days
    you wrote on should carry a rule under the number.
 6. Tap a day in the month. It should open that day.
+6a. Press "Routine", add two items, then use Up and Down to swap them.
+6b. Go back to Today. The first item should show under "Next" with a Start
+    control. Press Start, then check the Journal shows it ticked off.
 7. Hold a habit row. Rename it. The streak must not reset.
 8. Watch for ghosting when you turn from Day to Month and back. Write down
    what you see.

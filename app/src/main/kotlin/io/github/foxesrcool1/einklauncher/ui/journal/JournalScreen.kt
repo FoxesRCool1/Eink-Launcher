@@ -27,6 +27,8 @@ import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitSummary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.routine.RoutineRepository
+import io.github.foxesrcool1.einklauncher.core.routine.RoutineStatus
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
@@ -50,7 +52,7 @@ import java.time.ZoneId
 private const val TAG = "JournalScreen"
 private const val HABITS_PER_PAGE = 3
 
-private enum class JournalMode { Day, Month }
+private enum class JournalMode { Day, Month, Routine }
 
 /**
  * The Journal tab: one entry per day, a month view, and the habits.
@@ -69,6 +71,7 @@ fun JournalScreen(
     val scope = rememberCoroutineScope()
     val data = remember(context) { DataRoot.repository(context) }
     val habits = remember(data) { HabitsRepository(data) }
+    val routine = remember(data) { RoutineRepository(data) }
 
     var boundaryHour by remember { mutableIntStateOf(DayBoundary.DEFAULT_HOUR) }
     val today = fixedToday
@@ -84,10 +87,12 @@ fun JournalScreen(
     var savedText by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf(false) }
     var summaries by remember { mutableStateOf<List<HabitSummary>>(emptyList()) }
+    var routineRows by remember { mutableStateOf<List<RoutineStatus>>(emptyList()) }
     var daysWithEntries by remember { mutableStateOf<Set<LocalDate>>(emptySet()) }
 
     var optionsFor by remember { mutableStateOf<HabitSummary?>(null) }
     var addingHabit by remember { mutableStateOf(false) }
+    var addingRoutineItem by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<HabitSummary?>(null) }
 
     LaunchedEffect(viewDate, refresh) {
@@ -98,6 +103,7 @@ fun JournalScreen(
                 summaries = habits.summaries(today),
                 monthDays = data.journalDatesIn(viewDate.year).toSet(),
                 boundaryHour = document.dayBoundaryHour,
+                routine = routine.statuses(today),
             )
         }
         entryText = loaded.entry
@@ -105,6 +111,7 @@ fun JournalScreen(
         summaries = loaded.summaries
         daysWithEntries = loaded.monthDays
         boundaryHour = loaded.boundaryHour
+        routineRows = loaded.routine
     }
 
     fun saveEntry() {
@@ -131,6 +138,16 @@ fun JournalScreen(
         corner = null,
         modifier = modifier,
     ) {
+        if (mode == JournalMode.Routine) {
+            Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+                InvertPressButton(text = "Day", onClick = { mode = JournalMode.Day })
+                CapsLabel(
+                    text = "Drag is not allowed on e-ink. Use the arrows.",
+                    style = EinkType.capsSmall.copy(color = EinkColors.Faded),
+                    maxLines = 2,
+                )
+            }
+        } else {
         Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
             InvertPressButton(
                 text = "Previous",
@@ -160,10 +177,49 @@ fun JournalScreen(
                 },
             )
         }
+        }
 
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
 
         when (mode) {
+            JournalMode.Routine -> {
+                CapsLabel(text = "Routine", style = EinkType.capsSmall)
+                HairlineDivider(color = EinkColors.Faded)
+
+                PagedList(
+                    items = routineRows,
+                    pageSize = 4,
+                    emptyText = "No routine yet",
+                    modifier = Modifier.weight(1f),
+                ) { index, status ->
+                    RoutineRow(
+                        status = status,
+                        isFirst = index == 0,
+                        isLast = index == routineRows.size - 1,
+                        onToggle = {
+                            scope.launch {
+                                withContext(Dispatchers.IO) {
+                                    routine.toggle(status.item.id, today)
+                                }
+                                refresh++
+                            }
+                        },
+                        onMove = { by ->
+                            scope.launch {
+                                withContext(Dispatchers.IO) { routine.move(status.item.id, by) }
+                                refresh++
+                            }
+                        },
+                        onRemove = {
+                            scope.launch {
+                                withContext(Dispatchers.IO) { routine.remove(status.item.id) }
+                                refresh++
+                            }
+                        },
+                    )
+                }
+            }
+
             JournalMode.Month -> {
                 MonthView(
                     month = viewDate,
@@ -270,7 +326,18 @@ fun JournalScreen(
             modifier = Modifier.fillMaxWidth().padding(top = EinkDimens.targetGap),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            InvertPressButton(text = "Add habit", onClick = { addingHabit = true })
+            if (mode == JournalMode.Routine) {
+                InvertPressButton(text = "Add item", onClick = { addingRoutineItem = true })
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+                    InvertPressButton(text = "Add habit", onClick = { addingHabit = true })
+                    InvertPressButton(
+                        text = "Routine",
+                        onClick = { mode = JournalMode.Routine },
+                        bordered = false,
+                    )
+                }
+            }
             InvertPressButton(text = "Today", onClick = onBack, bordered = false)
         }
     }
@@ -300,6 +367,21 @@ fun JournalScreen(
                     onSelect = { },
                 ),
             ),
+        )
+    }
+
+    if (addingRoutineItem) {
+        TextPromptDialog(
+            title = "New routine item",
+            confirmText = "Add",
+            onConfirm = { label ->
+                addingRoutineItem = false
+                scope.launch {
+                    withContext(Dispatchers.IO) { routine.add(label) }
+                    refresh++
+                }
+            },
+            onDismiss = { addingRoutineItem = false },
         )
     }
 
@@ -343,4 +425,5 @@ private data class LoadedDay(
     val summaries: List<HabitSummary>,
     val monthDays: Set<LocalDate>,
     val boundaryHour: Int,
+    val routine: List<RoutineStatus>,
 )

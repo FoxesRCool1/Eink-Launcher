@@ -7,15 +7,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
+import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
 import io.github.foxesrcool1.einklauncher.core.notes.NotesRepository
+import io.github.foxesrcool1.einklauncher.core.routine.RoutineRepository
+import io.github.foxesrcool1.einklauncher.core.routine.RoutineStatus
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
@@ -28,6 +34,7 @@ import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorActivity
 import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
 import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
+import kotlinx.coroutines.launch
 
 private const val TAG = "HomeActivity"
 
@@ -141,6 +148,29 @@ private fun LauncherHost(
     onQuickNote: () -> Unit,
     newNoteRequests: Int,
 ) {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var next by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<RoutineStatus?>(null)
+    }
+
+    // The next routine item is read again every time Today comes back, so
+    // ticking something off in the Journal shows up here at once.
+    LaunchedEffect(route) {
+        if (route != LauncherRoute.Today) return@LaunchedEffect
+        next = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val data = DataRoot.repository(context)
+                val hour = HabitsRepository(data).load().dayBoundaryHour
+                val today = DayBoundary(hour).dateOf(
+                    java.time.Instant.now(),
+                    java.time.ZoneId.systemDefault(),
+                )
+                RoutineRepository(data).next(today)
+            }.getOrNull()
+        }
+    }
+
     // Back goes to Today. On Today it does nothing at all, because a home
     // screen has nowhere behind it.
     BackHandler(enabled = true) {
@@ -152,6 +182,37 @@ private fun LauncherHost(
             onOpenTab = onRoute,
             onOpenSettings = { onRoute(LauncherRoute.Settings) },
             onQuickNote = onQuickNote,
+            nextRoutineLabel = next?.item?.label,
+            onStartNext = {
+                val item = next?.item ?: return@TodayScreen
+                val tab = when (item.target) {
+                    "read" -> LauncherRoute.Reading
+                    "write" -> LauncherRoute.Writing
+                    "journal" -> LauncherRoute.Journal
+                    "apps" -> LauncherRoute.Apps
+                    else -> null
+                }
+                val component = item.appComponent()
+                when {
+                    tab != null -> onRoute(tab)
+                    component != null -> startApp(context, component.first, component.second)
+                    // An item with nothing to open is just something to tick
+                    // off, so Start marks it done and moves to the next one.
+                    else -> scope.launch {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            val data = DataRoot.repository(context)
+                            val hour = HabitsRepository(data).load().dayBoundaryHour
+                            val today = DayBoundary(hour).dateOf(
+                                java.time.Instant.now(),
+                                java.time.ZoneId.systemDefault(),
+                            )
+                            val routine = RoutineRepository(data)
+                            routine.toggle(item.id, today)
+                            next = routine.next(today)
+                        }
+                    }
+                }
+            },
         )
 
         LauncherRoute.Reading -> PlaceholderScreen(
@@ -186,4 +247,15 @@ private fun LauncherHost(
             onBack = { onRoute(LauncherRoute.Settings) },
         )
     }
+}
+
+/** Starts another app from a routine item. */
+private fun startApp(context: android.content.Context, packageName: String, className: String) {
+    runCatching {
+        val intent = Intent(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_LAUNCHER)
+            .setClassName(packageName, className)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }.onFailure { AppLog.e(TAG, "Could not start $packageName from the routine", it) }
 }

@@ -45,7 +45,7 @@ because it is committed.
 | 6. Writing tab | Opus | Typed half built: file browser, Markdown editor, autosave, keyboard shortcuts, quick note. Handwritten notebook and export are left. |
 | 7. Reading tab, library and EPUB | Opus | Not started. Needs the Readium toolkit added. |
 | 8. Reading tab, PDF | **Fable** | Not started. |
-| 9. Journal tab | Opus | Mostly built: day view, month view, habits with streaks and dots, all tested. Missing the handwritten entry (needs step 5) and the routine list. |
+| 9. Journal tab | Opus | Built: day view, month view, habits with streaks and dots, the routine list and the "Next" line on Today. Only the handwritten entry is missing, and that needs step 5. |
 | 10. Audit and release | Opus | Not started. |
 
 Steps 2, 5 and 8 are tagged for Fable in the plan and were left alone on
@@ -106,8 +106,8 @@ which and why.
   and check the licence, which should be BSD-3. Weigh it carefully: Readium
   draws with a WebView, and plan section 8 lists "Readium is slow or ghosts on
   e-ink" as a risk to judge before building more on it.
-- **Smaller pieces still open:** the routine list and the "Next" line on Today
-  (step 9), and export to PDF and PNG (step 6).
+- **Smaller pieces still open:** export to PDF and PNG (step 6), and the
+  handwritten halves of steps 6 and 9, which both wait on step 5.
 - **Step 6, Writing**, can be built for typed notes now. Leave a gap where the
   handwritten notebook goes and fill it after step 5.
 - **Step 7, Reading**, needs the Readium Kotlin toolkit added. Check its

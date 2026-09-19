@@ -24,6 +24,7 @@ import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.BotanicalCorner
 import io.github.foxesrcool1.einklauncher.design.components.BotanicalSprig
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
+import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
 import io.github.foxesrcool1.einklauncher.design.components.WordMenu
@@ -42,6 +43,8 @@ fun TodayScreen(
     onOpenTab: (LauncherRoute) -> Unit,
     onOpenSettings: () -> Unit,
     onQuickNote: () -> Unit = {},
+    nextRoutineLabel: String? = null,
+    onStartNext: () -> Unit = {},
     modifier: Modifier = Modifier,
     now: LocalDateTime? = null,
     use24Hour: Boolean = true,
@@ -94,6 +97,30 @@ fun TodayScreen(
             )
 
             Spacer(modifier = Modifier.weight(1f))
+
+            // The next thing in the user's own routine, if they have one. It
+            // is left out entirely when the routine is empty or finished,
+            // rather than showing an empty box: a blank line on e-ink is a
+            // repaint for nothing.
+            if (nextRoutineLabel != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        CapsLabel(text = "Next", style = EinkType.capsSmall)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        EinkText(
+                            text = nextRoutineLabel,
+                            style = EinkType.rowTitle,
+                            maxLines = 1,
+                        )
+                    }
+                    InvertPressButton(text = "Start", onClick = onStartNext)
+                }
+                Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+            }
 
             HairlineDivider(color = EinkColors.Faded)
             Spacer(modifier = Modifier.height(EinkDimens.targetGap))
