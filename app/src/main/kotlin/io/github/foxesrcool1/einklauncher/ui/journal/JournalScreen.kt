@@ -148,35 +148,39 @@ fun JournalScreen(
                 )
             }
         } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            InvertPressButton(
-                text = "Previous",
-                onClick = {
-                    viewDate = if (mode == JournalMode.Day) {
-                        viewDate.minusDays(1)
-                    } else {
-                        viewDate.minusMonths(1)
-                    }
-                },
-            )
-            InvertPressButton(
-                text = if (mode == JournalMode.Day) "Month" else "Day",
-                selected = mode == JournalMode.Month,
-                onClick = {
-                    mode = if (mode == JournalMode.Day) JournalMode.Month else JournalMode.Day
-                },
-            )
-            InvertPressButton(
-                text = "Next",
-                onClick = {
-                    viewDate = if (mode == JournalMode.Day) {
-                        viewDate.plusDays(1)
-                    } else {
-                        viewDate.plusMonths(1)
-                    }
-                },
-            )
-        }
+            Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+                InvertPressButton(
+                    text = "Previous",
+                    onClick = {
+                        viewDate = if (mode == JournalMode.Day) {
+                            viewDate.minusDays(1)
+                        } else {
+                            viewDate.minusMonths(1)
+                        }
+                    },
+                )
+                InvertPressButton(
+                    text = if (mode == JournalMode.Day) "Month" else "Day",
+                    selected = mode == JournalMode.Month,
+                    onClick = {
+                        mode = if (mode == JournalMode.Day) {
+                            JournalMode.Month
+                        } else {
+                            JournalMode.Day
+                        }
+                    },
+                )
+                InvertPressButton(
+                    text = "Next",
+                    onClick = {
+                        viewDate = if (mode == JournalMode.Day) {
+                            viewDate.plusDays(1)
+                        } else {
+                            viewDate.plusMonths(1)
+                        }
+                    },
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
