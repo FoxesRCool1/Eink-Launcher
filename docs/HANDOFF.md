@@ -45,7 +45,7 @@ because it is committed.
 | 6. Writing tab | Opus | Not started. The typed half can be built without step 5. |
 | 7. Reading tab, library and EPUB | Opus | Not started. Needs the Readium toolkit added. |
 | 8. Reading tab, PDF | **Fable** | Not started. |
-| 9. Journal tab | Opus | Not started. The habit and streak logic needs nothing from step 5. |
+| 9. Journal tab | Opus | Groundwork done: the habit logic, the streak rules and both file formats, with tests. No screens yet. |
 | 10. Audit and release | Opus | Not started. |
 
 Steps 2, 5 and 8 are tagged for Fable in the plan and were left alone on
@@ -96,9 +96,12 @@ which and why.
 
 ### 3.5 Then pick a step
 
-- **Step 9, Journal**, is the best next Opus step. The habit and streak logic
-  is pure and testable, it needs nothing from the Fable steps, and it sits on
-  the storage layer that is already here.
+- **Step 9, Journal**, is the best next Opus step, and half of it is already
+  done. `core/habits/` holds the streak rules, the day boundary and both file
+  formats, all tested. What is missing is the screens: the daily entry, the
+  month view, the habit rows with their dots, the routine list and the "Next"
+  line on Today. `HabitsRepository.summaries(today)` already returns
+  everything one habit row needs.
 - **Step 6, Writing**, can be built for typed notes now. Leave a gap where the
   handwritten notebook goes and fill it after step 5.
 - **Step 7, Reading**, needs the Readium Kotlin toolkit added. Check its
@@ -131,6 +134,14 @@ on demand, which is what the plan says the index is for. To add Room:
 
 **Ask the owner to send a log file after opening the Apps tab.** The log lists
 every app. Replace the name match with the exact package once it is known.
+
+### 4.2b There is a JSON reader in this project, on purpose
+
+`core/json/` is about 250 lines and is used by `habits.json`. Do not replace
+it with kotlinx.serialization without checking first: that library needs a
+compiler plugin pinned to a Kotlin version, and AGP owns the Kotlin version
+now. The same reasoning kept Room out. If you do swap it, the tests in
+`core/json/JsonTest.kt` should keep passing unchanged.
 
 ### 4.3 No EinkDevice
 

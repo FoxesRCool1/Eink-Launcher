@@ -4,6 +4,46 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 9 groundwork. Habits, streaks and the file formats
+
+Model: Opus. Date: 2026-09-19. State: logic and file formats complete with
+tests. **No screens yet.** Step 9 builds those.
+
+This is not step 9 finished. It is the part of step 9 that needs nothing from
+the Fable steps and nothing from a tablet, built while the rest waits.
+
+### What was built
+
+- A small JSON reader and writer (`core/json/`). The plan writes
+  `habits.json` and `annotations/<book-id>.json`, so something had to read
+  JSON. `org.json` is stubbed out in a plain unit test, which would let a test
+  pass while the real code did nothing, and every Kotlin serialisation library
+  carries a compiler plugin tied to a Kotlin version that AGP now owns. This
+  is about 250 lines, refuses a document nested more than 64 deep, and has 16
+  tests including every broken input I could think of.
+- `DayBoundary`: where one day ends. Midnight is the wrong line for a habit
+  tracker, because someone who reads until half past one has not started
+  tomorrow. The hour is a setting and the default is 04:00, as the plan says.
+  Tested across time zones and across the day New Zealand puts its clocks
+  forward.
+- `HabitStreaks`: current streak, longest streak, and the row of 14 dots. A
+  day that is not finished yet does not break a streak: if yesterday is marked
+  and today is not, the streak still stands and the user still has today.
+- `HabitsFile` and `HabitLogFile`: `habits/habits.json` and `habits/log.csv`,
+  both meant to be read and edited by a person. One broken habit or one broken
+  line is dropped rather than losing the rest.
+- `HabitsRepository`: add, rename, archive, mark a day, and a summary for each
+  row of the Journal tab. Archiving never deletes, so a year of ticks cannot
+  be lost to one tap.
+- About 60 more unit tests.
+
+### What is left for step 9
+
+The screens: the daily entry, the month view, the habit rows with their dots,
+the routine list, and the "Next" line on Today.
+
+---
+
 ## Step 4. Storage layer
 
 Model: Opus. Date: 2026-09-19. State: code and tests complete, waiting for CI

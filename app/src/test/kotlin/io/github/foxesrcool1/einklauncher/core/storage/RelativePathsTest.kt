@@ -17,7 +17,15 @@ class RelativePathsTest {
         assertEquals("notes/plan.md", RelativePaths.normalise("notes//plan.md"))
         assertEquals("notes/plan.md", RelativePaths.normalise("notes/plan.md/"))
         assertEquals("", RelativePaths.normalise(""))
-        assertEquals("", RelativePaths.normalise("///"))
+    }
+
+    @Test
+    fun `a path made only of separators is refused, because it is absolute`() {
+        // "/" and "///" both name the root of the device, not a place inside
+        // the data folder. Treating them as the data folder itself would be a
+        // quiet way to let a caller work on the wrong thing.
+        assertFalse(RelativePaths.isSafe("/"))
+        assertFalse(RelativePaths.isSafe("///"))
     }
 
     @Test
