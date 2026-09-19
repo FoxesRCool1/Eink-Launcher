@@ -14,6 +14,7 @@ enum class LauncherRoute(val title: String) {
     Journal("Journal"),
     Apps("Apps"),
     Settings("Settings"),
+    Log("Log"),
     ;
 
     /** The four words on Today, in the order they are shown. */

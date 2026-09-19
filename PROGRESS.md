@@ -4,6 +4,74 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 3. Launcher shell
+
+Model: Opus. Date: 2026-09-19. State: code complete, waiting for CI and for a
+device test.
+
+### What was built
+
+- `HomeActivity` with the HOME, DEFAULT and LAUNCHER categories, `singleTask`
+  and `stateNotNeeded`. The Home key calls `onNewIntent`, which always goes
+  back to Today. Back goes to Today from a tab and does nothing on Today.
+- `DemoActivity` holds the design demo, the log viewer and the dev panel. Its
+  own activity, so the launcher task stays clean.
+- Today screen: date and time in small tracked capitals at the top centre, the
+  four large serif words, a Wi-Fi and battery line, and a way into Settings.
+  The clock listens to `ACTION_TIME_TICK`, so it repaints once a minute and
+  never on a timer.
+- Reading, Writing and Journal are placeholder screens that say which step
+  builds them.
+- Apps tab: `LauncherApps` with a `PackageManager` fallback, package add and
+  remove events, pins in DataStore with a limit of 8, two pages (Pinned and
+  All apps), long press for pin, unpin, app info and uninstall.
+- "Always available" block: every other home app, any package with "viwoods"
+  in its name, and the Android settings app. Plan section 3.2: never trap the
+  user.
+- Settings screen: home app state and the three ways to set it, the corner
+  drawing switch, the log viewer and the design demo.
+- New design system parts: `EinkRow` (invert on press, long press, no ripple)
+  and `OptionsDialog`.
+- Tests: `HomeStringsTest`, `LauncherRouteTest`, `LauncherEntryTest` and three
+  more screenshots (Today, Today without art, a placeholder tab).
+- `docs/decisions/0004-launcher-shell.md`.
+
+### What does not work yet
+
+- The build still has not run on this machine, for the same network reason as
+  Step 1. `tools/parse-check.sh` is clean. CI decides.
+- The ViWoods settings app is found by looking for "viwoods" in a package name.
+  That is a guess. The owner must read the real package name off the tablet
+  from the log, and then this becomes an exact match.
+- Step 2 has not run, so there is no `EinkDevice` and no full refresh yet.
+- The "Next" line and Quick note on Today are not built. They belong to Step 9
+  and Step 6.
+
+### Device test list for the owner
+
+1. Install the build. Open Eink Launcher from the stock launcher.
+2. You should see Today: the date and time at the top centre, then Read,
+   Write, Journal and Apps in large serif, then a status line.
+3. Press Apps. The Pinned page should list "Always available" entries. Write
+   down the exact names you see there.
+4. Press each "Always available" entry in turn. Write down which ones open the
+   ViWoods settings and which one opens the stock launcher.
+5. Go to All apps. Turn the pages. Hold an app and press Pin. Go back to
+   Pinned and check that it is there.
+6. Hold a pinned app and press Unpin.
+7. Go to Settings and press "Set as home". Write down exactly what happens:
+   a system dialog, a settings screen, or the written steps.
+8. If it worked, press the Home key from inside another app. You should land
+   on Today, not on the last tab you had open.
+9. Press the Back key on Today. Nothing should happen. Press Back inside a tab.
+   You should land on Today.
+10. Leave the tablet on Today for two minutes and watch the clock. It should
+    change once a minute and leave no smear.
+11. Open Settings, press Log, then "Copy to download". Send me the log file.
+    It tells me which route the home app flow took and what the ViWoods
+    settings package is really called.
+
+---
 ## Step 1. Project scaffold and design system
 
 Model: Opus. Date: 2026-09-19. State: code complete, waiting for CI and for a

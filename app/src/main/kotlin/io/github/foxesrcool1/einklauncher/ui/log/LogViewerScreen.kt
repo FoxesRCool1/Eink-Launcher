@@ -41,6 +41,7 @@ fun LogViewerScreen(
     modifier: Modifier = Modifier,
     linesProvider: () -> List<LogLine> = { AppLog.recentLines() },
     onCopyToDownloads: (() -> Int)? = null,
+    onBack: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var refreshToken by remember { mutableStateOf(0) }
@@ -59,6 +60,9 @@ fun LogViewerScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
         ) {
+            if (onBack != null) {
+                InvertPressButton(text = "Back", onClick = onBack, bordered = false)
+            }
             InvertPressButton(text = "Refresh", onClick = { refreshToken++ })
             InvertPressButton(
                 text = "Copy to download",

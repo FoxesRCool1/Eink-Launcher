@@ -31,15 +31,16 @@ import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
 private enum class DemoTab { Design, Log, Dev }
 
 /**
- * Step 1 entry point. It shows the design system, the log viewer and, in a
- * debug build, the dev panel. Step 3 turns this app into a launcher and this
- * screen becomes a debug entry inside Settings.
+ * The design system demo and the dev tools.
+ *
+ * Its own activity, so the launcher task stays clean and the Home key still
+ * lands on Today. Settings opens it.
  */
-class MainActivity : ComponentActivity() {
+class DemoActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AppLog.i("MainActivity", "onCreate")
+        AppLog.i("DemoActivity", "onCreate")
         setContent {
             EinkTheme {
                 DemoHost()
@@ -69,10 +70,22 @@ private fun DemoHost() {
                 ),
             horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
         ) {
-            InvertPressButton(text = "Design", onClick = { tab = DemoTab.Design })
-            InvertPressButton(text = "Log", onClick = { tab = DemoTab.Log })
+            InvertPressButton(
+                text = "Design",
+                selected = tab == DemoTab.Design,
+                onClick = { tab = DemoTab.Design },
+            )
+            InvertPressButton(
+                text = "Log",
+                selected = tab == DemoTab.Log,
+                onClick = { tab = DemoTab.Log },
+            )
             if (DEV_PANEL_AVAILABLE) {
-                InvertPressButton(text = "Dev", onClick = { tab = DemoTab.Dev })
+                InvertPressButton(
+                    text = "Dev",
+                    selected = tab == DemoTab.Dev,
+                    onClick = { tab = DemoTab.Dev },
+                )
             }
         }
     }

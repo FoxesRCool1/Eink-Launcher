@@ -32,9 +32,11 @@ So this project applies one plugin, `com.android.application`, and nothing
 else. There are three results:
 
 1. There is no Kotlin Gradle plugin version to keep in step with AGP.
-2. The Compose compiler comes from AGP as well. `buildFeatures { compose =
-   true }` is the whole setup. The Compose Compiler Gradle plugin would only
-   override coordinates that already match.
+2. The Compose Compiler Gradle plugin is still needed and is still separate.
+   AGP refuses `buildFeatures { compose = true }` without it:
+   "Starting in Kotlin 2.0, the Compose Compiler Gradle plugin is required
+   when compose is enabled." Its version is a Kotlin version, so keep
+   `kotlin` in the version catalogue at the Kotlin release AGP compiles with.
 3. `kotlin.compilerOptions.jvmTarget` is not set, because it already defaults
    to `android.compileOptions.targetCompatibility`, which is 17.
 
@@ -42,9 +44,11 @@ Kotlin source directories are registered by hand:
 
 ```kotlin
 sourceSets.configureEach {
-    kotlin.srcDir("src/$name/kotlin")
+    kotlin.directories.add("src/$name/kotlin")
 }
 ```
+
+`srcDir` is deprecated under built-in Kotlin. Use the `directories` set.
 
 This keeps `.kt` files out of `src/<set>/java`, which is the usual place to
 hide them.

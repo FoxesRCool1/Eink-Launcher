@@ -1,9 +1,9 @@
 plugins {
-    // AGP 9 compiles Kotlin itself and supplies the Compose compiler that
-    // matches its own Kotlin version. Applying org.jetbrains.kotlin.android
-    // now fails the build, and applying the Compose compiler plugin would
-    // override a set of coordinates that already line up.
+    // AGP 9 compiles Kotlin itself. Applying org.jetbrains.kotlin.android now
+    // fails the build. The Compose compiler plugin is still separate, and AGP
+    // refuses to turn Compose on without it.
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -66,7 +66,7 @@ android {
 
     // Keep the Kotlin sources under src/<set>/kotlin rather than src/<set>/java.
     sourceSets.configureEach {
-        kotlin.srcDir("src/$name/kotlin")
+        kotlin.directories.add("src/$name/kotlin")
     }
 
     compileOptions {
