@@ -62,15 +62,22 @@ class BooksRepository(private val data: DataRepository) {
     fun byRecent(): List<LibraryBook> = list().sortedByDescending { it.stored.lastModified }
 
     /** Copies a picked file into `books/`. */
-    fun import(input: InputStream, displayName: String) =
-        data.importBook(input, displayName)
+    fun import(input: InputStream, displayName: String, sizeHintBytes: Long = -1L) =
+        data.importBook(input, displayName, sizeHintBytes)
 
     fun delete(book: LibraryBook): Boolean {
         AppLog.i(TAG, "Deleting ${book.path}")
+        // The book first. If it will not go, the user is told "could not
+        // delete", and then the highlights and the handwriting must still be
+        // there. The other way round, a failed delete still ate the notes.
+        if (!data.deleteBook(book.path)) {
+            AppLog.e(TAG, "Could not delete ${book.path}. Its notes were left alone.")
+            return false
+        }
         // The notes the user made about it go too, or they become orphans that
         // nothing can ever open again.
         data.store.delete(StorageLayout.annotationsPath(book.bookId))
         data.store.delete("${StorageLayout.ANNOTATIONS}/${book.bookId}")
-        return data.deleteBook(book.path)
+        return true
     }
 }

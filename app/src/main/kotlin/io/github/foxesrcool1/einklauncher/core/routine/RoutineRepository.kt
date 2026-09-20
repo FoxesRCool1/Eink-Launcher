@@ -25,6 +25,11 @@ data class RoutineStatus(
  */
 class RoutineRepository(private val data: DataRepository) {
 
+    /** Changes take turns, for the reason given in HabitsRepository. */
+    private companion object {
+        val LOCK = Any()
+    }
+
     private val listPath = "${StorageLayout.HABITS}/routine.json"
     private val logPath = "${StorageLayout.HABITS}/routine-log.csv"
 
@@ -33,6 +38,7 @@ class RoutineRepository(private val data: DataRepository) {
         val parsed = RoutineFile.parse(text)
         if (parsed == null) {
             AppLog.w(TAG, "routine.json could not be read. Starting from an empty list.")
+            data.keepUnreadable(listPath, "${StorageLayout.HABITS}/routine.unreadable.json")
             return RoutineDocument(emptyList())
         }
         return parsed
@@ -41,24 +47,24 @@ class RoutineRepository(private val data: DataRepository) {
     fun save(document: RoutineDocument): Boolean =
         data.store.writeText(listPath, RoutineFile.serialise(document))
 
-    fun add(label: String, target: String = ""): RoutineDocument {
+    fun add(label: String, target: String = ""): RoutineDocument = synchronized(LOCK) {
         val current = load()
         val id = RoutineFile.idFor(label, current.items.map { it.id }.toSet())
         val next = RoutineDocument(current.items + RoutineItem(id, label.trim(), target))
         save(next)
         AppLog.i(TAG, "Added routine item $id")
-        return next
+        next
     }
 
-    fun remove(id: String): RoutineDocument = load().without(id).also { save(it) }
+    fun remove(id: String): RoutineDocument = synchronized(LOCK) { load().without(id).also { save(it) } }
 
-    fun move(id: String, by: Int): RoutineDocument = load().move(id, by).also { save(it) }
+    fun move(id: String, by: Int): RoutineDocument = synchronized(LOCK) { load().move(id, by).also { save(it) } }
 
     private fun marks(): List<HabitMark> =
         data.store.readText(logPath)?.let { HabitLogFile.parse(it) } ?: emptyList()
 
     /** Ticks an item off for [date], or takes the tick away. Returns the new state. */
-    fun toggle(id: String, date: LocalDate): Boolean {
+    fun toggle(id: String, date: LocalDate): Boolean = synchronized(LOCK) {
         val current = marks().toMutableList()
         val mark = HabitMark(id, date)
 
@@ -70,7 +76,7 @@ class RoutineRepository(private val data: DataRepository) {
         }
 
         data.store.writeText(logPath, HabitLogFile.serialise(current))
-        return nowDone
+        nowDone
     }
 
     fun statuses(date: LocalDate): List<RoutineStatus> {

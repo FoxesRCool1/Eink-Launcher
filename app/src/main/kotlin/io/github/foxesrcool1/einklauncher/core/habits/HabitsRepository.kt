@@ -19,6 +19,17 @@ private const val TAG = "HabitsRepository"
  */
 class HabitsRepository(private val data: DataRepository) {
 
+    /**
+     * Every change here reads a whole file, changes it, and writes it back,
+     * and each tap runs on a thread of its own. Two quick taps on two habits
+     * could both read the old file, and the second write then wiped the first
+     * tick. So the changes take turns. One lock for every copy of this class,
+     * because the Journal and Today each make their own.
+     */
+    private companion object {
+        val LOCK = Any()
+    }
+
     fun load(): HabitsDocument {
         val text = data.store.readText(StorageLayout.habitsPath())
         if (text == null) return HabitsDocument(emptyList(), DayBoundary.DEFAULT_HOUR)
@@ -26,6 +37,9 @@ class HabitsRepository(private val data: DataRepository) {
         val parsed = HabitsFile.parse(text)
         if (parsed == null) {
             AppLog.w(TAG, "habits.json could not be read. Starting from an empty list.")
+            // The next "Add habit" writes a new file over this one. Keep what
+            // the user had, typo and all.
+            data.keepUnreadable(StorageLayout.habitsPath(), "${StorageLayout.HABITS}/habits.unreadable.json")
             return HabitsDocument(emptyList(), DayBoundary.DEFAULT_HOUR)
         }
         return parsed
@@ -34,16 +48,16 @@ class HabitsRepository(private val data: DataRepository) {
     fun save(document: HabitsDocument): Boolean =
         data.store.writeText(StorageLayout.habitsPath(), HabitsFile.serialise(document))
 
-    fun add(name: String, today: LocalDate): HabitsDocument {
+    fun add(name: String, today: LocalDate): HabitsDocument = synchronized(LOCK) {
         val current = load()
         val id = HabitsFile.idFor(name, current.habits.map { it.id }.toSet())
         val next = current.copy(habits = current.habits + Habit(id, name.trim(), today))
         save(next)
         AppLog.i(TAG, "Added habit $id")
-        return next
+        next
     }
 
-    fun rename(habitId: String, newName: String): HabitsDocument {
+    fun rename(habitId: String, newName: String): HabitsDocument = synchronized(LOCK) {
         val current = load()
         val next = current.copy(
             habits = current.habits.map { habit ->
@@ -51,7 +65,7 @@ class HabitsRepository(private val data: DataRepository) {
             },
         )
         save(next)
-        return next
+        next
     }
 
     /**
@@ -61,7 +75,7 @@ class HabitsRepository(private val data: DataRepository) {
      * lines in the log that point at nothing, and the user would lose the
      * record of a year of work to one tap.
      */
-    fun setArchived(habitId: String, archived: Boolean): HabitsDocument {
+    fun setArchived(habitId: String, archived: Boolean): HabitsDocument = synchronized(LOCK) {
         val current = load()
         val next = current.copy(
             habits = current.habits.map { habit ->
@@ -70,14 +84,14 @@ class HabitsRepository(private val data: DataRepository) {
         )
         save(next)
         AppLog.i(TAG, "Habit $habitId archived: $archived")
-        return next
+        next
     }
 
-    fun setDayBoundaryHour(hour: Int): HabitsDocument {
+    fun setDayBoundaryHour(hour: Int): HabitsDocument = synchronized(LOCK) {
         require(hour in 0..23) { "The day boundary must be an hour of the day" }
         val next = load().copy(dayBoundaryHour = hour)
         save(next)
-        return next
+        next
     }
 
     fun loadMarks(): List<HabitMark> {
@@ -89,7 +103,7 @@ class HabitsRepository(private val data: DataRepository) {
         data.store.writeText(StorageLayout.habitLogPath(), HabitLogFile.serialise(marks))
 
     /** Marks a day done, or takes the mark off again. Returns the new state. */
-    fun toggle(habitId: String, date: LocalDate): Boolean {
+    fun toggle(habitId: String, date: LocalDate): Boolean = synchronized(LOCK) {
         val marks = loadMarks().toMutableList()
         val mark = HabitMark(habitId, date)
 
@@ -102,7 +116,7 @@ class HabitsRepository(private val data: DataRepository) {
 
         saveMarks(marks)
         AppLog.i(TAG, "Habit $habitId on $date is now ${if (nowDone) "done" else "not done"}")
-        return nowDone
+        nowDone
     }
 
     fun datesFor(habitId: String): Set<LocalDate> = HabitLogFile.datesFor(loadMarks(), habitId)

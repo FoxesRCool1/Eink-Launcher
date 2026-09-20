@@ -26,6 +26,7 @@ import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.core.storage.ImportResult
+import io.github.foxesrcool1.einklauncher.core.storage.RelativePaths
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
@@ -301,15 +302,17 @@ private fun openBook(context: Context, book: LibraryBook, say: (String) -> Unit)
  * note point at nothing.
  */
 private fun importFrom(context: Context, books: BooksRepository, uri: Uri): String {
-    val name = displayNameOf(context, uri) ?: "book.epub"
+    val (pickedName, size) = nameAndSizeOf(context, uri)
+    val name = pickedName ?: "book.epub"
 
     return runCatching {
         val stream = context.contentResolver.openInputStream(uri)
             ?: return "The file could not be opened"
 
         stream.use { input ->
-            when (val result = books.import(input, name)) {
-                is ImportResult.Imported -> "Imported $name"
+            when (val result = books.import(input, name, size)) {
+                // The stored name, which has a number on it when another book had the name first.
+                is ImportResult.Imported -> "Imported ${RelativePaths.nameOf(result.relativePath)}"
                 is ImportResult.AlreadyThere -> "$name is already in the library"
                 is ImportResult.Failed -> result.reason
             }
@@ -320,10 +323,14 @@ private fun importFrom(context: Context, books: BooksRepository, uri: Uri): Stri
     }
 }
 
-private fun displayNameOf(context: Context, uri: Uri): String? = runCatching {
+/** The name and the size the picker gives for a file. Either can be missing: null, and -1. */
+private fun nameAndSizeOf(context: Context, uri: Uri): Pair<String?, Long> = runCatching {
     context.contentResolver
-        .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)
         ?.use { cursor ->
-            if (cursor.moveToFirst()) cursor.getString(0) else null
+            if (!cursor.moveToFirst()) return@use null
+            val name = cursor.getString(0)
+            val size = if (cursor.isNull(1)) -1L else cursor.getLong(1)
+            name to size
         }
-}.getOrNull()
+}.getOrNull() ?: (null to -1L)

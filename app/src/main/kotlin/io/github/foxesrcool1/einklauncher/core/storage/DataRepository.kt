@@ -60,12 +60,34 @@ class DataRepository(val store: FileStore) {
         val target = StorageLayout.bookPath(displayName)
 
         if (store.exists(target)) {
-            val id = StorageLayout.bookIdFor(
-                RelativePaths.nameOf(target),
-                store.sizeOf(target),
+            // The same name is not the same book. Two scans can both be called
+            // "scan.pdf", and a picker that gives no name makes every file
+            // "book.epub". The size tells them apart. When nobody said the
+            // size, the file is copied in under a free name first and looked
+            // at then.
+            val existingSize = store.sizeOf(target)
+            val existing = ImportResult.AlreadyThere(
+                target,
+                StorageLayout.bookIdFor(RelativePaths.nameOf(target), existingSize),
             )
-            AppLog.i(TAG, "Book already imported: $target")
-            return ImportResult.AlreadyThere(target, id)
+            if (sizeHintBytes > 0 && sizeHintBytes == existingSize) {
+                AppLog.i(TAG, "Book already imported: $target")
+                return existing
+            }
+            val beside = freePath(target)
+            if (!store.writeFrom(beside, input)) {
+                AppLog.e(TAG, "Import failed for $displayName")
+                return ImportResult.Failed("The file could not be copied into the data folder")
+            }
+            if (store.sizeOf(beside) == existingSize) {
+                store.delete(beside)
+                AppLog.i(TAG, "Book already imported: $target")
+                return existing
+            }
+            val size = store.sizeOf(beside)
+            val id = StorageLayout.bookIdFor(RelativePaths.nameOf(beside), size)
+            AppLog.i(TAG, "Imported $beside as $id ($size bytes). The name $target was taken by another book.")
+            return ImportResult.Imported(beside, id)
         }
 
         val written = store.writeFrom(target, input)
@@ -99,6 +121,21 @@ class DataRepository(val store: FileStore) {
     fun newNotePath(folder: String, title: String): String {
         val name = "${StorageLayout.safeName(title)}.${StorageLayout.TYPED_NOTE_EXTENSION}"
         return RelativePaths.join(RelativePaths.join(StorageLayout.NOTES, folder), name)
+    }
+
+    /**
+     * Keeps a copy of a file this app could not make sense of, before the
+     * next save writes a fresh one over it. A file the user edited by hand
+     * and left a typo in is still the user's work. One copy per broken
+     * version: the same bytes are not copied twice.
+     */
+    fun keepUnreadable(relativePath: String, rescuePath: String) {
+        runCatching {
+            if (!store.exists(relativePath)) return
+            if (store.exists(rescuePath) && store.sizeOf(rescuePath) == store.sizeOf(relativePath)) return
+            val kept = freePath(rescuePath)
+            if (store.copy(relativePath, kept)) AppLog.e(TAG, "$relativePath could not be read. A copy was kept as $kept")
+        }.onFailure { AppLog.w(TAG, "Could not keep a copy of $relativePath", it) }
     }
 
     /** Adds a number to the name until it does not clash. */
