@@ -193,7 +193,11 @@ class InkNoteController(
                 val took = System.currentTimeMillis() - started
                 if (!ok || took > 500) AppLog.i(TAG, "Saved $path: ok=$ok, ${data.size} pages, $took ms")
                 if (!ok) main.post { unsaved = true }
-            }.onFailure { AppLog.e(TAG, "Saving $path failed", it) }
+            }.onFailure {
+                AppLog.e(TAG, "Saving $path failed", it)
+                // Still not on the disk, so the next save has to try again.
+                main.post { unsaved = true }
+            }
         }
     }
 

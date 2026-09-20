@@ -98,6 +98,32 @@ dropped from a request the moment a redirect leaves GitHub, which the storage
 server GitHub uses needs anyway. A public repository needs no token, and then
 none of this is ever seen.
 
+## One thing to take out again, one day
+
+Plan section 4 keeps the Play Store open for the `generic` flavour. The Play
+Store does not allow an app to update itself from anywhere else, and it
+limits who may ask for `REQUEST_INSTALL_PACKAGES`. A build for the Play Store
+must leave the updater and both permissions out. Nothing needs doing until
+that day. It is written here so that day does not start with a rejection.
+
+## How it was tested
+
+- 60 unit tests. The network code runs against two small servers on the dev
+  machine, one playing GitHub and one playing its storage server, and one
+  test shows that the access token stops at the first.
+- The real GitHub, from the emulator: a private repository answers "not
+  found", and a wrong token is refused. Both give the right words on screen.
+- The whole update, in the emulator on Android 13, from 0.1.0 to 0.1.1,
+  against `tools/fake-github.py`: check, token, download through a redirect,
+  SHA-256, the look at the real APK, the install session, "update this app?",
+  the restart on the new version, the line in the log, the old file removed.
+  Cancel was tried too, and the reason came back in words.
+- With the app as the home app: right after the update Android showed the
+  stock launcher, because for a moment this app was not there. The Home key
+  brought it back, and it was still the home app. The screen says so.
+- Not tested: a real GitHub Release, because the Release workflow has not
+  run yet, and the ViWoods firmware. See below.
+
 ## What is not known yet
 
 - Whether the ViWoods firmware lets an app open the "install unknown apps"

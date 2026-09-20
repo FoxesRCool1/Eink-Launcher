@@ -57,8 +57,12 @@ fun UpdateScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         onPauseOrDispose { }
     }
 
+    // The button that leads here says "Check for updates", so it checks,
+    // also when an answer from an hour ago is still standing. A download or
+    // a finished download is left alone.
     LaunchedEffect(Unit) {
-        if (UpdateManager.state.value is UpdateState.Idle) UpdateManager.check(context)
+        val now = UpdateManager.state.value
+        if (now !is UpdateState.Downloading && now !is UpdateState.Ready) UpdateManager.check(context)
     }
 
     // One press covers "download" and "install". The install only starts from

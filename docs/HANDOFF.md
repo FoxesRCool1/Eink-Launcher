@@ -1,7 +1,8 @@
 # Handoff
 
 For the next session, wherever it runs. Rewritten 2026-09-20 by the session
-that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9.
+that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9. Section 2b was
+added the same day by the session that built the in-app update.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
@@ -50,6 +51,30 @@ The work is in seven stacked pull requests, one per step branch:
 `step-09-journal-handwriting`, `step-10-audit-and-release`. Merge them in
 that order.
 
+### 2b. The app updates itself now
+
+Branch `in-app-updates`, on top of `dev-emulator`. Settings, Help, "Check for
+updates" looks at the GitHub Releases of this repository, downloads the APK
+that fits the build, and hands it to Android. `tools/release.sh 0.1.1 "what
+changed"` makes a release with one command. Decision 0012 and
+`docs/RELEASING.md` have the whole story. What a new session must know:
+
+- **The whole update ran in the emulator**, from 0.1.0 to 0.1.1, against
+  `tools/fake-github.py`. It has not run against a real GitHub Release, and
+  the Release workflow has never run. The first `tools/release.sh` is the
+  test of both. If the workflow fails, read its log before anything else.
+- **The repository is private, and GitHub hides the releases of a private
+  repository.** Either it is made public, or the owner puts a read-only
+  access token into the update screen once. That choice is the owner's.
+- The tablet runs the **debug** build while the app is tested. The updater
+  in a debug build only takes `-debug.apk` files, and the workflow builds
+  those with no release key. Moving to the release build later means an
+  uninstall, and an uninstall deletes the data folder: back up first.
+- The version is one line, `appVersionName` in `app/build.gradle.kts`. The
+  version code comes from it. Do not set either by hand, use the script.
+- The app has the internet permission now. `CLAUDE.md` has the network rules
+  that keep that honest. Read them before adding anything that goes online.
+
 ---
 
 ## 3. What to do next, in order
@@ -84,8 +109,13 @@ Still open from step 4. Settings, Help, "Design demo", Dev, "Time 500 files".
    temporary path. See decision 0011.
 3. A read-ahead for PDF screens, only if the log says the render is slow.
 4. Cover pictures in the library. The plan calls them optional.
-5. The first release. `docs/RELEASING.md` has the steps. Pick the final name
-   first: the plan says the working name must go before a public release.
+5. The first public release. `docs/RELEASING.md` has the steps, and the
+   release key is the one thing still to make. Pick the final name first:
+   the plan says the working name must go before a public release. Test
+   releases for the tablet need neither.
+6. `TextPromptDialog` does not take the focus when it opens, so every prompt
+   costs one extra tap before the keyboard comes. Small, and it touches every
+   prompt in the app, so it wants a look on the tablet first.
 
 ---
 
@@ -184,6 +214,9 @@ agree, because plan section 4 says "no GPL".
 tools/deploy.sh viwoods 8000            build and serve the APK on the LAN
 tools/deploy.sh viwoods 8000 37         the same, with target SDK 37
 tools/parse-check.sh                    syntax check with no Android SDK
+tools/release.sh 0.1.1 "what changed"   tag a release, GitHub builds it
+tools/emulator.sh                       the app in an emulator on the dev machine
+tools/fake-github.py <apk> 0.1.1        try the in-app update with no release
 ```
 
 Screenshots land in `app/build/outputs/roborazzi/`.

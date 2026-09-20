@@ -4,6 +4,107 @@ One section per step. Newest step at the top.
 
 ---
 
+## In-app updates, and a second bug hunt
+
+Date: 2026-09-20. Branch `in-app-updates`, on top of `dev-emulator`.
+
+### What was done
+
+- **The app updates itself from GitHub Releases.** Settings, Help, "Check for
+  updates". It checks, downloads the APK that fits the build, checks the file
+  twice, and hands it to Android. `docs/decisions/0012-in-app-updates.md` has
+  the reasoning, and what it changes about the internet permission.
+- **One command makes a release:** `tools/release.sh 0.1.1 "what changed"`.
+  The Release workflow builds debug APKs always, and signed release APKs once
+  the release key is in the GitHub secrets. `docs/RELEASING.md`.
+- One version number, `appVersionName` in `app/build.gradle.kts`. The version
+  code comes from it.
+- `tools/fake-github.py`, and a switch in the Dev panel, to try the whole
+  update with no release on GitHub.
+
+### What works
+
+Build, 435 unit tests in each flavour, and lint, all green. In the emulator,
+on Android 13, by hand:
+
+- The whole update from 0.1.0 to 0.1.1: check, access token dialog, download
+  through a redirect, SHA-256, the look at the real APK (package, version,
+  signing key), the install session, Android's "update this app?", the restart
+  on 0.1.1, "updated from build 100 to build 101" in the log, old file removed.
+- Cancel in Android's window: the reason comes back in words and the Install
+  button stays.
+- "Allow installs" opens the right Android page, and the screen notices the
+  switch when the user comes back.
+- The real GitHub: a private repository gives "needs an access token", and a
+  wrong token gives "GitHub refused the access token".
+- The LAN update in the Dev panel, which had never run. It did not work. See
+  the first bug below.
+
+### Bugs found and fixed
+
+1. **The Dev panel's "Get latest build" could not have worked on the tablet.**
+   Android blocks plain http for an app that targets SDK 28 or later, and the
+   LAN server is plain http. Debug builds allow it now. Release builds do not.
+2. **Journal: Save could write today's text over another day.** Previous and
+   Next moved the day under an open edit, and Save used the new day. An edit
+   is now saved to its own day before the view changes.
+3. **Journal: the Home key threw an open edit away.** So did Back and "Today".
+   It is saved as the screen goes now, and when the app goes to the back.
+4. **Note editor: the Home key left the last words in memory only**, for up to
+   a second and a half. The save "on the way out" only ran when the editor
+   closed, and the Home key does not close it. It saves on stop now.
+5. **Note editor: two saves could cross**, and the older text could land last.
+   `NoteSaver` makes them take turns.
+6. **Note editor: a note that could not be read opened as an empty page**, and
+   the first autosave would have written that page over the real note.
+7. **Every text field could eat a letter** when the caller was slow to hand
+   the text back. `EinkTextField` knows its own echo now. A test shows the
+   old loss.
+8. **A Bluetooth keyboard that wakes up made Android rebuild the screen.** The
+   cursor jumped to the end of the note, and the home screen went back to
+   Today. The editors and the home screen now keep running.
+9. **A book could have gone online** once the app had the internet permission.
+   Every web view of the book engine has its network loads blocked. Checked in
+   the emulator: the pages still show, and the log says "offline: true".
+10. A failed ink save was not tried again until the next pen stroke.
+
+### What does not work, or is not known
+
+- **The Release workflow has never run**, and the updater has never seen a
+  real GitHub Release. The first `tools/release.sh` tests both.
+- **The repository is private, so GitHub hides its releases.** Make it public,
+  or put a read-only access token into the update screen once.
+- Right after an update Android shows the stock launcher, because for a moment
+  this app was not there to be the home screen. The Home key brings it back.
+  The update screen says so before it happens.
+
+### Device tests for the owner
+
+Do these after the step 2 tests, or before, as you like. They need Wi-Fi.
+
+1. Settings, Help, "Check for updates". With no newer release it says "This
+   is the newest version". With a private repository it asks for a token.
+2. If the screen says Android must allow installs: press "Allow installs".
+   **Does the ViWoods firmware open the page with the switch?** If not, use
+   DevCheck, the same way as for the home app: Apps, Eink Launcher, Manage,
+   "Install unknown apps".
+3. When a newer release is out: "Download and install". The percent moves in
+   steps of ten. **Does the number ghost on the panel?**
+4. Android asks "update this app?". Press Update. The app closes.
+5. **Which screen comes next?** If it is the stock launcher, press Home. You
+   should be on Today, and Settings should show the new version.
+6. Send the log. I look for "Install session ... committed". If it says "The
+   install session failed. Trying the system installer." instead, the second
+   route ran, and I want to know whether that one worked.
+7. Journal: write a few words, do **not** press Save, press the Home key, go
+   back to the Journal. The words must be there.
+8. Write: open a note, type, press Home at once, open the note again. The
+   last word must be there.
+9. With a Bluetooth keyboard: put the cursor in the middle of a long note,
+   let the keyboard fall asleep, wake it with a key. The cursor must stay.
+
+---
+
 ## Testing on the dev machine, in an emulator
 
 Date: 2026-09-20. `tools/emulator.sh` starts an Android 13 tablet at 1440 x
