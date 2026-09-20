@@ -73,6 +73,9 @@ class PdfUiState {
     var panel by mutableStateOf(PdfPanel.None)
     var notice by mutableStateOf<String?>(null)
     var inkPages by mutableStateOf<List<AnnotatedPage>>(emptyList())
+
+    /** Emulator only: whether the mouse draws, or taps and swipes like a finger. */
+    var mouseDraws by mutableStateOf(false)
 }
 
 /** What the Compose layer can ask for. */
@@ -90,6 +93,9 @@ interface PdfActions {
     fun show(panel: PdfPanel)
     fun exportPage()
     fun exportNotes()
+
+    /** Emulator only. */
+    fun toggleMouse()
 }
 
 /**
@@ -336,6 +342,9 @@ class PdfReaderActivity : ComponentActivity() {
 
         override fun attach(canvas: InkCanvasView) {
             this@PdfReaderActivity.canvas = canvas
+            // On the emulator the mouse starts as a finger here, so a click
+            // turns the page. The toolbar has a switch to make it draw.
+            canvas.fingerDraws = ui.mouseDraws
             canvas.onInkChanged = {
                 inkDirty = true
                 timer.activity(nowSeconds())
@@ -440,6 +449,11 @@ class PdfReaderActivity : ComponentActivity() {
                 }.onFailure { AppLog.e(TAG, "Export of page ${pageIndex + 1} failed", it) }.getOrNull()
                 main.post { ui.notice = if (written != null) "Saved as $written" else "The export did not work" }
             }
+        }
+
+        override fun toggleMouse() {
+            ui.mouseDraws = !ui.mouseDraws
+            canvas?.fingerDraws = ui.mouseDraws
         }
 
         override fun exportNotes() {

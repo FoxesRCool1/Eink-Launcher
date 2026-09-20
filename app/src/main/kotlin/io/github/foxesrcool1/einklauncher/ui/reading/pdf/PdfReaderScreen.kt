@@ -56,6 +56,15 @@ fun PdfReaderScreen(state: PdfUiState, actions: PdfActions) {
             InvertPressButton(text = "Undo", onClick = actions::undo, contentPadding = ToolPadding, compact = true)
             InvertPressButton(text = state.zoom.label, onClick = actions::nextZoom, contentPadding = ToolPadding, compact = true)
             InvertPressButton(text = "More", onClick = { actions.show(PdfPanel.More) }, contentPadding = ToolPadding, compact = true)
+            if (io.github.foxesrcool1.einklauncher.core.eink.DevEnvironment.fingerDraws) {
+                InvertPressButton(
+                    text = if (state.mouseDraws) "Mouse draws" else "Mouse turns",
+                    selected = state.mouseDraws,
+                    onClick = actions::toggleMouse,
+                    contentPadding = ToolPadding,
+                    compact = true,
+                )
+            }
         }
         HairlineDivider()
 

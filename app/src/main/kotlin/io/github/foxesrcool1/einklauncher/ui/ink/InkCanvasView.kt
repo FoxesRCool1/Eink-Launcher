@@ -318,8 +318,13 @@ class InkCanvasView(context: Context) : View(context) {
 
     private fun isStylus(event: MotionEvent): Boolean {
         val tool = event.getToolType(0)
-        return tool == MotionEvent.TOOL_TYPE_STYLUS || tool == MotionEvent.TOOL_TYPE_ERASER
+        return tool == MotionEvent.TOOL_TYPE_STYLUS || tool == MotionEvent.TOOL_TYPE_ERASER ||
+            // The emulator on the dev machine has a mouse and no pen. See DevEnvironment.
+            fingerDraws
     }
+
+    /** Debug builds on an emulator only. On a real device this is always false. */
+    var fingerDraws: Boolean = io.github.foxesrcool1.einklauncher.core.eink.DevEnvironment.fingerDraws
 
     private fun onPenEvent(event: MotionEvent): Boolean {
         lastPenMillis = SystemClock.uptimeMillis()

@@ -4,6 +4,42 @@ One section per step. Newest step at the top.
 
 ---
 
+## Testing on the dev machine, in an emulator
+
+Date: 2026-09-20. `tools/emulator.sh` starts an Android 13 tablet at 1440 x
+1920 on the dev machine, builds the app, installs it, puts two sample files
+in its Download folder and opens the app. The top of the script lists the
+other commands: `install`, `log`, `shot`, `grey`, `colour`, `stop`.
+
+It is not e-ink. It cannot show ghosting, refresh modes or the fast pen, and
+the ViWoods layer falls back to the generic one there. It is for layout, flow
+and bugs. The tablet test lists below still stand.
+
+In a debug build on an emulator, and only there, the mouse draws on the ink
+canvas (`core/eink/DevEnvironment.kt`). In a PDF the toolbar has a switch
+between "Mouse turns" and "Mouse draws".
+
+The first run on real Android found three bugs that no unit test could see.
+All three are fixed:
+
+1. **The EPUB reader showed a blank page.** The layer that holds its menus
+   painted the white paper background over the whole book. `EinkTheme` now
+   has `paintPaper`, and the reader passes false.
+2. **Every imported book lost its title and author.** The XML parser on
+   Android does not know the security feature names the desktop one does,
+   and throws on each. The doctype is now refused by looking for it.
+3. **The Journal said "Handwrite" for a day that had just been written on.**
+   The ink screen saved in `onStop`, which comes after the Journal resumes.
+   It saves in `onPause` now.
+
+Checked by hand in the emulator after the fixes: Today, a handwritten note,
+EPUB import, reading, page turns by tap, swipe and key, Contents, the reader
+menu, PDF import, all four zoom steps, ink on a PDF page that stays on the
+same words across zoom steps, the handwritten journal page, Apps, and all six
+Settings pages. No crash.
+
+---
+
 ## Where everything stands
 
 2026-09-20. All ten steps have code. **None of it has run on the tablet.**

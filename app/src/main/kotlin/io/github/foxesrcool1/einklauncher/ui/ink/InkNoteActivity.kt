@@ -160,12 +160,12 @@ class InkNoteActivity : ComponentActivity() {
     override fun onPause() {
         // The tablet must stop drawing on the glass before another screen shows.
         session?.stop()
-        super.onPause()
-    }
-
-    override fun onStop() {
+        // Saved here and not in onStop. The screen that opened this one
+        // resumes before this one stops, and it looks for the file when it
+        // resumes. Found on the emulator: the Journal said "Handwrite" for a
+        // day that had just been written on.
         controller?.saveAndWait()
-        super.onStop()
+        super.onPause()
     }
 
     override fun onDestroy() {

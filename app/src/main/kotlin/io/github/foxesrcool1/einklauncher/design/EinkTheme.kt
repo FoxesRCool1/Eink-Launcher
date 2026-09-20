@@ -29,6 +29,14 @@ val LocalBotanicalArtEnabled = staticCompositionLocalOf { true }
 fun EinkTheme(
     botanicalArt: Boolean = true,
     textStyle: TextStyle = EinkType.body,
+    /**
+     * False for a layer that lies on top of something else, like the menus of
+     * the EPUB reader over the book. With the paper painted there, the layer
+     * is a white sheet over the whole page and the book cannot be seen. That
+     * happened, and it took an emulator to find: no unit test looks through a
+     * window.
+     */
+    paintPaper: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
@@ -38,7 +46,7 @@ fun EinkTheme(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(EinkColors.Paper),
+                .then(if (paintPaper) Modifier.background(EinkColors.Paper) else Modifier),
         ) {
             content()
         }

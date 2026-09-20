@@ -76,16 +76,34 @@ object EpubMetadata {
      * simplest way to make that impossible.
      */
     private fun parse(bytes: ByteArray): Document? = runCatching {
-        val factory = DocumentBuilderFactory.newInstance().apply {
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            isXIncludeAware = false
-            isExpandEntityReferences = false
-            isNamespaceAware = false
-        }
+        // The doctype is refused here, by looking, and not by asking the
+        // parser to refuse it. The parser on Android does not know the
+        // feature names the desktop one does, and throws on every one of
+        // them. Found on the emulator: the desktop tests passed and every
+        // real book lost its title and author.
+        if (declaresDoctype(bytes)) return@runCatching null
+
+        val factory = DocumentBuilderFactory.newInstance()
+        // Belt and braces where the platform has them. Each one alone, so a
+        // parser that lacks one still gets the others.
+        listOf(
+            "http://apache.org/xml/features/disallow-doctype-decl" to true,
+            "http://xml.org/sax/features/external-general-entities" to false,
+            "http://xml.org/sax/features/external-parameter-entities" to false,
+        ).forEach { (feature, value) -> runCatching { factory.setFeature(feature, value) } }
+        runCatching { factory.isXIncludeAware = false }
+        runCatching { factory.isExpandEntityReferences = false }
+        factory.isNamespaceAware = false
         factory.newDocumentBuilder().parse(bytes.inputStream())
     }.getOrNull()
+
+    /** True when the document has a doctype anywhere in it, in any of the encodings an EPUB may use. */
+    private fun declaresDoctype(bytes: ByteArray): Boolean {
+        val marker = "<!DOCTYPE"
+        return listOf(Charsets.UTF_8, Charsets.UTF_16LE, Charsets.UTF_16BE).any { charset ->
+            String(bytes, charset).contains(marker, ignoreCase = true)
+        }
+    }
 
     private fun packagePathFrom(container: Document): String? {
         val rootFiles = container.getElementsByTagName("rootfile")

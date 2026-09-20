@@ -126,6 +126,16 @@ is not needed.
 The screenshots land in `app/build/outputs/roborazzi/` at 1440 x 1920, the
 size of the panel.
 
+To try it on the dev machine, in an Android emulator the size of the panel:
+
+```
+tools/emulator.sh
+```
+
+It needs the `emulator` and `system-images;android-33;google_apis;x86_64`
+packages of the Android SDK, and KVM. The mouse draws on handwriting pages
+there. It is not e-ink, so it shows layout and bugs, not ghosting.
+
 To get a debug build onto the tablet:
 
 ```

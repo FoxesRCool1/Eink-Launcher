@@ -87,7 +87,8 @@ class SpikeCanvasView(context: Context) : View(context) {
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val tool = event.getToolType(0)
-        val isPen = tool == MotionEvent.TOOL_TYPE_STYLUS || tool == MotionEvent.TOOL_TYPE_ERASER
+        val isPen = tool == MotionEvent.TOOL_TYPE_STYLUS || tool == MotionEvent.TOOL_TYPE_ERASER ||
+            io.github.foxesrcool1.einklauncher.core.eink.DevEnvironment.fingerDraws
         // A finger never draws. Returning false lets a finger still reach
         // whatever lies under the canvas.
         if (!isPen) return false

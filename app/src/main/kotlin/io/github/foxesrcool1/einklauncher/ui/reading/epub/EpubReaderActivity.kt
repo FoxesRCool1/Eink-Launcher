@@ -146,7 +146,7 @@ class EpubReaderActivity : FragmentActivity() {
         root.addView(container, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         val chrome = ComposeView(this).apply {
             setContent {
-                EinkTheme(botanicalArt = false) {
+                EinkTheme(botanicalArt = false, paintPaper = false) {
                     ReaderChrome(
                         state = ui,
                         actions = actions,
