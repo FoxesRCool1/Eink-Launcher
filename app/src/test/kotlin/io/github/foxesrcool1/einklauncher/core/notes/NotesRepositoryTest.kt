@@ -145,4 +145,11 @@ class NotesRepositoryTest {
         val path = notes.createNote(notes.quickNotePath(), "2026-09-19T08-04-00")
         assertEquals("notes/quick/2026-09-19T08-04-00.md", path)
     }
+
+    @Test
+    fun `a handwritten note is listed under its file name without the extension`() {
+        store.write("notes/Garden plan.inknote", byteArrayOf(1))
+        val entry = notes.list(notes.rootPath).single { it.name == "Garden plan.inknote" }
+        assertEquals("Garden plan", entry.title)
+    }
 }

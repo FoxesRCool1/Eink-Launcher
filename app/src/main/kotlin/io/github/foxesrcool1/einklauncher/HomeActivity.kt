@@ -233,6 +233,13 @@ private fun LauncherHost(
             onBack = { onRoute(LauncherRoute.Today) },
             onOpenNote = onOpenNote,
             newNoteRequests = newNoteRequests,
+            onOpenInkNote = { path, title ->
+                runCatching {
+                    context.startActivity(
+                        io.github.foxesrcool1.einklauncher.ui.ink.InkNoteActivity.intent(context, path, title),
+                    )
+                }.onFailure { AppLog.e(TAG, "Could not open the ink note $path", it) }
+            },
         )
 
         LauncherRoute.Journal -> JournalScreen(

@@ -16,7 +16,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import io.github.foxesrcool1.einklauncher.core.ink.InkNoteLoad
+import io.github.foxesrcool1.einklauncher.core.ink.InkNotesRepository
+import io.github.foxesrcool1.einklauncher.core.ink.PageTemplate
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.ui.ink.InkExport
 import io.github.foxesrcool1.einklauncher.core.notes.NoteEntry
 import io.github.foxesrcool1.einklauncher.core.notes.NoteText
 import io.github.foxesrcool1.einklauncher.core.notes.NotesRepository
@@ -51,8 +55,7 @@ private const val ROWS_PER_PAGE = 5
  * should land in. Typing a path on a tablet with no keyboard is worse than two
  * taps, and the pen cannot drag and drop on e-ink without an animation.
  *
- * The handwritten notebook is not here. It needs the ink engine, which is
- * step 5.
+ * A handwritten note opens in the ink screen, a typed note in the editor.
  */
 @Composable
 fun WritingScreen(
@@ -60,10 +63,12 @@ fun WritingScreen(
     onOpenNote: (String) -> Unit,
     modifier: Modifier = Modifier,
     newNoteRequests: Int = 0,
+    onOpenInkNote: (path: String, title: String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val notes = remember(context) { NotesRepository(DataRoot.repository(context)) }
+    val inkNotes = remember(context) { InkNotesRepository(DataRoot.repository(context)) }
 
     var folder by remember { mutableStateOf(notes.rootPath) }
     var rows by remember { mutableStateOf<List<NoteEntry>>(emptyList()) }
@@ -75,6 +80,8 @@ fun WritingScreen(
     var deleting by remember { mutableStateOf<NoteEntry?>(null) }
     var marked by remember { mutableStateOf<NoteEntry?>(null) }
     var addingNote by remember { mutableStateOf(false) }
+    var choosingKind by remember { mutableStateOf(false) }
+    var addingInkNote by remember { mutableStateOf<PageTemplate?>(null) }
     var addingFolder by remember { mutableStateOf(false) }
 
     LaunchedEffect(folder, refresh) {
@@ -97,6 +104,39 @@ fun WritingScreen(
         }
     }
 
+    fun openNewInkNote(title: String, template: PageTemplate) {
+        scope.launch {
+            // A pen user may have no keyboard in reach. No title is fine.
+            val name = title.ifBlank {
+                "Handwritten " + java.time.LocalDateTime.now().withNano(0).toString().replace(':', '-')
+            }
+            val path = withContext(Dispatchers.IO) { inkNotes.create(folder, name, template) }
+            refresh++
+            if (path != null) {
+                onOpenInkNote(path, name)
+            } else {
+                status = "The note could not be made"
+            }
+        }
+    }
+
+    fun export(entry: NoteEntry) {
+        scope.launch {
+            val written = withContext(Dispatchers.IO) {
+                runCatching {
+                    val stem = entry.name.substringBeforeLast('.')
+                    if (StorageLayout.isInkNote(entry.name)) {
+                        val load = inkNotes.load(entry.path) as? InkNoteLoad.Loaded ?: return@runCatching null
+                        inkNotes.writeExport("$stem.pdf", InkExport.notePdf(load.note))
+                    } else {
+                        inkNotes.writeExport("$stem.pdf", TypedNoteExport.pdf(context, notes.read(entry.path)))
+                    }
+                }.onFailure { AppLog.e(TAG, "Export of ${entry.path} failed", it) }.getOrNull()
+            }
+            status = if (written != null) "Saved as $written" else "The export did not work"
+        }
+    }
+
     ScreenScaffold(
         title = "Write",
         overline = folder.removePrefix("${StorageLayout.NOTES}/").ifBlank { "All notes" },
@@ -104,7 +144,7 @@ fun WritingScreen(
         modifier = modifier,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            InvertPressButton(text = "New note", onClick = { addingNote = true })
+            InvertPressButton(text = "New note", onClick = { choosingKind = true })
             InvertPressButton(text = "New folder", onClick = { addingFolder = true })
             InvertPressButton(
                 text = "Up",
@@ -176,8 +216,10 @@ fun WritingScreen(
                         status = null
                     } else if (StorageLayout.isTypedNote(row.name)) {
                         onOpenNote(row.path)
+                    } else if (StorageLayout.isInkNote(row.name)) {
+                        onOpenInkNote(row.path, row.title)
                     } else {
-                        status = "${row.name} needs the ink editor, which is step 5"
+                        status = "${row.name} is not a note this app can open"
                     }
                 },
                 onOptions = { optionsFor = row },
@@ -197,7 +239,11 @@ fun WritingScreen(
         OptionsDialog(
             title = selected.title,
             onDismiss = { optionsFor = null },
-            options = listOf(
+            options = listOfNotNull(
+                DialogOption(label = "Export as PDF") {
+                    export(selected)
+                    optionsFor = null
+                }.takeIf { !selected.isFolder },
                 DialogOption(label = "Rename") {
                     renaming = selected
                     optionsFor = null
@@ -212,6 +258,38 @@ fun WritingScreen(
                     optionsFor = null
                 },
             ),
+        )
+    }
+
+    if (choosingKind) {
+        OptionsDialog(
+            title = "New note",
+            onDismiss = { choosingKind = false },
+            options = listOf(
+                DialogOption(label = "Typed") {
+                    choosingKind = false
+                    addingNote = true
+                },
+            ) + PageTemplate.entries.map { template ->
+                DialogOption(label = "Handwritten, ${template.label.lowercase()}") {
+                    choosingKind = false
+                    addingInkNote = template
+                }
+            },
+        )
+    }
+
+    val inkTemplate = addingInkNote
+    if (inkTemplate != null) {
+        TextPromptDialog(
+            title = "Name, or leave it empty",
+            confirmText = "Write",
+            allowEmpty = true,
+            onConfirm = { title ->
+                addingInkNote = null
+                openNewInkNote(title, inkTemplate)
+            },
+            onDismiss = { addingInkNote = null },
         )
     }
 

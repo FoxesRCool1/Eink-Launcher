@@ -53,6 +53,8 @@ class NotesRepository(private val data: DataRepository) {
                         data.store.readText(stored.relativePath).orEmpty(),
                         stored.name.substringBeforeLast('.'),
                     )
+                // A handwritten note has no text to take a title from.
+                StorageLayout.isInkNote(stored.name) -> stored.name.substringBeforeLast('.')
                 else -> stored.name
             }
             NoteEntry(stored, title)

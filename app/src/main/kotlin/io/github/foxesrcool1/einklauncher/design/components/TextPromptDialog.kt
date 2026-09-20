@@ -33,6 +33,8 @@ fun TextPromptDialog(
     initialValue: String = "",
     confirmText: String = "Save",
     cancelText: String = "Cancel",
+    /** True when an empty answer is a fine answer. */
+    allowEmpty: Boolean = false,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -74,7 +76,7 @@ fun TextPromptDialog(
                 Spacer(modifier = Modifier.width(EinkDimens.targetGap))
                 InvertPressButton(
                     text = confirmText,
-                    enabled = value.isNotBlank(),
+                    enabled = allowEmpty || value.isNotBlank(),
                     onClick = { onConfirm(value.trim()) },
                 )
             }

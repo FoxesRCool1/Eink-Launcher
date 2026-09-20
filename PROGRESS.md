@@ -4,6 +4,35 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 6. Writing tab, handwritten half
+
+Date: 2026-09-20. State: complete. Waiting for a device test.
+
+### What was built
+
+- "New note" now asks which kind: typed, or handwritten on a blank, lined or
+  dot grid page. A handwritten note may be left without a name, because a pen
+  user may have no keyboard in reach. It is then named after the moment.
+- A handwritten note opens in the ink screen from Step 5, with pages, add
+  page, delete page and finger swipe.
+- Hold a note, then "Export as PDF". A typed note is set in Literata on A5
+  pages. A handwritten note goes out as lines, not as a picture. Both land in
+  `EinkLauncher/exports/`. A single handwritten page can also go out as a PNG
+  from the More menu of the ink screen.
+- Rename, move and delete work on handwritten notes the same way as on typed
+  ones.
+
+### Device test list for the owner
+
+1. Write, New note, "Handwritten, lined". Leave the name empty. Write a line.
+   Press Close. The note must be in the list under a date and time name.
+2. Hold it. Rename it. Move it into a folder. Open it there.
+3. Hold a typed note and a handwritten note, and export each. Open both PDF
+   files on a computer.
+4. Delete the handwritten note. It must ask first.
+
+---
+
 ## Step 5. Ink engine
 
 Model: Fable. Date: 2026-09-20. State: code and tests complete. Waiting for a
