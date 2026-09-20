@@ -94,9 +94,14 @@ class AppsRepository(context: Context) {
             appContext.packageManager
                 .queryIntentActivities(home, PackageManager.MATCH_DEFAULT_ONLY)
                 .filter { it.activityInfo.packageName != appContext.packageName }
+                // Android's own settings app holds a home screen with no name
+                // and a priority of -1000. It is the blank screen shown before
+                // the tablet is unlocked, not a launcher anybody can use.
+                .filter { it.priority >= 0 }
                 .forEach { resolved ->
                     result += EscapeEntry(
-                        label = resolved.loadLabel(appContext.packageManager).toString(),
+                        label = resolved.loadLabel(appContext.packageManager).toString()
+                            .ifBlank { resolved.activityInfo.packageName },
                         hint = "Other home app",
                         kind = EscapeKind.OtherHome,
                         packageName = resolved.activityInfo.packageName,
@@ -167,8 +172,15 @@ class AppsRepository(context: Context) {
                 val pkg = entry.packageName ?: return false
                 val cls = entry.className
                 if (cls != null) {
+                    // A home screen is found by the HOME category, and that is
+                    // what its intent filter says. Android 13 refuses an intent
+                    // that names an activity but does not match its filter,
+                    // when the other app targets Android 13 too. This is the
+                    // way out of this launcher, so it asks the way that must work.
+                    val category =
+                        if (entry.kind == EscapeKind.OtherHome) Intent.CATEGORY_HOME else Intent.CATEGORY_LAUNCHER
                     Intent(Intent.ACTION_MAIN)
-                        .addCategory(Intent.CATEGORY_LAUNCHER)
+                        .addCategory(category)
                         .setClassName(pkg, cls)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 } else {
