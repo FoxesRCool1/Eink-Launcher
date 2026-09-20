@@ -42,6 +42,16 @@ import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
+import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
+import io.github.foxesrcool1.einklauncher.core.reading.ReadingLog
+import io.github.foxesrcool1.einklauncher.core.reading.ReadingRepository
+import io.github.foxesrcool1.einklauncher.core.settings.ReaderSettings
+import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
+import io.github.foxesrcool1.einklauncher.ui.reading.epub.EpubReaderActivity
+import io.github.foxesrcool1.einklauncher.ui.reading.epub.GoalLine
 
 private const val TAG = "ReadingScreen"
 private const val ROWS_PER_PAGE = 5
@@ -73,10 +83,30 @@ fun ReadingScreen(
     var optionsFor by remember { mutableStateOf<LibraryBook?>(null) }
     var deleting by remember { mutableStateOf<LibraryBook?>(null) }
 
+    val reading = remember(context) { ReadingRepository(DataRoot.repository(context)) }
+    val settings = remember(context) { SettingsStore(context) }
+    val readerSettings by settings.reader.collectAsStateWithLifecycle(initialValue = ReaderSettings())
+    var progress by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var secondsToday by remember { mutableStateOf(0L) }
+
+    // Coming back from the reader has to show the new progress and the new
+    // reading time, so the list is read again every time the screen resumes.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        refresh++
+        onPauseOrDispose { }
+    }
+
     LaunchedEffect(sort, refresh) {
-        rows = withContext(Dispatchers.IO) {
-            if (sort == LibrarySort.Title) books.byTitle() else books.byRecent()
+        val loaded = withContext(Dispatchers.IO) {
+            val list = if (sort == LibrarySort.Title) books.byTitle() else books.byRecent()
+            val data = DataRoot.repository(context)
+            val hour = runCatching { HabitsRepository(data).load().dayBoundaryHour }.getOrDefault(DayBoundary.DEFAULT_HOUR)
+            val today = DayBoundary(hour).dateOf(java.time.Instant.now(), java.time.ZoneId.systemDefault())
+            Triple(list, list.associate { it.bookId to reading.progressOf(it.bookId) }, reading.secondsReadOn(today))
         }
+        rows = loaded.first
+        progress = loaded.second
+        secondsToday = loaded.third
     }
 
     val picker = rememberLauncherForActivityResult(
@@ -137,6 +167,16 @@ fun ReadingScreen(
             )
         }
 
+        if (readerSettings.goalMinutes > 0) {
+            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+            CapsLabel(
+                text = "Read today: ${secondsToday / 60} of ${readerSettings.goalMinutes} minutes",
+                style = EinkType.capsSmall,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            GoalLine(ReadingLog.goalFraction(secondsToday, readerSettings.goalMinutes))
+        }
+
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
         HairlineDivider(color = EinkColors.Faded)
 
@@ -148,9 +188,8 @@ fun ReadingScreen(
         ) { _, book ->
             BookRow(
                 book = book,
-                onOpen = {
-                    status = "The reader is step 7. The library is here already."
-                },
+                progress = progress[book.bookId] ?: 0.0,
+                onOpen = { openBook(context, book) { status = it } },
                 onOptions = { optionsFor = book },
             )
         }
@@ -206,6 +245,7 @@ fun ReadingScreen(
 @Composable
 private fun BookRow(
     book: LibraryBook,
+    progress: Double,
     onOpen: () -> Unit,
     onOptions: () -> Unit,
 ) {
@@ -225,7 +265,7 @@ private fun BookRow(
                     append("  .  ")
                     append(if (book.isPdf) "PDF" else "EPUB")
                     append("  .  ")
-                    append(book.sizeLabel())
+                    append(if (progress > 0.0) "${(progress * 100).toInt()} % read" else "Not started")
                 },
                 style = EinkType.capsSmall.copy(color = faded),
                 maxLines = 1,
@@ -233,6 +273,21 @@ private fun BookRow(
         }
     }
     HairlineDivider(color = EinkColors.Faded)
+}
+
+private fun openBook(context: Context, book: LibraryBook, say: (String) -> Unit) {
+    runCatching {
+        if (book.isPdf) {
+            say("PDF files open in step 8")
+        } else {
+            context.startActivity(
+                EpubReaderActivity.intent(context, book.path, book.bookId, book.metadata.title),
+            )
+        }
+    }.onFailure {
+        AppLog.e(TAG, "Could not open ${book.path}", it)
+        say("The book could not be opened")
+    }
 }
 
 /**

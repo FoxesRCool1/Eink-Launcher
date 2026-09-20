@@ -179,7 +179,12 @@ it from a machine with normal network access.
    Material brings ripples, elevation and animated indication, and e-ink rule
    1 forbids all three. Use the components in `design/components/`. If you
    find yourself adding Material to get one widget, write the widget instead.
-6. **Robolectric runs at API 36**, set in
+6. **The Kotlin compiler is set in the root build file.** AGP 9.4.0 would
+   compile with Kotlin 2.2.10. Readium 3.4.0 needs 2.4, so
+   `build.gradle.kts` puts the Kotlin Gradle plugin 2.4.20 on the build
+   classpath. If a dependency ever says "compiled with an incompatible
+   version of Kotlin", that line is where to look.
+7. **Robolectric runs at API 36**, set in
    `app/src/test/resources/robolectric.properties`, while the app compiles
    against API 37. Raise it when Robolectric ships an API 37 sandbox.
 

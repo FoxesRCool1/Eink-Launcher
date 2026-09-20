@@ -56,6 +56,9 @@ object StorageLayout {
         return "$ANNOTATIONS/${safeName(bookId)}/page-$padded.strokes"
     }
 
+    /** How long the user read, per day and book. */
+    fun readingLogPath(): String = "$ANNOTATIONS/reading-log.csv"
+
     fun journalFolder(date: LocalDate): String = "$JOURNAL/${date.year}"
 
     fun journalPath(date: LocalDate, handwritten: Boolean = false): String {

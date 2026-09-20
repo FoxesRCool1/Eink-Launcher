@@ -77,7 +77,18 @@ android {
         kotlin.directories.add("src/$name/kotlin")
     }
 
+    // The EPUB reader shows Literata inside a web view, and a web view can
+    // only load a font from the assets. The file already lives in res/font
+    // for the rest of the app, so that folder doubles as an assets folder
+    // rather than keeping a second copy of a 900 KB file in the repository.
+    sourceSets.getByName("main") {
+        assets.directories.add("src/main/res/font")
+    }
+
     compileOptions {
+        // Readium asks for this. It lets the library use newer java.* classes
+        // than the oldest Android this app runs on has.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -151,6 +162,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+
+    // The EPUB reader, plan section 4. BSD-3.
+    implementation(libs.readium.shared)
+    implementation(libs.readium.streamer)
+    implementation(libs.readium.navigator)
+    implementation(libs.androidx.fragment.ktx)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)

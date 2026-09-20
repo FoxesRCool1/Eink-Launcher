@@ -88,7 +88,44 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_FULL_REFRESH] = enabled }
     }
 
+    /** Everything the reader lets the user change. One flow, so the reader repaints once. */
+    val reader: Flow<ReaderSettings> = store.data.map { prefs ->
+        ReaderSettings(
+            font = prefs[KEY_READER_FONT] ?: ReaderSettings.FONT_LITERATA,
+            fontSizePercent = prefs[KEY_READER_SIZE] ?: 100,
+            marginPercent = prefs[KEY_READER_MARGIN] ?: 100,
+            lineHeightPercent = prefs[KEY_READER_LINE] ?: 140,
+            justify = prefs[KEY_READER_JUSTIFY] ?: true,
+            underlineHighlights = prefs[KEY_READER_UNDERLINE] ?: true,
+            refreshEveryPages = prefs[KEY_READER_REFRESH] ?: 0,
+            goalMinutes = prefs[KEY_READER_GOAL] ?: 30,
+        )
+    }
+
+    suspend fun setReader(settings: ReaderSettings) {
+        val clean = settings.clamped()
+        store.edit { prefs ->
+            prefs[KEY_READER_FONT] = clean.font
+            prefs[KEY_READER_SIZE] = clean.fontSizePercent
+            prefs[KEY_READER_MARGIN] = clean.marginPercent
+            prefs[KEY_READER_LINE] = clean.lineHeightPercent
+            prefs[KEY_READER_JUSTIFY] = clean.justify
+            prefs[KEY_READER_UNDERLINE] = clean.underlineHighlights
+            prefs[KEY_READER_REFRESH] = clean.refreshEveryPages
+            prefs[KEY_READER_GOAL] = clean.goalMinutes
+        }
+    }
+
     companion object {
+        private val KEY_READER_FONT = stringPreferencesKey("reader_font")
+        private val KEY_READER_SIZE = androidx.datastore.preferences.core.intPreferencesKey("reader_font_size")
+        private val KEY_READER_MARGIN = androidx.datastore.preferences.core.intPreferencesKey("reader_margin")
+        private val KEY_READER_LINE = androidx.datastore.preferences.core.intPreferencesKey("reader_line_height")
+        private val KEY_READER_JUSTIFY = booleanPreferencesKey("reader_justify")
+        private val KEY_READER_UNDERLINE = booleanPreferencesKey("reader_underline_highlights")
+        private val KEY_READER_REFRESH = androidx.datastore.preferences.core.intPreferencesKey("reader_refresh_every")
+        private val KEY_READER_GOAL = androidx.datastore.preferences.core.intPreferencesKey("reader_goal_minutes")
+
         const val FAST_PEN_OFF = "off"
         const val FAST_PEN_WRITING = "writing"
         const val FAST_PEN_AUTODRAW = "autodraw"

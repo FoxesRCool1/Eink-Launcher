@@ -4,6 +4,62 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 7 part two. The EPUB reader
+
+Date: 2026-09-20. State: code and tests complete. **Judge it on the tablet
+before building more on it**, as plan section 8 says.
+
+### What was built
+
+- Readium Kotlin Toolkit 3.4.0 (BSD-3). The build now compiles Kotlin with
+  the 2.4.20 plugin, because Readium needs it. See decision 0009.
+- `EpubReaderActivity`: paginated, one column, black on white. Tap the left
+  or right third to turn a page, or swipe, or use the page keys or volume
+  keys. No page turn is animated, and a swipe never drags the page.
+- Tap the middle for the menu: Close book, Contents, Notes, Text. It shows
+  the title, the place in the book, and the daily reading goal as a thin
+  line.
+- Text: font (Literata, serif, sans, the book's own), size, margins, line
+  spacing, justify. A second page has the highlight style, a full refresh
+  every N pages, and the daily goal.
+- Hold a word to select text. A plain bar offers Highlight, Note and Cancel.
+  Tap a highlight to add or edit a note, or to remove it.
+- Notes: the list of highlights in reading order. Tap to jump there. "Export
+  as Markdown" writes to `exports/`.
+- Position, progress, highlights and notes are in
+  `annotations/<book-id>.json`. Reading time is in
+  `annotations/reading-log.csv`.
+- The library list shows "34 % read", and the goal line for today.
+- Tests: annotation file format with damaged input, the reading log, the
+  timer, the settings limits, Readium opening a generated EPUB, a locator
+  round trip, and the reader activity starting and saving on the way out.
+
+### What does not work yet
+
+- Nobody has seen it on the panel. The web view may ghost.
+- Cover pictures are not shown in the library. The plan calls them optional.
+- PDF files still say "step 8" when tapped.
+
+### Device test list for the owner
+
+1. Import a public domain EPUB from Standard Ebooks. Tap it.
+2. Turn twenty pages with taps and with swipes. Write down how each page turn
+   looks: clean, grey smear, or flash.
+3. Tap the middle. Open Text. Change the font and the size. The page behind
+   the panel must change.
+4. Hold a word, drag the handles over a sentence, press Highlight. Then
+   select another and press Note, type a line, press Save.
+5. Text, Reading, Highlights: try the grey block. Say which one looks better.
+6. Open Notes. Tap a highlight. You should land on its page. Press "Export as
+   Markdown" and look in `EinkLauncher/exports/`.
+7. Open Contents and jump to a chapter.
+8. Press Home. Open the book again. It must open on the same page with the
+   highlights in place.
+9. If pages ghost: Text, Reading, Full refresh, every 5 pages. Say whether
+   that helps. It needs a working Step 2 result.
+
+---
+
 ## Step 6. Writing tab, handwritten half
 
 Date: 2026-09-20. State: complete. Waiting for a device test.
