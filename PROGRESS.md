@@ -100,10 +100,13 @@ where a screen was involved.
 
 ### What does not work, or is not known
 
-- **The Release workflow has never run**, and the updater has never seen a
-  real GitHub Release. The first `tools/release.sh` tests both.
-- **The repository is private, so GitHub hides its releases.** Make it public,
-  or put a read-only access token into the update screen once.
+- The owner made the first release, `v0.1.0`, on 2026-09-20. The app has not
+  yet taken an update from a real GitHub Release. That needs a second release
+  and the token on the tablet.
+- **The repository is private and stays private**, the owner's decision: the
+  app may be sold one day. So the tablet needs a read-only access token, once.
+  `docs/RELEASING.md` has the steps. That token can read the source: give it
+  an expiry date, and delete it on GitHub if the tablet is lost.
 - Right after an update Android shows the stock launcher, because for a moment
   this app was not there to be the home screen. The Home key brings it back.
   The update screen says so before it happens.
@@ -112,8 +115,10 @@ where a screen was involved.
 
 Do these after the step 2 tests, or before, as you like. They need Wi-Fi.
 
-1. Settings, Help, "Check for updates". With no newer release it says "This
-   is the newest version". With a private repository it asks for a token.
+1. Settings, Help, "Check for updates". The first time it says GitHub cannot
+   find the repository and asks for a token. Press "Enter access token", put
+   the token in, Save. It checks again by itself, and with no newer release it
+   says "This is the newest version".
 2. If the screen says Android must allow installs: press "Allow installs".
    **Does the ViWoods firmware open the page with the switch?** If not, use
    DevCheck, the same way as for the home app: Apps, Eink Launcher, Manage,

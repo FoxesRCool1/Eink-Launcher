@@ -60,12 +60,24 @@ changed"` makes a release with one command. Decision 0012 and
 `docs/RELEASING.md` have the whole story. What a new session must know:
 
 - **The whole update ran in the emulator**, from 0.1.0 to 0.1.1, against
-  `tools/fake-github.py`. It has not run against a real GitHub Release, and
-  the Release workflow has never run. The first `tools/release.sh` is the
-  test of both. If the workflow fails, read its log before anything else.
-- **The repository is private, and GitHub hides the releases of a private
-  repository.** Either it is made public, or the owner puts a read-only
-  access token into the update screen once. That choice is the owner's.
+  `tools/fake-github.py`. The owner made the first release, `v0.1.0`, on
+  2026-09-20. The app has not yet taken an update from a real GitHub Release:
+  that needs a second release and the token on the tablet. Check a release
+  with `gh run list --workflow=release.yml --limit 1`.
+- In the session that built this, the permission system stopped the session
+  from pushing. The owner runs `tools/release.sh` himself. Do the work,
+  commit, and hand him the command.
+- **The repository is private and stays private.** The owner decided that on
+  2026-09-20: the app may be sold one day, and the source must not leak. Do
+  not suggest making it public, and do not put source or APK files anywhere
+  other people can reach without asking first. GitHub hides the releases of
+  a private repository, so the app takes a read-only access token, once.
+  `docs/RELEASING.md` has the steps. That token can read the source, so it
+  has an expiry date, and it is deleted on GitHub if the tablet is lost.
+- The plan still names F-Droid, and `LICENSE`, the README and the About page
+  still say Apache-2.0 and "the source is on GitHub". None of that fits a
+  plan to sell. The licence was an open question before, and it is the
+  owner's to answer. Do not change it without being asked.
 - The tablet runs the **debug** build while the app is tested. The updater
   in a debug build only takes `-debug.apk` files, and the workflow builds
   those with no release key. Moving to the release build later means an

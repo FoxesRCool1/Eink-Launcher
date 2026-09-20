@@ -91,12 +91,25 @@ through `UPDATE_PACKAGES_WITHOUT_USER_ACTION`. Left out on purpose: it is one
 more permission in the list the user reads, and one window per update is a
 fair price for knowing what the home app is doing.
 
+**The repository stays private.** The owner decided this on 2026-09-20, after
+the updater was built: the app may be sold one day, and the source must not
+leak. So the token below is not the fallback, it is the way this project
+works.
+
 **The access token.** GitHub answers "not found" for a private repository. So
 the update screen can take a read-only access token. It is kept in a file of
 its own that both backup rule files leave out, it is never logged, and it is
 dropped from a request the moment a redirect leaves GitHub, which the storage
 server GitHub uses needs anyway. A public repository needs no token, and then
 none of this is ever seen.
+
+One weakness, and it is GitHub's: there is no permission for releases alone.
+The files of a release come under "Contents", and so does the code, so a
+token that can fetch an update can also read the source. It gets an expiry
+date, it covers this one repository, and it is deleted on GitHub if the
+tablet is lost. If that ever stops being good enough, the way out is a
+second repository that holds nothing but the APK files, with the token
+pointing at that one. Then the key on the tablet opens no source at all.
 
 ## One thing to take out again, one day
 

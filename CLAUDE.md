@@ -71,6 +71,14 @@ Read this file at the start of every session. It is the short form of
 - New kinds of file get a path builder in `StorageLayout`, not a string
   somewhere in a screen.
 
+## The source is private
+
+The owner may sell this app one day. The repository is private and stays
+private. Do not suggest making it public. Do not put source code, APK files
+or build output anywhere other people can reach, and that includes public
+gists, paste sites and third party services, without asking first. Code
+shrinking is off, so an APK reads almost like the source.
+
 ## Network rules
 
 - The app goes online in one place, `core/update/`, and only when the user
