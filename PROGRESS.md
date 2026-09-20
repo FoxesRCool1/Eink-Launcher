@@ -4,6 +4,28 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 9. The handwritten journal entry
+
+Date: 2026-09-20. State: complete. Step 9 has nothing left to build.
+
+- "Handwrite" on a day opens the ink screen on
+  `journal/YYYY/YYYY-MM-DD.inknote`, on a lined page. When the day already
+  has one, the control reads "Open handwriting".
+- A day can hold a typed entry, a handwritten one, or both. The month view
+  marks the day either way.
+- Coming back from the ink screen does not throw away a typed entry that is
+  being edited.
+
+### Device test list for the owner
+
+1. Journal, "Handwrite". Write a line. Press Close.
+2. The control should now read "Open handwriting". Press Month. Today should
+   carry the rule under its number.
+3. Go to yesterday with Previous. Press "Handwrite" and write. Go back to
+   today. Each day must show its own page.
+
+---
+
 ## Step 8. PDF and handwritten annotations
 
 Model: Fable. Date: 2026-09-20. State: code and tests complete. Waiting for a

@@ -127,6 +127,12 @@ class DataRepository(val store: FileStore) {
     fun writeJournalEntry(date: LocalDate, text: String): Boolean =
         store.writeText(StorageLayout.journalPath(date), text)
 
+    /** True when the day has a handwritten page with at least something in the file. */
+    fun hasInkJournalEntry(date: LocalDate): Boolean {
+        val path = StorageLayout.journalPath(date, handwritten = true)
+        return store.exists(path) && store.sizeOf(path) > 0
+    }
+
     fun journalDatesIn(year: Int): List<LocalDate> =
         store.list("${StorageLayout.JOURNAL}/$year")
             .filter { !it.isDirectory }

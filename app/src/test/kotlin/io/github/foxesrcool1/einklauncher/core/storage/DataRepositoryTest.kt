@@ -180,4 +180,19 @@ class DataRepositoryTest {
         assertEquals(1, snapshot.of(IndexKind.Book).size)
         assertEquals(1, snapshot.of(IndexKind.TypedNote).size)
     }
+
+    @Test
+    fun `a handwritten journal page counts as an entry for its day`() {
+        val store = LocalFileStore(temporary.newFolder("EinkLauncherInk"))
+        val data = DataRepository(store).also { it.ensureFolders() }
+        val day = java.time.LocalDate.of(2026, 9, 20)
+
+        assertFalse(data.hasInkJournalEntry(day))
+        store.write(StorageLayout.journalPath(day, handwritten = true), byteArrayOf(1, 2, 3))
+        data.writeJournalEntry(day, "typed as well")
+
+        assertTrue(data.hasInkJournalEntry(day))
+        // One day, even with two files in it.
+        assertEquals(listOf(day), data.journalDatesIn(2026))
+    }
 }

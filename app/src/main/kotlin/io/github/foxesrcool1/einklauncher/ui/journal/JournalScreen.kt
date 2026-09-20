@@ -22,6 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import io.github.foxesrcool1.einklauncher.core.ink.PageTemplate
+import io.github.foxesrcool1.einklauncher.core.storage.StorageLayout
+import io.github.foxesrcool1.einklauncher.ui.ink.InkNoteActivity
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitSummary
@@ -57,7 +60,8 @@ private enum class JournalMode { Day, Month, Routine }
 /**
  * The Journal tab: one entry per day, a month view, and the habits.
  *
- * The handwritten entry is not here. It needs the ink engine, which is step 5.
+ * A day can hold a typed entry, a handwritten one, or both. The handwritten
+ * one opens in the ink screen, as a file of its own next to the typed one.
  * Nothing on this screen scrolls: the day fits, and the month is one page by
  * definition.
  */
@@ -89,6 +93,14 @@ fun JournalScreen(
     var summaries by remember { mutableStateOf<List<HabitSummary>>(emptyList()) }
     var routineRows by remember { mutableStateOf<List<RoutineStatus>>(emptyList()) }
     var daysWithEntries by remember { mutableStateOf<Set<LocalDate>>(emptySet()) }
+    var hasInkEntry by remember { mutableStateOf(false) }
+
+    // Coming back from the ink screen has to show that the day now has a
+    // handwritten page, in the day view and in the month view.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        refresh++
+        onPauseOrDispose { }
+    }
 
     var optionsFor by remember { mutableStateOf<HabitSummary?>(null) }
     var addingHabit by remember { mutableStateOf(false) }
@@ -104,7 +116,17 @@ fun JournalScreen(
                 monthDays = data.journalDatesIn(viewDate.year).toSet(),
                 boundaryHour = document.dayBoundaryHour,
                 routine = routine.statuses(today),
-            )
+            ) to data.hasInkJournalEntry(viewDate)
+        }.let { (day, ink) ->
+            hasInkEntry = ink
+            day
+        }
+        // An edit in progress is not thrown away by coming back to the screen.
+        if (editing) {
+            summaries = loaded.summaries
+            daysWithEntries = loaded.monthDays
+            routineRows = loaded.routine
+            return@LaunchedEffect
         }
         entryText = loaded.entry
         savedText = loaded.entry
@@ -293,9 +315,19 @@ fun JournalScreen(
                             onClick = { editing = true },
                         )
                         InvertPressButton(
-                            text = "Handwrite",
-                            enabled = false,
-                            onClick = { },
+                            text = if (hasInkEntry) "Open handwriting" else "Handwrite",
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        InkNoteActivity.intent(
+                                            context,
+                                            StorageLayout.journalPath(viewDate, handwritten = true),
+                                            JournalStrings.dayTitle(viewDate),
+                                            PageTemplate.Lined,
+                                        ),
+                                    )
+                                }.onFailure { AppLog.e(TAG, "Could not open the handwritten entry", it) }
+                            },
                         )
                     }
                 }
