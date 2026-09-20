@@ -43,6 +43,8 @@ fun WordMenu(
     modifier: Modifier = Modifier,
     selectedIndex: Int? = null,
     verticalGap: androidx.compose.ui.unit.Dp = 4.dp,
+    /** The size of the words. Today makes them one step smaller when the screen is short of room. */
+    wordStyle: androidx.compose.ui.text.TextStyle = EinkType.word,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -53,6 +55,7 @@ fun WordMenu(
                 item = item,
                 selected = index == selectedIndex,
                 onClick = { onSelect(index) },
+                wordStyle = wordStyle,
             )
         }
     }
@@ -63,6 +66,7 @@ private fun WordMenuRow(
     item: WordMenuItem,
     selected: Boolean,
     onClick: () -> Unit,
+    wordStyle: androidx.compose.ui.text.TextStyle,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -96,7 +100,7 @@ private fun WordMenuRow(
         Spacer(modifier = Modifier.width(14.dp))
         EinkText(
             text = item.label,
-            style = EinkType.word.copy(color = foreground),
+            style = wordStyle.copy(color = foreground),
             maxLines = 1,
         )
     }

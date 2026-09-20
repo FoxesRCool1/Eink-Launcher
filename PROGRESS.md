@@ -4,6 +4,83 @@ One section per step. Newest step at the top.
 
 ---
 
+## Where everything stands
+
+2026-09-20. All ten steps have code. **None of it has run on the tablet.**
+Each step below ends with a device test list. Start with step 2, at the
+bottom of the new entries, because the pen setting for everything else comes
+out of it. `docs/HANDOFF.md` says what to do with the results.
+
+---
+
+## Step 10. E-ink audit, hardening and release
+
+Date: 2026-09-20. State: the audit and the release setup are done. **No
+release was made**, on purpose: nothing has run on the tablet yet.
+
+### What was done
+
+- An audit of every screen against plan section 5, from the code and from
+  screenshots at panel size. `docs/decisions/0011-eink-audit.md` has the full
+  list. The three that mattered most:
+  - The text cursor blinked in every text field. It is now a still line
+    (`EinkTextField`).
+  - Dialogs faded and laid a grey wash over the screen. Both are off
+    (`EinkDialog` and the dialog theme).
+  - Settings had grown past one screen and the control back to Today had
+    fallen off the bottom. It is six short pages now, and the footer cannot
+    be pushed off any more.
+- Today: the bottom row was cut off. The four words now take the room that is
+  left, and step down one size when the Next line shows.
+- Settings, About: credits and licences, one a page.
+- The release build asks for one permission, `ACCESS_NETWORK_STATE`. An
+  unused `WAKE_LOCK` from Readium's audio player is removed.
+- The launcher writes its start-up time to the log.
+- Release signing from four environment variables. The key is never in the
+  repository. Proved with a throwaway key that was deleted afterwards.
+- `.github/workflows/release.yml`: push a tag like `v0.1.0`, and it tests,
+  builds, signs and publishes both APK files.
+- `docs/RELEASING.md`, `docs/RELEASE_NOTES.md`, the final `README.md` with
+  the install guide for ViWoods tablets and the way back to the stock
+  launcher, `licenses/DEPENDENCIES.md`, and five screenshots with public
+  domain text only.
+- The Gradle distribution checksum is pinned.
+
+### What is not done
+
+- The first GitHub Release. It needs the device tests, a release key that
+  only the owner should hold, and the final name.
+- A review of crash logs from daily use. There are none yet.
+- A typed note that is longer than the screen scrolls inside its field. That
+  breaks e-ink rule 2 and needs a paged editor. Decision 0011.
+- Code shrinking is off. See the comment in `app/build.gradle.kts`.
+
+### The owner has to decide
+
+1. **`desugar_jdk_libs`.** Readium needs it, and it is GPL-2.0 with the
+   Classpath Exception, which is the licence of the Java class library
+   itself. It does not make the app GPL. Read the paragraph in
+   `licenses/DEPENDENCIES.md` and say yes or no.
+2. **The final name**, before the first public release.
+3. Still open from step 1: the package id and the licence.
+
+### Device test list for the owner
+
+1. Open every text field you can find: a new note, a journal entry, a rename,
+   a note on a highlight. The cursor must stand still.
+2. Open a dialog, for example hold an app in Apps. It must appear at once,
+   with no fade, and the screen behind it must stay white.
+3. Settings: open all six pages. "Today" must be at the bottom of each one.
+4. Add a routine item in the Journal, then look at Today. "Quick note" and
+   "Settings" must both be whole.
+5. Open Settings, Help, Log. Find the line "Home screen up ... ms". Send it.
+6. Use the tablet with this launcher for one day. Then Settings, Help, Log,
+   "Copy to download", and send the files.
+7. Install the `generic` build on a phone. It must start, and Settings, Pen
+   must say that the device has no fast pen.
+
+---
+
 ## Step 9. The handwritten journal entry
 
 Date: 2026-09-20. State: complete. Step 9 has nothing left to build.
@@ -191,8 +268,8 @@ device test.
 - Palm rejection: a finger never draws, and a finger swipe does nothing for
   700 ms after the pen touched or hovered.
 - Fast pen hand-over, built on the Step 2 device layer. Off by default.
-- Settings is now four pages: Home app, Look and pen, Storage, Help. The pen
-  path, the redraw wait and the full refresh switch are under Look and pen.
+- Settings is now in pages: Home app, Look, Pen, Storage, Help, About. The pen
+  path, the redraw wait and the full refresh switch are under Pen and Look.
 - A note that cannot be read is shown empty and is never saved over.
 - 50 new tests: file formats with damaged and lying input, eraser geometry,
   the undo stack, and the canvas itself with made-up pen events, including
@@ -226,7 +303,7 @@ device test.
 8. Press Close. Open row 7b again. Everything must be there.
 9. Copy `EinkLauncher/notes/Ink test.inknote` to a computer, rename it to
    `.zip` and open it. It should hold `meta.json` and the pages.
-10. If the Step 2 test found a working fast pen path: Settings, Look and pen,
+10. If the Step 2 test found a working fast pen path: Settings, Pen,
     pick it, and do step 2 again. Watch for a double line or a flicker when
     the real stroke replaces the fast one. Change the wait if you see one.
 11. Send the log. It holds the read and paint times.

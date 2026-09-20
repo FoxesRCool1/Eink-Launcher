@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
@@ -40,7 +39,7 @@ fun TextPromptDialog(
 ) {
     var value by remember { mutableStateOf(initialValue) }
 
-    Dialog(
+    EinkDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -54,12 +53,11 @@ fun TextPromptDialog(
             EinkText(text = title, style = EinkType.title, maxLines = 2)
             Spacer(modifier = Modifier.height(EinkDimens.targetGap))
 
-            BasicTextField(
+            EinkTextField(
                 value = value,
                 onValueChange = { value = it },
                 textStyle = EinkType.body,
                 singleLine = true,
-                cursorBrush = SolidColor(EinkColors.Ink),
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = EinkDimens.touchTarget)

@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
+import io.github.foxesrcool1.einklauncher.design.components.EinkTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -118,11 +118,10 @@ fun NoteEditorScreen(
         corner = null,
         modifier = modifier,
     ) {
-        BasicTextField(
+        EinkTextField(
             value = text,
             onValueChange = { text = it },
             textStyle = EinkType.reading,
-            cursorBrush = SolidColor(EinkColors.Ink),
             enabled = loaded,
             modifier = Modifier
                 .fillMaxWidth()

@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
+import io.github.foxesrcool1.einklauncher.design.components.EinkTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -266,11 +266,10 @@ fun JournalScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 if (editing) {
-                    BasicTextField(
+                    EinkTextField(
                         value = entryText,
                         onValueChange = { entryText = it },
                         textStyle = EinkType.body,
-                        cursorBrush = SolidColor(EinkColors.Ink),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp, max = 220.dp)

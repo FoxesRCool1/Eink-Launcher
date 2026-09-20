@@ -102,7 +102,7 @@ the overlay: it clears 800 ms after the last pen-up.
 opens and when the screen pauses, so the tablet never draws on a dialog.
 
 The fast pen is **off by default** until the device test has shown which
-path works. It is a setting under "Look and pen".
+path works. It is a setting under "Pen".
 
 ## Saving
 

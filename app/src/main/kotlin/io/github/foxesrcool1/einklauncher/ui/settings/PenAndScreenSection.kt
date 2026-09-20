@@ -30,13 +30,12 @@ import kotlinx.coroutines.launch
  * state: this app paints the ink, and nothing asks for a full refresh.
  */
 @Composable
-fun PenAndScreenSection(settings: SettingsStore) {
+fun PenSection(settings: SettingsStore) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val device = remember { EinkDevices.get(context) }
     val fastPen by settings.fastPenMode.collectAsStateWithLifecycle(initialValue = SettingsStore.FAST_PEN_OFF)
     val delay by settings.inkRedrawDelayMillis.collectAsStateWithLifecycle(initialValue = SettingsStore.DEFAULT_INK_DELAY_MILLIS)
-    val fullRefresh by settings.fullRefreshOnBigChange.collectAsStateWithLifecycle(initialValue = false)
 
     CapsLabel(text = "Pen", style = EinkType.capsSmall)
     HairlineDivider(color = EinkColors.Faded)
@@ -61,12 +60,12 @@ fun PenAndScreenSection(settings: SettingsStore) {
                 onClick = { scope.launch { settings.setFastPenMode(SettingsStore.FAST_PEN_OFF) } },
             )
             InvertPressButton(
-                text = "Tablet, path A",
+                text = "Path A",
                 selected = fastPen == SettingsStore.FAST_PEN_WRITING,
                 onClick = { scope.launch { settings.setFastPenMode(SettingsStore.FAST_PEN_WRITING) } },
             )
             InvertPressButton(
-                text = "Tablet, path B",
+                text = "Path B",
                 selected = fastPen == SettingsStore.FAST_PEN_AUTODRAW,
                 onClick = { scope.launch { settings.setFastPenMode(SettingsStore.FAST_PEN_AUTODRAW) } },
             )
@@ -83,14 +82,23 @@ fun PenAndScreenSection(settings: SettingsStore) {
         )
     }
 
-    Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+}
+
+/** The panel: when to ask for a full refresh. */
+@Composable
+fun ScreenSection(settings: SettingsStore) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val device = remember { EinkDevices.get(context) }
+    val fullRefresh by settings.fullRefreshOnBigChange.collectAsStateWithLifecycle(initialValue = false)
+
     CapsLabel(text = "Screen", style = EinkType.capsSmall)
     HairlineDivider(color = EinkColors.Faded)
     Spacer(modifier = Modifier.height(10.dp))
 
     Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
         InvertPressButton(
-            text = if (fullRefresh) "Full refresh on screen change: on" else "Full refresh on screen change: off",
+            text = if (fullRefresh) "Refresh on screen change: on" else "Refresh on screen change: off",
             enabled = device.hasVendorControl,
             onClick = { scope.launch { settings.setFullRefreshOnBigChange(!fullRefresh) } },
         )

@@ -177,7 +177,7 @@ private fun buildTests(): List<DeviceTest> {
                 "Ink test",
             ),
         )
-        "Opened. It uses the pen setting from Settings, Look and pen."
+        "Opened. It uses the pen setting from Settings, Pen."
     }
 
     tests += DeviceTest("8. Fast pen crash guard") { context, _ ->

@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,6 +50,8 @@ fun SettingsScreen(
     onOpenLog: () -> Unit,
     onOpenDemo: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Which of the four pages to open on. The screenshot tests use it. */
+    initialPage: Int = 0,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -58,7 +61,9 @@ fun SettingsScreen(
     var isDefault by remember { mutableStateOf(DefaultLauncher.isDefault(context)) }
     var showManualSteps by remember { mutableStateOf(false) }
     var lastMessage by remember { mutableStateOf<String?>(null) }
-    var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(SettingsPage.Home) }
+    var page by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(SettingsPage.entries[initialPage.coerceIn(0, SettingsPage.entries.size - 1)])
+    }
 
     val roleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -75,19 +80,23 @@ fun SettingsScreen(
     ) {
         // One page of settings at a time. A settings screen that scrolls would
         // break e-ink rule 2, and one that does not scroll runs out of room.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             SettingsPage.entries.forEach { entry ->
                 InvertPressButton(
                     text = entry.label,
                     selected = page == entry,
                     onClick = { page = entry },
                     compact = true,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 16.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 16.dp),
                 )
             }
         }
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
 
+        // The page gets the room between the tabs and the footer, and is cut
+        // off there if it ever grows too tall. The footer holds the way back
+        // to Today, and a page must never be able to push that off the screen.
+        Column(modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds()) {
         if (page == SettingsPage.Home) {
         CapsLabel(text = "Home app", style = EinkType.capsSmall)
         HairlineDivider(color = EinkColors.Faded)
@@ -156,7 +165,11 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-        PenAndScreenSection(settings)
+        ScreenSection(settings)
+        }
+
+        if (page == SettingsPage.Pen) {
+        PenSection(settings)
         }
 
         if (page == SettingsPage.Storage) {
@@ -185,7 +198,11 @@ fun SettingsScreen(
 
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        if (page == SettingsPage.About) {
+            AboutSection(modifier = Modifier.weight(1f))
+        }
+        }
+
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(EinkDimens.targetGap))
         Row(
@@ -203,9 +220,11 @@ fun SettingsScreen(
 
 private enum class SettingsPage(val label: String) {
     Home("Home app"),
-    Look("Look and pen"),
+    Look("Look"),
+    Pen("Pen"),
     Storage("Storage"),
     Help("Help"),
+    About("About"),
 }
 
 /**

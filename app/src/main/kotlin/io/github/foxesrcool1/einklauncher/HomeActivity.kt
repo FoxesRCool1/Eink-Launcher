@@ -59,9 +59,12 @@ class HomeActivity : ComponentActivity() {
     /** Ctrl+N on a Bluetooth keyboard bumps this, and the Writing tab notices. */
     private val newNoteRequests = mutableIntStateOf(0)
 
+    private var startLogged = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppLog.i(TAG, "onCreate")
+        logStartTime()
 
         setContent {
             val context = LocalContext.current
@@ -78,6 +81,21 @@ class HomeActivity : ComponentActivity() {
                     newNoteRequests = newNoteRequests.intValue,
                 )
             }
+        }
+    }
+
+    /**
+     * How long the home screen took, from the start of the process to the
+     * first frame. There is no profiler on this tablet, so the log is where
+     * a slow start shows up. Step 10 asks for this number.
+     */
+    private fun logStartTime() {
+        if (startLogged) return
+        startLogged = true
+        window.decorView.post {
+            val sinceProcessStart = android.os.SystemClock.elapsedRealtime() -
+                android.os.Process.getStartElapsedRealtime()
+            AppLog.i(TAG, "Home screen up $sinceProcessStart ms after the process started")
         }
     }
 

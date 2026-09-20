@@ -26,7 +26,30 @@ android {
         versionName = "0.1.0"
     }
 
+    // The release key is never in the repository. It comes from four values,
+    // given as environment variables or as Gradle properties of the same
+    // name. With none of them set, `assembleRelease` still works and makes an
+    // unsigned APK. See docs/RELEASING.md.
+    val releaseStoreFile = providers.environmentVariable("EINK_RELEASE_STORE_FILE")
+        .orElse(providers.gradleProperty("EINK_RELEASE_STORE_FILE")).orNull
+    val releaseStorePassword = providers.environmentVariable("EINK_RELEASE_STORE_PASSWORD")
+        .orElse(providers.gradleProperty("EINK_RELEASE_STORE_PASSWORD")).orNull
+    val releaseKeyAlias = providers.environmentVariable("EINK_RELEASE_KEY_ALIAS")
+        .orElse(providers.gradleProperty("EINK_RELEASE_KEY_ALIAS")).orNull
+    val releaseKeyPassword = providers.environmentVariable("EINK_RELEASE_KEY_PASSWORD")
+        .orElse(providers.gradleProperty("EINK_RELEASE_KEY_PASSWORD")).orNull
+    val hasReleaseKey = listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
+        .all { !it.isNullOrBlank() }
+
     signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
         // A fixed debug key, checked into the repository on purpose.
         // Every debug build then has the same signature, so a new build
         // installs over the last one on the tablet. It signs debug builds only.
@@ -43,6 +66,11 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
+            if (hasReleaseKey) signingConfig = signingConfigs.getByName("release")
+            // Shrinking is off on purpose. Nothing here has run on the tablet
+            // with R8, and Readium and the reflection into the ViWoods classes
+            // are both the kind of code R8 breaks quietly. Turn it on only
+            // together with a device test of the release build.
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(

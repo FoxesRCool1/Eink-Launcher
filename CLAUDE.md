@@ -46,6 +46,13 @@ Read this file at the start of every session. It is the short form of
   `indication = null`.
 - Text goes through `EinkText` or `CapsLabel`, never `BasicText` directly.
 - Lists go through `PagedList`. Do not add a `LazyColumn` to a user screen.
+- Dialogs go through `EinkDialog`, never `Dialog`. The platform dialog fades
+  and dims the screen behind it.
+- Text fields go through `EinkTextField`, never `BasicTextField`. The platform
+  cursor blinks.
+- A screen that does not scroll can overflow. Add a screenshot test for every
+  new screen and look at the PNG. A control that falls off the bottom of a
+  home app is a trap.
 - Every reflection call into a vendor API is wrapped in `runCatching` and
   writes its result to `AppLog`. A vendor API must never crash the app.
 
@@ -72,6 +79,13 @@ app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
   core/storage/  data folder, file store, backup, index
   core/settings/ the few values that live in DataStore
   core/launcher/ becoming the home app
+  core/eink/     EinkDevice, the ViWoods layer by reflection, the crash guard
+  core/ink/      strokes, file formats, undo, eraser geometry. No Android.
+  core/reading/  annotations, reading log and timer. No Readium.
+  core/pdf/      screens of a page, margin search, ink sidecar files
+  ui/ink/        the ink canvas, the handwriting screen, export
+  ui/reading/epub/  the Readium reader
+  ui/reading/pdf/   the PDF reader
   design/        colours, type, sizes, theme
   design/components/  the design system
   ui/            screens

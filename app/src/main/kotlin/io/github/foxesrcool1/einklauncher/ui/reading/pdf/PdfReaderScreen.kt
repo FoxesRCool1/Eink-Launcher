@@ -16,13 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.DialogOption
+import io.github.foxesrcool1.einklauncher.design.components.EinkDialog
 import io.github.foxesrcool1.einklauncher.design.components.EinkRow
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
@@ -127,7 +127,7 @@ private fun Message(text: String) {
 /** The annotation list of a PDF: every page that has ink, with a jump to it. */
 @Composable
 private fun InkPagesDialog(state: PdfUiState, actions: PdfActions) {
-    Dialog(
+    EinkDialog(
         onDismissRequest = { actions.show(PdfPanel.None) },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {

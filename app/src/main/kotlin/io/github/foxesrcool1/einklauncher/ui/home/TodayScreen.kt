@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
@@ -62,9 +63,11 @@ fun TodayScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         BotanicalSprig(
-            corner = BotanicalCorner.BottomEnd,
-            modifier = Modifier.align(Alignment.BottomEnd),
-            drawingSize = 150.dp,
+            // Top corner. The bottom edge holds the controls, and a drawing
+            // under a control makes both harder to read.
+            corner = BotanicalCorner.TopEnd,
+            modifier = Modifier.align(Alignment.TopEnd),
+            drawingSize = 130.dp,
         )
 
         Column(
@@ -73,7 +76,7 @@ fun TodayScreen(
                 .systemBarsPadding()
                 .padding(EinkDimens.screenMargin),
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             CapsLabel(
                 text = HomeStrings.date(time),
                 style = EinkType.caps.copy(textAlign = TextAlign.Center),
@@ -88,15 +91,28 @@ fun TodayScreen(
 
             Spacer(modifier = Modifier.height(EinkDimens.blockGap))
             HairlineDivider()
-            Spacer(modifier = Modifier.height(56.dp))
-
-            WordMenu(
-                items = LauncherRoute.tabs.map { WordMenuItem(it.title) },
-                selectedIndex = null,
-                onSelect = { index -> onOpenTab(LauncherRoute.tabs[index]) },
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
+            // The four words get whatever room is left between the header and
+            // the controls, and step down one size when that is not enough
+            // for them. The controls at the bottom are never the ones that
+            // get squeezed: a home screen with a cut off Settings control is
+            // a trap.
+            androidx.compose.foundation.layout.BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                val roomy = maxHeight >= 400.dp
+                WordMenu(
+                    items = LauncherRoute.tabs.map { WordMenuItem(it.title) },
+                    selectedIndex = null,
+                    onSelect = { index -> onOpenTab(LauncherRoute.tabs[index]) },
+                    modifier = Modifier.padding(top = if (roomy) 32.dp else 4.dp),
+                    verticalGap = if (roomy) 4.dp else 0.dp,
+                    wordStyle = if (roomy) {
+                        EinkType.word
+                    } else {
+                        EinkType.word.copy(fontSize = 42.sp, lineHeight = 52.sp)
+                    },
+                )
+            }
 
             // The next thing in the user's own routine, if they have one. It
             // is left out entirely when the routine is empty or finished,
@@ -119,7 +135,7 @@ fun TodayScreen(
                     }
                     InvertPressButton(text = "Start", onClick = onStartNext)
                 }
-                Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+                Spacer(modifier = Modifier.height(EinkDimens.targetGap))
             }
 
             HairlineDivider(color = EinkColors.Faded)
@@ -132,19 +148,24 @@ fun TodayScreen(
                 CapsLabel(
                     text = HomeStrings.status(batteryPercent, onWifi),
                     style = EinkType.capsSmall,
+                    modifier = Modifier.weight(1f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-                    InvertPressButton(
-                        text = "Quick note",
-                        onClick = onQuickNote,
-                        bordered = false,
-                    )
-                    InvertPressButton(
-                        text = "Settings",
-                        onClick = onOpenSettings,
-                        bordered = false,
-                    )
-                }
+                // Compact text, full size targets: three things share this
+                // line and the screen is 480 dp wide.
+                InvertPressButton(
+                    text = "Quick note",
+                    onClick = onQuickNote,
+                    bordered = false,
+                    compact = true,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 16.dp),
+                )
+                InvertPressButton(
+                    text = "Settings",
+                    onClick = onOpenSettings,
+                    bordered = false,
+                    compact = true,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 16.dp),
+                )
             }
         }
     }

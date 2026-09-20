@@ -1,119 +1,91 @@
 # Handoff
 
-For the next session, wherever it runs. Written 2026-09-19 by the session that
-built steps 1, 3 and 4.
+For the next session, wherever it runs. Rewritten 2026-09-20 by the session
+that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
 ---
 
-## 1. The one thing that shaped every decision here
+## 1. The one thing that shapes everything now
 
-The machine that wrote steps 1, 3 and 4 **could not reach `dl.google.com`**. No
-Android SDK, no Android Gradle plugin, no androidx artifacts. So:
+**All ten steps have code. None of it has run on the tablet.**
 
-- `./gradlew` never ran on that machine. Not once.
-- Every Kotlin file was checked with `tools/parse-check.sh` instead, which
-  compiles the sources with the standalone Kotlin compiler and no Android
-  classes. It catches syntax errors and names that do not exist in this
-  project. It cannot catch a wrong argument to an androidx function.
-- GitHub Actions was the only real build. Every round trip cost about seven
-  minutes.
+The dev machine can build now. The Android SDK is in `~/Android/Sdk`, and
+every step was built, unit tested and linted locally and on GitHub Actions.
+What nobody has done is hold the tablet. Every step has a device test list in
+`PROGRESS.md`, and until those are run, treat the app as untested where it
+touches the glass, the pen and the vendor firmware.
 
-**If your machine can run `./gradlew`, that limit is gone.** Run the build
-first, before anything else:
+Run this first in any new session:
 
 ```
 ./gradlew assembleViwoodsDebug testViwoodsDebugUnitTest lintViwoodsDebug
 ```
 
-Fix whatever it says, then carry on. Do not trust that the code is correct
-because it is committed.
+Then look at the pictures in `app/build/outputs/roborazzi/`. They are the only
+eyes there are.
 
 ---
 
 ## 2. Where the plan stands
 
-| Step | Model | State |
-| --- | --- | --- |
-| 0. Owner preparation | manual | Owner's job. Ask what happened with the ViWoods support email. |
-| 1. Scaffold and design system | Opus | Code complete. See `PROGRESS.md`. |
-| 2. Device spike: refresh and fast pen | **Fable** | Not started. Blocks step 5. |
-| 3. Launcher shell | Opus | Code complete. |
-| 4. Storage layer | Opus | Code and tests complete. One measurement still open, see below. |
-| 5. Ink engine | **Fable** | Not started. Blocks the handwriting half of steps 6, 8 and 9. |
-| 6. Writing tab | Opus | Typed half built: file browser, Markdown editor, autosave, keyboard shortcuts, quick note. Handwritten notebook and export are left. |
-| 7. Reading tab, library and EPUB | Opus | Library, import and EPUB title reading built. The reader is not: it needs Readium, and Readium needs judging on the real panel first. |
-| 8. Reading tab, PDF | **Fable** | Not started. |
-| 9. Journal tab | Opus | Built: day view, month view, habits with streaks and dots, the routine list and the "Next" line on Today. Only the handwritten entry is missing, and that needs step 5. |
-| 10. Audit and release | Opus | Not started. |
+| Step | State |
+| --- | --- |
+| 0. Owner preparation | Owner's job. Ask what ViWoods support said about the ADB tool. |
+| 1. Scaffold and design system | Done. |
+| 2. Device spike | Code done. **The device test decides everything about the pen.** Decision 0007 is provisional. |
+| 3. Launcher shell | Done. |
+| 4. Storage layer | Done. The 500 file measurement is still open, see 3.3. |
+| 5. Ink engine | Code done. Own stroke model, not Jetpack Ink. Decision 0008 says why. |
+| 6. Writing tab | Done. |
+| 7. Reading, EPUB | Done, on Readium 3.4.0. **Judge it on the panel**, plan section 8. |
+| 8. Reading, PDF | Code done, on the platform `PdfRenderer`. No PDF was rendered off the tablet. |
+| 9. Journal | Done. |
+| 10. Audit and release | Audit done from code and screenshots. Release workflow ready. **No release was made.** |
 
-Steps 2, 5 and 8 are tagged for Fable in the plan and were left alone on
-purpose.
+The work is in seven stacked pull requests, one per step branch:
+`step-02-device-spike`, `step-05-ink-engine`, `step-06-writing-tab`,
+`step-07-epub-reader`, `step-08-pdf-and-ink-annotations`,
+`step-09-journal-handwriting`, `step-10-audit-and-release`. Merge them in
+that order.
 
 ---
 
 ## 3. What to do next, in order
 
-### 3.1 CI is green
+### 3.1 The owner runs the device tests
 
-It went green on 2026-09-19 at commit `9cbfc04`, run 9: both flavours build,
-every unit test passes, all twelve screenshots are recorded, and lint passes
-with `abortOnError = true`.
+`PROGRESS.md`, from the bottom up: step 2 first, because the pen setting for
+everything else comes out of it. Then send the log file. The log holds the
+vendor method list, which call route worked, render times, paint times and
+the start-up time.
 
-Keep it that way. The workflow prints a compact failure summary on any
-failure: failing test names with their messages, the lint text report, and
-whether the screenshots were written. That step is called "Show what failed".
-It exists because Gradle's own `--stacktrace` output says nothing about the
-code.
+### 3.2 Turn what the log says into code
 
-### 3.2 Turn the screenshots into a real check
+- The real package names of the ViWoods settings app and the stock launcher
+  replace the name guess in `AppsRepository.escapeEntries`. See 4.2.
+- The working fast pen path becomes the default in `SettingsStore`, and
+  `PenWidths.vendorRange` gets matched by eye.
+- Decision 0007 loses the word "provisional".
+- If path A works at target SDK 37, raise the `viwoods` flavour and turn the
+  two lint checks back on.
 
-CI records screenshots into `app/build/outputs/roborazzi/` and uploads them as
-an artifact. Nothing compares them to anything yet.
+### 3.3 Run the storage measurement
 
-Once the first set looks right on screen:
+Still open from step 4. Settings, Help, "Design demo", Dev, "Time 500 files".
+`docs/decisions/0005-storage-layer.md` explains what the numbers decide.
 
-1. Download the artifact and look at every PNG.
-2. Commit them as the baseline.
-3. Switch CI from recording to comparing, so a change to the design system has
-   to be looked at before it lands.
+### 3.4 Then the known gaps
 
-### 3.3 Decide the two things only the owner can decide
-
-Both are in `PROGRESS.md` under step 1 and are still open:
-
-1. **Package id.** `io.github.foxesrcool1.einklauncher` today. Changing it
-   later means every tester reinstalls from scratch.
-2. **Licence.** Apache-2.0 is in `LICENSE`.
-
-### 3.4 Run the storage measurement
-
-`docs/decisions/0005-storage-layer.md` explains it. Short version: the data
-folder lives in `Android/data/<package>` today, which no sync program can
-reach on Android 11 and later. The other option is a folder the user picks
-through the Storage Access Framework, which is slower by an amount nobody has
-measured on this tablet.
-
-The Dev screen has a "Time 500 files" button. The owner runs it and sends the
-numbers. Then write `SafFileStore` behind `FileStore` or do not, and record
-which and why.
-
-### 3.5 Then pick a step
-
-- **Step 7's reader** is the next Opus step with real size to it. The library
-  and the import are already done, so what is left is the reader itself on the
-  Readium toolkit. Check its current version and licence on the web first; it
-  should be BSD-3. Judge it on the panel before building more on it: plan
-  section 8 lists "Readium is slow or ghosts on e-ink" as a real risk, and a
-  paginated WebView is exactly the thing that ghosts.
-- **Smaller pieces still open:** export to PDF and PNG (step 6), and the
-  handwritten halves of steps 6 and 9, which both wait on step 5.
-- **Step 6, Writing**, can be built for typed notes now. Leave a gap where the
-  handwritten notebook goes and fill it after step 5.
-- **Step 7, Reading**, needs the Readium Kotlin toolkit added. Check its
-  current version on the web first and check the licence, which should be
-  BSD-3.
+1. A paged typed editor. A long note scrolls inside its field today, which
+   breaks e-ink rule 2. See decision 0011.
+2. Screenshot comparison in CI. Blocked by one screenshot that shows a
+   temporary path. See decision 0011.
+3. A read-ahead for PDF screens, only if the log says the render is slow.
+4. Cover pictures in the library. The plan calls them optional.
+5. The first release. `docs/RELEASING.md` has the steps. Pick the final name
+   first: the plan says the working name must go before a public release.
 
 ---
 
@@ -150,16 +122,27 @@ compiler plugin pinned to a Kotlin version, and AGP owns the Kotlin version
 now. The same reasoning kept Room out. If you do swap it, the tests in
 `core/json/JsonTest.kt` should keep passing unchanged.
 
-### 4.3 No EinkDevice
+### 4.3 The fast pen is off by default
 
-Step 2 builds it. Until then there is no refresh mode control and no full
-refresh, so ghosting on the tablet is whatever the stock firmware does.
+`SettingsStore.fastPenMode` starts at "off", so this app paints the ink and
+the pen will lag. That is on purpose: one of the two fast paths is said to
+crash the process in native code, and a home app should not try that on its
+own. The owner turns it on after the device test. `FastPenGuard` makes sure
+a crash can happen once and not twice.
 
-### 4.4 The Gradle distribution checksum is not pinned
+### 4.3b The engine does not use Jetpack Ink
 
-`gradle/wrapper/gradle-wrapper.properties` has no `distributionSha256Sum`,
-because `services.gradle.org` could not be reached for the checksum file. Add
-it from a machine with normal network access.
+The plan names it. Decision 0008 says why not: its model needs native code,
+so the unit tests the plan asks for could not run. Jetpack Ink is a debug
+only dependency, for the latency baseline on the device test screen.
+
+### 4.4 `desugar_jdk_libs` is GPL-2.0 with the Classpath Exception
+
+Readium needs core library desugaring. The library behind that is a cut of
+OpenJDK, under the same licence as the Java class library itself. The
+exception means linking it does not make the app GPL. It is written up in
+`licenses/DEPENDENCIES.md`. The owner should read that paragraph once and
+agree, because plan section 4 says "no GPL".
 
 ---
 
@@ -197,7 +180,9 @@ it from a machine with normal network access.
 ./gradlew assembleGenericDebug          build for any other Android device
 ./gradlew testViwoodsDebugUnitTest      unit tests, and write the screenshots
 ./gradlew lintViwoodsDebug              lint
+./gradlew assembleViwoodsRelease        release build, signed if the key is set
 tools/deploy.sh viwoods 8000            build and serve the APK on the LAN
+tools/deploy.sh viwoods 8000 37         the same, with target SDK 37
 tools/parse-check.sh                    syntax check with no Android SDK
 ```
 

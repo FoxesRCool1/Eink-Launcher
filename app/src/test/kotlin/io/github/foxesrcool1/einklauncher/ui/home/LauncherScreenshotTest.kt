@@ -47,6 +47,24 @@ class LauncherScreenshotTest {
         capture("today")
     }
 
+    /** The tightest case: the Next line takes a row away from the four words. */
+    @Test
+    fun todayScreenWithNextLine() {
+        compose.setContent {
+            EinkTheme {
+                TodayScreen(
+                    onOpenTab = {},
+                    onOpenSettings = {},
+                    nextRoutineLabel = "Read 30 minutes",
+                    now = fixedTime,
+                    battery = 82,
+                    wifi = true,
+                )
+            }
+        }
+        capture("today_with_next")
+    }
+
     @Test
     fun todayScreenWithoutCornerArt() {
         compose.setContent {

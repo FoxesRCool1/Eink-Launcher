@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.text.BasicTextField
+import io.github.foxesrcool1.einklauncher.design.components.EinkTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -271,11 +271,10 @@ private fun NoteEditorPanel(state: ReaderUiState, highlightId: String, actions: 
     ) {
         EinkText(text = highlight?.text.orEmpty(), style = EinkType.body, maxLines = 4)
         Spacer(modifier = Modifier.height(EinkDimens.targetGap))
-        BasicTextField(
+        EinkTextField(
             value = text,
             onValueChange = { text = it },
             textStyle = EinkType.body,
-            cursorBrush = SolidColor(EinkColors.Ink),
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)

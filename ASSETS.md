@@ -34,6 +34,17 @@ used, not traced and not reproduced.
 
 ## Sample content
 
-No sample books yet. When screenshots need a book, use only public domain text
-from Standard Ebooks or Project Gutenberg, and record the title, the author and
-the source here.
+| Where | What it is | Source | Licence |
+| --- | --- | --- | --- |
+| `ReaderChromeScreenshotTest.kt`, and so `docs/screenshots/reader_menu.png` and `reader_notes.png` | The first sentences of *Walden*, Henry David Thoreau, 1854 | Project Gutenberg, ebook 205 | Public domain |
+| `EpubReaderSmokeTest.kt` | A two chapter EPUB made by the test itself | Written for this project | Apache-2.0, same as the app |
+| `docs/screenshots/*.png` | Pictures of this app, made by the screenshot tests | This project | Apache-2.0, same as the app |
+
+No book file is in the repository. When a screenshot needs more text, use
+only public domain text from Standard Ebooks or Project Gutenberg, and add a
+line here.
+
+## Libraries
+
+Fonts and drawings are on this page. Libraries are in
+`licenses/DEPENDENCIES.md`.

@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Readium brings the media player it uses for audiobooks, and that asks
+      for a wake lock. This app plays no audio, on a tablet with no speaker.
+      A permission nobody uses has no place in the list the user reads.
+    -->
+    <uses-permission
+        android:name="android.permission.WAKE_LOCK"
+        tools:node="remove" />
 
     <!-- Needed for the Wi-Fi word in the status line on Today. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
