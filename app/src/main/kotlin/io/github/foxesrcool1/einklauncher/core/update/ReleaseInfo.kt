@@ -85,9 +85,13 @@ object UpdateAssets {
     }
 
     /**
-     * The newest release this build can take, or null. A release build leaves
-     * pre-releases alone. A debug build takes them, because a release made
-     * without the release key is a pre-release with debug files only.
+     * The newest release this build can take, or null.
+     *
+     * What keeps the wrong file away from the wrong build is [pick]: a
+     * release with no file for this build is passed over for the one before
+     * it. The Release workflow makes normal releases only. "Pre-release" is
+     * left for a release the owner marks by hand on GitHub, to try something
+     * out: a debug build takes it, a release build leaves it alone.
      */
     fun newestFor(releases: List<ReleaseInfo>, flavor: String, debug: Boolean): Pair<ReleaseInfo, ReleaseAsset>? =
         releases

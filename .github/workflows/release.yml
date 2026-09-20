@@ -6,9 +6,14 @@ name: Release
 #
 # What the release holds depends on the release key:
 #
-#   Key in the repository secrets   signed release APKs and debug APKs,
-#                                   a normal release
-#   No key                          debug APKs only, marked as a pre-release
+#   Key in the repository secrets   signed release APKs and debug APKs
+#   No key                          debug APKs only
+#
+# Both are normal releases. A release with debug files only used to be marked
+# as a pre-release, and GitHub does not show a pre-release as "Latest", so the
+# front page of the repository looked as if nothing had been released. The
+# mark was never what kept the wrong file away from the wrong build: the app
+# picks its file by the end of the name.
 #
 # A debug APK is signed with the fixed key in keystore/debug.keystore, so a
 # debug build from here installs over a debug build from anywhere. That is
@@ -89,7 +94,7 @@ jobs:
             echo "The release key is set. Building signed release APKs and debug APKs."
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "No release key. Building debug APKs only. This will be a pre-release."
+            echo "No release key. Building debug APKs only."
           fi
 
       - name: Make the wrapper runnable
@@ -153,11 +158,8 @@ jobs:
       - name: Make the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          HAS_KEY: ${{ steps.key.outputs.present }}
         run: |
-          KIND=""
-          if [ "$HAS_KEY" != "true" ]; then KIND="--prerelease"; fi
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Eink Launcher $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/notes.md" \
-            --verify-tag $KIND
+            --verify-tag --latest

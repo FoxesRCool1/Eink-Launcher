@@ -63,10 +63,17 @@ The tablet runs the debug build while the app is being tested: the device
 test, the ink baseline and the storage measurement are debug only.
 
 **A release without the release key.** The workflow used to stop when the key
-was missing. Now it builds the debug files only and marks the release as a
-pre-release. The debug key is fixed and in the repository, so those files
-always install over each other. A release build ignores pre-releases. That
-lets the owner test on the tablet today and make the release key later.
+was missing. Now it builds the debug files only. The debug key is fixed and
+in the repository, so those files always install over each other. That lets
+the owner test on the tablet today and make the release key later.
+
+Such a release was marked as a pre-release at first. That lasted one release:
+GitHub does not show a pre-release as "Latest", the front page of the
+repository looked empty, and the owner could not find `v0.1.0`. The mark was
+also not doing any work. What keeps a debug file away from a release build is
+the end of the file name, and a release with no file for a build is passed
+over. So every release is a normal release now. A release build still leaves
+a pre-release alone, for the day the owner marks one by hand to try something.
 
 **One version number.** `appVersionName` in `app/build.gradle.kts`. The
 version code is worked out from it, and the workflow refuses a tag that does

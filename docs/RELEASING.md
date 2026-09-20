@@ -29,17 +29,20 @@ refuses a tag that does not match `appVersionName`.
 
 ## What a release holds
 
-| Release key in the GitHub secrets | Files | Kind |
-| --- | --- | --- |
-| No | `eink-launcher-v0.1.1-viwoods-debug.apk`, `...-generic-debug.apk` | Pre-release |
-| Yes | The two above, plus `...-viwoods.apk` and `...-generic.apk` | Release |
+| Release key in the GitHub secrets | Files |
+| --- | --- |
+| No | `eink-launcher-v0.1.1-viwoods-debug.apk`, `...-generic-debug.apk` |
+| Yes | The two above, plus `...-viwoods.apk` and `...-generic.apk` |
 
-Plus `SHA256SUMS.txt` every time.
+Plus `SHA256SUMS.txt` every time. Every release is a normal release, so the
+newest one shows as "Latest" on the front page of the repository.
 
 A debug file is signed with the fixed key in `keystore/debug.keystore`. A
 release file is signed with the release key. **One does not install over the
 other.** The updater knows this: a debug build only ever takes a debug file,
-and a release build only ever takes a release file and ignores pre-releases.
+and a release build only ever takes a release file. It tells them apart by
+the end of the file name. A release build also leaves alone any release that
+you mark as "Pre-release" by hand on GitHub. A debug build takes those too.
 
 While the app is being tested, the tablet runs the debug build. The device
 test, the ink baseline and the storage measurement are in the debug build

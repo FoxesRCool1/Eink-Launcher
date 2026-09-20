@@ -54,7 +54,7 @@ def release_list(host: str) -> bytes:
         "tag_name": f"v{VERSION}",
         "name": f"Eink Launcher v{VERSION}",
         "draft": False,
-        "prerelease": True,
+        "prerelease": False,
         "body": "- This release comes from tools/fake-github.py.\n- Nothing was sent to GitHub.",
         "assets": assets,
     }

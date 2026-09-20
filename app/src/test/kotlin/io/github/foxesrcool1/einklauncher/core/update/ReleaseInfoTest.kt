@@ -115,6 +115,21 @@ class UpdateAssetsTest {
     }
 
     @Test
+    fun `a normal release with debug files only is for debug builds, with no pre-release mark to say so`() {
+        // What the Release workflow makes while there is no release key.
+        val json = """[{"tag_name":"v0.1.0","draft":false,"prerelease":false,"assets":[
+            {"name":"eink-launcher-v0.1.0-viwoods-debug.apk","size":5,"url":"https://x/1","state":"uploaded"},
+            {"name":"eink-launcher-v0.1.0-generic-debug.apk","size":5,"url":"https://x/2","state":"uploaded"}]}]"""
+        val list = ReleaseParser.parseList(json)
+
+        assertNull(UpdateAssets.newestFor(list, "viwoods", debug = false))
+        assertEquals(
+            "eink-launcher-v0.1.0-viwoods-debug.apk",
+            UpdateAssets.newestFor(list, "viwoods", debug = true)?.second?.name,
+        )
+    }
+
+    @Test
     fun `a release with no file for this build is skipped for the one before it`() {
         val json = """[
             {"tag_name":"v0.4.0","draft":false,"assets":[
