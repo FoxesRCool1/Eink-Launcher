@@ -71,6 +71,16 @@ Read this file at the start of every session. It is the short form of
 - New kinds of file get a path builder in `StorageLayout`, not a string
   somewhere in a screen.
 
+## Network rules
+
+- The app goes online in one place, `core/update/`, and only when the user
+  presses "Check for updates". Do not add a second place, a background check
+  or a check at start-up. See `docs/decisions/0012-in-app-updates.md`.
+- Release builds talk https only. Plain http is for the debug LAN update.
+- A web view that shows book content has its network loads blocked.
+- The version lives in one line, `appVersionName` in `app/build.gradle.kts`.
+  `tools/release.sh` changes it. Do not set a version code by hand.
+
 ## Layout of the code
 
 ```
@@ -83,6 +93,7 @@ app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
   core/ink/      strokes, file formats, undo, eraser geometry. No Android.
   core/reading/  annotations, reading log and timer. No Readium.
   core/pdf/      screens of a page, margin search, ink sidecar files
+  core/update/   the in-app update from GitHub Releases. The only network code.
   ui/ink/        the ink canvas, the handwriting screen, export
   ui/reading/epub/  the Readium reader
   ui/reading/pdf/   the PDF reader
@@ -106,4 +117,6 @@ finished, and which traps have already cost a day.
 ./gradlew testViwoodsDebugUnitTest      unit tests
 ./gradlew recordRoborazziViwoodsDebug   write the screenshots
 tools/deploy.sh viwoods 8000            build and serve the APK on the LAN
+tools/release.sh 0.1.1 "what changed"   tag a release. GitHub builds it, the app finds it
+tools/emulator.sh                       run the app in an emulator on the dev machine
 ```

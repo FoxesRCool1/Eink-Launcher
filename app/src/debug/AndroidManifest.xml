@@ -2,24 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Debug builds only. The tablet has no working adb install, so a debug
-      build downloads the next APK from the dev machine over the local network
-      and opens the system installer. The release build asks for none of this
-      and has no internet permission at all.
+      Debug builds only. `tools/deploy.sh` serves the next APK over plain http
+      on the local network, and the Dev panel downloads it. Android blocks
+      plain http for any app that targets SDK 28 or later unless the app says
+      this. The release build does not say it: its one network job, the in-app
+      update, talks to GitHub over https only.
     -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
-    <application>
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.devfiles"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/dev_file_paths" />
-        </provider>
-    </application>
+    <application android:usesCleartextTraffic="true" />
 
 </manifest>

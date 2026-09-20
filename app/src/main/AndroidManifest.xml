@@ -15,6 +15,16 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!--
+      The in-app update, and nothing else. The app goes online only when the
+      user presses "Check for updates", and then only to GitHub: it reads the
+      list of releases and fetches one APK. The second permission lets it hand
+      that APK to Android, which still asks the user before it installs.
+      See docs/decisions/0012-in-app-updates.md.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!--
       Package visibility. A launcher has to see every app that can be started,
       every other home app, and the system settings. Android 11 and later hide
       other packages unless the app asks like this.
@@ -141,6 +151,25 @@
             android:label="@string/app_name"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.EinkLauncher" />
+
+        <!-- Android reports the result of an update install here. -->
+        <receiver
+            android:name=".core.update.InstallStatusReceiver"
+            android:exported="false" />
+
+        <!--
+          Shares one folder, cache/updates/, with the system installer. It is
+          only used when this firmware refuses an install session.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_file_paths" />
+        </provider>
 
     </application>
 

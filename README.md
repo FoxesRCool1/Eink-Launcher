@@ -64,9 +64,11 @@ EinkLauncher/
 
 Typed notes are Markdown. A handwritten note is a zip with a `meta.json`, the
 strokes of each page and a PNG of each page. The stroke format is twenty
-lines long and written down in `docs/decisions/0008-ink-engine.md`. The app
-collects nothing and sends nothing. The release build has no internet
-permission.
+lines long and written down in `docs/decisions/0008-ink-engine.md`.
+
+The app collects nothing. It goes online for one thing only, and only when
+you press the button: to look for a new version of itself on GitHub and
+download it. A book you read cannot go online at all.
 
 ## Install on a ViWoods tablet
 
@@ -78,6 +80,25 @@ permission.
 2. Open the file. Android asks whether the browser or the file manager may
    install apps. Allow it, then press Install.
 3. Open Eink Launcher from the stock launcher.
+
+While the app is being tested, take the file that ends in `-viwoods-debug.apk`.
+It has the device test and the dev tools in it. A debug file and a release
+file have different signing keys, so one does not install over the other:
+stay with the kind you started with, or back up and uninstall first.
+
+### Updates
+
+Settings, then Help, then "Check for updates". The app looks at the GitHub
+Releases of this project, and if there is a newer version it offers it. One
+press downloads and installs. Android asks once for the permission to install,
+and asks "update this app?" each time. Your notes, books and settings stay.
+
+Right after an update, Android may show the stock launcher. Press the Home
+key and Eink Launcher is back.
+
+If the repository is private, GitHub hides its releases. The update screen
+then asks for an access token: a fine-grained token, for this one repository,
+with read access to "Contents". A public repository needs none.
 
 ### Make it the home screen
 
@@ -144,7 +165,18 @@ tools/deploy.sh viwoods 8000
 
 It builds the APK, serves it on the local network and prints the address.
 Open that address in the tablet browser. A debug build can also fetch the
-next build by itself: Settings, Help, "Design demo", Dev.
+next build by itself: Settings, Help, "Design demo", Dev. That is for a build
+that is not pushed yet.
+
+To put a new version on GitHub, where the app finds it by itself:
+
+```
+tools/release.sh 0.1.1 "What changed, in one line."
+```
+
+It sets the version, writes the notes, commits, tags and pushes. GitHub
+Actions builds the files and makes the release. `docs/RELEASING.md` has the
+rest.
 
 Two flavours:
 

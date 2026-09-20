@@ -44,7 +44,7 @@ fun AboutSection(modifier: Modifier = Modifier) {
     HairlineDivider(color = EinkColors.Faded)
     Spacer(modifier = Modifier.height(10.dp))
     EinkText(
-        text = "Version ${BuildConfig.VERSION_NAME}. It collects nothing and sends nothing.",
+        text = "Version ${BuildConfig.VERSION_NAME}. It collects nothing. It goes online only when you check for updates.",
         style = EinkType.body,
     )
     Spacer(modifier = Modifier.height(10.dp))

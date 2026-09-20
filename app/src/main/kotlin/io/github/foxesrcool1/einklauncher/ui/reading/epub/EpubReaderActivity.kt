@@ -168,7 +168,43 @@ class EpubReaderActivity : FragmentActivity() {
             },
         )
 
+        keepBooksOffline()
         lifecycleScope.launch { openBook() }
+    }
+
+    /**
+     * A book is a bundle of web pages, and a web page can ask a server for a
+     * picture or a font. The app has the internet permission now, for its own
+     * updates, so that request would go out, and the server would learn what
+     * is being read and when. Every web view the book engine makes gets its
+     * network loads blocked here. The pages of the book itself do not come
+     * from the network: the engine hands them over from the file.
+     */
+    private fun keepBooksOffline() {
+        supportFragmentManager.registerFragmentLifecycleCallbacks(
+            object : androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentViewCreated(
+                    manager: androidx.fragment.app.FragmentManager,
+                    fragment: androidx.fragment.app.Fragment,
+                    view: android.view.View,
+                    savedInstanceState: Bundle?,
+                ) {
+                    blockNetworkIn(view)
+                }
+            },
+            true,
+        )
+    }
+
+    private fun blockNetworkIn(view: android.view.View) {
+        if (view is android.webkit.WebView) {
+            runCatching { view.settings.blockNetworkLoads = true }
+                .onSuccess { AppLog.d(TAG, "A book page is offline: ${view.settings.blockNetworkLoads}") }
+                .onFailure { AppLog.w(TAG, "Could not block network loads in a book page", it) }
+        }
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) blockNetworkIn(view.getChildAt(index))
+        }
     }
 
     private suspend fun openBook() {

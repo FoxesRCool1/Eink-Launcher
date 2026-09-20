@@ -29,6 +29,7 @@ class EinkLauncherApp : Application() {
         // on the main thread while the home screen is trying to appear.
         thread(name = "eink-data-root", isDaemon = true) {
             DataRoot.prepare(this)
+            io.github.foxesrcool1.einklauncher.core.update.UpdateManager.settleAfterStart(this)
         }
     }
 }

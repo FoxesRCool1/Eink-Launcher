@@ -1,8 +1,18 @@
 name: Release
 
-# Runs when a tag like v0.1.0 is pushed. It builds both flavours, signs them
-# with the key held in the repository secrets, and makes a GitHub Release with
-# the two APK files. See docs/RELEASING.md for the one-time setup.
+# Runs when a tag like v0.1.1 is pushed. `tools/release.sh` makes that tag.
+# It builds both flavours and makes a GitHub Release. The app finds the
+# release by itself: Settings, Help, "Check for updates".
+#
+# What the release holds depends on the release key:
+#
+#   Key in the repository secrets   signed release APKs and debug APKs,
+#                                   a normal release
+#   No key                          debug APKs only, marked as a pre-release
+#
+# A debug APK is signed with the fixed key in keystore/debug.keystore, so a
+# debug build from here installs over a debug build from anywhere. That is
+# what the tablet runs while the app is being tested. See docs/RELEASING.md.
 
 on:
   push:
@@ -25,6 +35,24 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v7
 
+      # The app works its version code out of the version name, and the
+      # updater compares the tag with it. A tag that says one thing while the
+      # APK says another would be an update that never shows up, or one that
+      # is offered for ever.
+      - name: Check the tag against the version in the build file
+        run: |
+          if ! echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]{1,2}\.[0-9]{1,2}$'; then
+            echo "The tag must look like v1.2.3. This one is $GITHUB_REF_NAME."
+            exit 1
+          fi
+          IN_TAG="${GITHUB_REF_NAME#v}"
+          IN_FILE="$(sed -n 's/^val appVersionName = "\(.*\)"$/\1/p' app/build.gradle.kts)"
+          if [ "$IN_TAG" != "$IN_FILE" ]; then
+            echo "The tag says $IN_TAG but app/build.gradle.kts says $IN_FILE."
+            echo "Make the tag with tools/release.sh, which changes both."
+            exit 1
+          fi
+
       - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
@@ -32,55 +60,104 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      # A release without a key would be an APK nobody can install over the
-      # last one. Stop here and say so, rather than publish it.
-      - name: Check that the signing key is set up
-        env:
-          KEYSTORE_BASE64: ${{ secrets.EINK_RELEASE_KEYSTORE_BASE64 }}
+      # The same step as in ci.yml, and for the same reason. It cannot fail
+      # the job: if sdkmanager is missing, Gradle downloads what it needs.
+      - name: Install the Android SDK packages
+        timeout-minutes: 15
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "The secret EINK_RELEASE_KEYSTORE_BASE64 is not set. See docs/RELEASING.md."
-            exit 1
+          SDKROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ] && [ -n "$SDKROOT" ]; then
+            SDKMANAGER="$(find "$SDKROOT" -name sdkmanager -type f 2>/dev/null | head -1)"
           fi
+          if [ -z "$SDKMANAGER" ]; then
+            echo "No sdkmanager on this runner. Gradle will fetch the SDK itself."
+            exit 0
+          fi
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install "platforms;android-37" "build-tools;36.0.0" < /dev/null \
+            || echo "sdkmanager could not install those packages. Gradle will try instead."
 
-      - name: Write the keystore to a file outside the repository
+      - name: See whether the release key is set up
+        id: key
         env:
           KEYSTORE_BASE64: ${{ secrets.EINK_RELEASE_KEYSTORE_BASE64 }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "The release key is set. Building signed release APKs and debug APKs."
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No release key. Building debug APKs only. This will be a pre-release."
+          fi
 
       - name: Make the wrapper runnable
         run: chmod +x ./gradlew
 
-      - name: Test, then build the release APKs
+      - name: Test, then build the APKs
         timeout-minutes: 35
         env:
-          EINK_RELEASE_STORE_FILE: ${{ runner.temp }}/release.keystore
+          HAS_KEY: ${{ steps.key.outputs.present }}
+          EINK_RELEASE_STORE_FILE: ${{ steps.key.outputs.present == 'true' && format('{0}/release.keystore', runner.temp) || '' }}
           EINK_RELEASE_STORE_PASSWORD: ${{ secrets.EINK_RELEASE_STORE_PASSWORD }}
           EINK_RELEASE_KEY_ALIAS: ${{ secrets.EINK_RELEASE_KEY_ALIAS }}
           EINK_RELEASE_KEY_PASSWORD: ${{ secrets.EINK_RELEASE_KEY_PASSWORD }}
         run: |
-          ./gradlew \
-            testViwoodsDebugUnitTest testGenericDebugUnitTest \
-            assembleViwoodsRelease assembleGenericRelease < /dev/null
-
-      - name: Name the files after the tag
-        run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/viwoods/release/app-viwoods-release.apk "dist/eink-launcher-${GITHUB_REF_NAME}-viwoods.apk"
-          cp app/build/outputs/apk/generic/release/app-generic-release.apk "dist/eink-launcher-${GITHUB_REF_NAME}-generic.apk"
-          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
-          ls -la dist
+          TASKS="testViwoodsDebugUnitTest testGenericDebugUnitTest assembleViwoodsDebug assembleGenericDebug"
+          if [ "$HAS_KEY" = "true" ]; then
+            TASKS="$TASKS assembleViwoodsRelease assembleGenericRelease"
+          fi
+          ./gradlew $TASKS < /dev/null
 
       - name: Remove the keystore
         if: always()
         run: rm -f "$RUNNER_TEMP/release.keystore"
 
+      # The updater in the app picks its file by the end of the name:
+      # "-<flavour>.apk" for a release build, "-<flavour>-debug.apk" for a
+      # debug build. Do not change these names without changing UpdateAssets.
+      - name: Name the files after the tag
+        env:
+          HAS_KEY: ${{ steps.key.outputs.present }}
+        run: |
+          mkdir -p dist
+          for FLAVOUR in viwoods generic; do
+            cp "app/build/outputs/apk/$FLAVOUR/debug/app-$FLAVOUR-debug.apk" \
+               "dist/eink-launcher-${GITHUB_REF_NAME}-$FLAVOUR-debug.apk"
+            if [ "$HAS_KEY" = "true" ]; then
+              cp "app/build/outputs/apk/$FLAVOUR/release/app-$FLAVOUR-release.apk" \
+                 "dist/eink-launcher-${GITHUB_REF_NAME}-$FLAVOUR.apk"
+            fi
+          done
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          ls -la dist
+
+      # Only the part of docs/RELEASE_NOTES.md that belongs to this version.
+      # The app shows it under "What is new".
+      - name: Write the notes of this version
+        env:
+          HAS_KEY: ${{ steps.key.outputs.present }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v heading="## $VERSION" '$0 == heading { on = 1; next } /^## / { on = 0 } on' \
+            docs/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "No notes were written for this version." > "$RUNNER_TEMP/notes.md"
+          fi
+          if [ "$HAS_KEY" != "true" ]; then
+            printf '\nThis is a test build. The files are signed with the debug key.\n' >> "$RUNNER_TEMP/notes.md"
+          fi
+          cat "$RUNNER_TEMP/notes.md"
+
       - name: Make the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          HAS_KEY: ${{ steps.key.outputs.present }}
         run: |
+          KIND=""
+          if [ "$HAS_KEY" != "true" ]; then KIND="--prerelease"; fi
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Eink Launcher $GITHUB_REF_NAME" \
-            --notes-file docs/RELEASE_NOTES.md \
-            --verify-tag
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --verify-tag $KIND

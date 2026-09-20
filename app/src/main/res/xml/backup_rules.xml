@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <exclude domain="file" path="logs/" />
+    <!-- The GitHub access token. A secret does not belong in a backup. -->
+    <exclude domain="sharedpref" path="update_private.xml" />
 </full-backup-content>

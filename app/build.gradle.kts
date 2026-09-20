@@ -14,6 +14,22 @@ plugins {
 val viwoodsTargetSdk: Int =
     (providers.gradleProperty("viwoodsTargetSdk").orNull ?: "30").toInt()
 
+// The one version number of the app. `tools/release.sh` changes this line, and
+// the Release workflow refuses a tag that does not match it.
+//
+// The version code is worked out from it: 1.2.3 gives 10203. The in-app
+// updater does the same sum in `AppVersion`, so a newer release always has a
+// larger code and Android takes it as an update. That is why the minor and
+// the patch number stop at 99.
+val appVersionName = "0.1.0"
+val appVersionCode: Int = run {
+    val parts = appVersionName.split(".").map { it.toInt() }
+    require(parts.size == 3 && parts[1] in 0..99 && parts[2] in 0..99) {
+        "appVersionName must look like 1.2.3, with the last two numbers under 100"
+    }
+    parts[0] * 10_000 + parts[1] * 100 + parts[2]
+}
+
 android {
     namespace = "io.github.foxesrcool1.einklauncher"
     compileSdk = 37
@@ -22,8 +38,11 @@ android {
         applicationId = "io.github.foxesrcool1.einklauncher"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+
+        // Where the in-app updater looks for releases. A fork changes this line.
+        buildConfigField("String", "UPDATE_REPOSITORY", "\"FoxesRCool1/Eink-Launcher\"")
     }
 
     // The release key is never in the repository. It comes from four values,

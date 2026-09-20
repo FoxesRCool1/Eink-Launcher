@@ -1,0 +1,110 @@
+# 0012. The app updates itself from GitHub Releases
+
+Date: 2026-09-20. Asked for by the owner before the first tablet test.
+
+## The problem
+
+`adb install` does not work on the tablet. Until now a new build reached it
+in one of two ways: `tools/deploy.sh` with the dev machine switched on and on
+the same network, or a download by hand in the tablet browser. Every fix
+found in the tablet tests would have cost that trip again.
+
+## The decision
+
+The app looks at the GitHub Releases of its own repository, downloads the
+APK that fits it, checks it, and hands it to Android to install.
+
+Settings, Help, "Check for updates". One press checks. One more press
+downloads and installs. Android still shows its own "install this update?"
+window, and the app does not try to get round that.
+
+`tools/release.sh 0.1.1 "what changed"` makes a release from the dev machine:
+it sets the version, writes the notes, commits, tags and pushes. The Release
+workflow builds the files. Nobody edits a version code by hand any more.
+
+## This changes a promise, so here is exactly how
+
+Until this change the release build had no internet permission at all. Now
+every build has `INTERNET` and `REQUEST_INSTALL_PACKAGES`. What keeps the
+promise honest:
+
+- The app goes online **only when the user presses the button**. There is no
+  background check, no timer and no check at start-up.
+- It talks to GitHub and to nothing else: one GET for the list of releases
+  and one GET for the file. It sends no data about the user or the tablet.
+- `UrlConnectionHttp` refuses any address that is not https, at every hop of
+  a redirect. Plain http is allowed in debug builds only, for the LAN update.
+- The EPUB reader shows book content in a web view. With the internet
+  permission a book could make that web view fetch a picture from a server.
+  The reader now blocks network loads in every web view it shows, so a book
+  still cannot phone home. See `EpubReaderActivity`.
+- The About page and the README say what the app does now, in the same words.
+
+## The parts
+
+| Part | Job |
+| --- | --- |
+| `AppVersion` | Reads `v0.1.2` and `0.1.2-viwoods`. The version code is `major * 10000 + minor * 100 + patch`, the same sum as in `app/build.gradle.kts`. |
+| `ReleaseParser`, `UpdateAssets` | Read the list GitHub sends and pick the file for this build. |
+| `GithubReleases` | The check and the download. No Android class, so plain tests cover it. |
+| `UrlConnectionHttp` | The network, on `HttpURLConnection`. No new library. |
+| `ApkCheck` | Looks at the file before Android does, to give a reason in words. |
+| `ApkInstaller`, `InstallStatusReceiver` | The install, and what Android said about it. |
+| `UpdateManager` | Holds the state outside any screen, so the Home key does not stop a 60 MB download. |
+| `UpdateScreen` | Shows the state. Nothing else. |
+
+## Choices inside it
+
+**Which file a build takes.** The workflow names the files
+`...-<flavour>.apk` and `...-<flavour>-debug.apk`. A debug build only takes a
+debug file, and a release build only takes a release file, because the two
+have different signing keys and Android refuses to put one over the other.
+The tablet runs the debug build while the app is being tested: the device
+test, the ink baseline and the storage measurement are debug only.
+
+**A release without the release key.** The workflow used to stop when the key
+was missing. Now it builds the debug files only and marks the release as a
+pre-release. The debug key is fixed and in the repository, so those files
+always install over each other. A release build ignores pre-releases. That
+lets the owner test on the tablet today and make the release key later.
+
+**One version number.** `appVersionName` in `app/build.gradle.kts`. The
+version code is worked out from it, and the workflow refuses a tag that does
+not match it. A build from the dev machine and a build from GitHub of the
+same version have the same code, so either installs over the other.
+
+**The file is checked twice before Android sees it.** First against the
+SHA-256 that GitHub lists for it, which catches a download that was cut
+short. Then `ApkCheck` reads the package name, the version code and the
+signing certificate. Android makes those checks too, and its word is final,
+but all it shows is "App not installed". This tablet has no logcat, so the
+app gives the reason itself. If Android will not name the signers, the check
+steps aside and lets Android decide.
+
+**An install session, not "open this file".** `PackageInstaller` reports the
+result back in words, and that report goes to the app log. "Open this file"
+reports nothing. It stays as the second route, in case this firmware refuses
+to make a session.
+
+**No silent updates.** Android 12 and later can update an app without asking,
+through `UPDATE_PACKAGES_WITHOUT_USER_ACTION`. Left out on purpose: it is one
+more permission in the list the user reads, and one window per update is a
+fair price for knowing what the home app is doing.
+
+**The access token.** GitHub answers "not found" for a private repository. So
+the update screen can take a read-only access token. It is kept in a file of
+its own that both backup rule files leave out, it is never logged, and it is
+dropped from a request the moment a redirect leaves GitHub, which the storage
+server GitHub uses needs anyway. A public repository needs no token, and then
+none of this is ever seen.
+
+## What is not known yet
+
+- Whether the ViWoods firmware lets an app open the "install unknown apps"
+  switch. The screen has an "Allow installs" button for it. If the firmware
+  hides that page, DevCheck reaches it, the same way it reaches the home app
+  setting.
+- Whether the firmware makes an install session. If not, the second route
+  runs by itself and the log says so.
+
+Both are on the device test list in `PROGRESS.md`.

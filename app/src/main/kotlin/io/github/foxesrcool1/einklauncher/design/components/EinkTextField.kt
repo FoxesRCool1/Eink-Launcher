@@ -50,15 +50,25 @@ fun EinkTextField(
     val state = rememberTextFieldState(initialText = value)
     val latestValue by rememberUpdatedState(value)
     val latestOnChange by rememberUpdatedState(onValueChange)
+    val reported = remember { ReportedValues() }
 
     // From outside in: a note that finished loading, or a field that was reset.
     LaunchedEffect(value) {
-        if (state.text.toString() != value) state.setTextAndPlaceCursorAtEnd(value)
+        // A value this field reported itself is only the caller catching up.
+        // The field may be a letter or two ahead of it by now, and pushing the
+        // older text back in would eat those letters.
+        val echo = reported.isEcho(value)
+        if (echo || state.text.toString() == value) return@LaunchedEffect
+        reported.clear()
+        state.setTextAndPlaceCursorAtEnd(value)
     }
     // From inside out: what the user typed.
     LaunchedEffect(state) {
         snapshotFlow { state.text.toString() }.collect { typed ->
-            if (typed != latestValue) latestOnChange(typed)
+            if (typed != latestValue) {
+                reported.record(typed)
+                latestOnChange(typed)
+            }
         }
     }
 
@@ -102,4 +112,35 @@ fun EinkTextField(
                 }
             },
     )
+}
+
+/**
+ * The texts a field has reported and not yet seen come back.
+ *
+ * The field tells the caller what was typed, and the caller hands the same
+ * text back as the new value a moment later. If the user types in that
+ * moment, the text that comes back is already old. This is how the field
+ * tells that echo apart from a value the caller really set from outside.
+ */
+internal class ReportedValues(private val limit: Int = 32) {
+
+    private val waiting = ArrayDeque<String>()
+
+    fun record(text: String) {
+        waiting.addLast(text)
+        while (waiting.size > limit) waiting.removeFirst()
+    }
+
+    /**
+     * True when [value] is one this field reported. It is forgotten then, and
+     * so is every older one: the caller may skip values, it never goes back.
+     */
+    fun isEcho(value: String): Boolean {
+        val index = waiting.indexOf(value)
+        if (index < 0) return false
+        repeat(index + 1) { waiting.removeFirst() }
+        return true
+    }
+
+    fun clear() = waiting.clear()
 }

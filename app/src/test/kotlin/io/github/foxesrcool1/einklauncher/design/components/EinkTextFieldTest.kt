@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -67,5 +68,94 @@ class EinkTextFieldTest {
         assertEquals("Loaded from the file and more", text)
 
         compose.onRoot().captureTo("text_field_with_static_cursor")
+    }
+
+    @Test
+    fun `letters typed while the caller is still catching up are kept`() {
+        var text by mutableStateOf("")
+        // A slow caller: it takes each change a moment later, one at a time.
+        val notTakenYet = ArrayDeque<String>()
+
+        compose.setContent {
+            EinkTheme {
+                EinkTextField(
+                    value = text,
+                    onValueChange = { notTakenYet += it },
+                    modifier = Modifier.fillMaxWidth().height(120.dp).testTag("field"),
+                )
+            }
+        }
+        compose.onNodeWithTag("field").performClick()
+        compose.onNodeWithTag("field").performTextInput("h")
+        compose.onNodeWithTag("field").performTextInput("t")
+        compose.waitForIdle()
+        assertEquals(listOf("h", "ht"), notTakenYet.toList())
+
+        // The caller takes "h" while the field already says "ht".
+        text = notTakenYet.removeFirst()
+        compose.waitForIdle()
+        compose.onNodeWithTag("field").assertTextEquals("ht")
+
+        text = notTakenYet.removeFirst()
+        compose.onNodeWithTag("field").performTextInput("tp")
+        compose.waitForIdle()
+        compose.onNodeWithTag("field").assertTextEquals("http")
+    }
+
+    @Test
+    fun `a value from outside still wins over what was typed`() {
+        var text by mutableStateOf("")
+        compose.setContent {
+            EinkTheme {
+                EinkTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth().height(120.dp).testTag("field"),
+                )
+            }
+        }
+        compose.onNodeWithTag("field").performClick()
+        compose.onNodeWithTag("field").performTextInput("draft")
+        compose.waitForIdle()
+
+        // The same text as an earlier state of the field, set from outside.
+        text = ""
+        compose.waitForIdle()
+        compose.onNodeWithTag("field").assertTextEquals("")
+    }
+}
+
+class ReportedValuesTest {
+
+    @Test
+    fun `a reported value is an echo once`() {
+        val reported = ReportedValues()
+        reported.record("h")
+        assertEquals(true, reported.isEcho("h"))
+        assertEquals(false, reported.isEcho("h"))
+    }
+
+    @Test
+    fun `a caller that skips values does not leave the old ones behind`() {
+        val reported = ReportedValues()
+        listOf("h", "ht", "htt").forEach(reported::record)
+        assertEquals(true, reported.isEcho("ht"))
+        assertEquals(false, reported.isEcho("h"))
+        assertEquals(true, reported.isEcho("htt"))
+    }
+
+    @Test
+    fun `a value nobody typed is not an echo`() {
+        val reported = ReportedValues()
+        reported.record("h")
+        assertEquals(false, reported.isEcho("Loaded from the file"))
+    }
+
+    @Test
+    fun `the list does not grow for ever`() {
+        val reported = ReportedValues(limit = 3)
+        (1..10).forEach { reported.record("v$it") }
+        assertEquals(false, reported.isEcho("v7"))
+        assertEquals(true, reported.isEcho("v8"))
     }
 }

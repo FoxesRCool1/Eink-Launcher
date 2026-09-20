@@ -34,6 +34,7 @@ import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorActivity
 import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
 import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
+import io.github.foxesrcool1.einklauncher.ui.update.UpdateScreen
 import kotlinx.coroutines.launch
 
 private const val TAG = "HomeActivity"
@@ -272,9 +273,14 @@ private fun LauncherHost(
             onBack = { onRoute(LauncherRoute.Today) },
             onOpenLog = { onRoute(LauncherRoute.Log) },
             onOpenDemo = onOpenDemo,
+            onOpenUpdates = { onRoute(LauncherRoute.Update) },
         )
 
         LauncherRoute.Log -> LogViewerScreen(
+            onBack = { onRoute(LauncherRoute.Settings) },
+        )
+
+        LauncherRoute.Update -> UpdateScreen(
             onBack = { onRoute(LauncherRoute.Settings) },
         )
     }

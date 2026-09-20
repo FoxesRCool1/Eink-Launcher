@@ -2,8 +2,11 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="logs/" />
+        <!-- The GitHub access token. A secret does not belong in a backup. -->
+        <exclude domain="sharedpref" path="update_private.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="logs/" />
+        <exclude domain="sharedpref" path="update_private.xml" />
     </device-transfer>
 </data-extraction-rules>

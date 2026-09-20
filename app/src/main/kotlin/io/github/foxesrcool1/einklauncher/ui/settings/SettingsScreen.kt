@@ -50,6 +50,7 @@ fun SettingsScreen(
     onOpenLog: () -> Unit,
     onOpenDemo: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenUpdates: () -> Unit = {},
     /** Which of the four pages to open on. The screenshot tests use it. */
     initialPage: Int = 0,
 ) {
@@ -195,6 +196,18 @@ fun SettingsScreen(
                 },
             )
         }
+
+        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        CapsLabel(text = "Updates", style = EinkType.capsSmall)
+        HairlineDivider(color = EinkColors.Faded)
+        Spacer(modifier = Modifier.height(10.dp))
+        EinkText(
+            text = "Version ${BuildConfig.VERSION_NAME} is on this tablet. New versions come " +
+                "from GitHub. The app goes online only when you press this button.",
+            style = EinkType.body,
+        )
+        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+        InvertPressButton(text = "Check for updates", onClick = onOpenUpdates)
 
         }
 
