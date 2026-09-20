@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.2.0
+
+- Icons, round shapes, landscape, split screen, app folders, new Settings
+
 ## 0.1.0
 
 The first release.
