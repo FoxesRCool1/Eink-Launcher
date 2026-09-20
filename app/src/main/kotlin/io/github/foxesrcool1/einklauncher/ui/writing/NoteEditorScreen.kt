@@ -14,13 +14,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.notes.NoteSaver
 import io.github.foxesrcool1.einklauncher.core.notes.NoteText
 import io.github.foxesrcool1.einklauncher.core.notes.NotesRepository
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
@@ -61,14 +63,15 @@ fun NoteEditorScreen(
     var loaded by remember(notePath) { mutableStateOf(false) }
     var status by remember(notePath) { mutableStateOf("Opening") }
 
-    val latestText by rememberUpdatedState(text)
+    // Every write of this note goes through here, so the autosave and the
+    // save on the way out cannot cross. See NoteSaver.
+    val saver = remember(notePath) { NoteSaver { notes.write(notePath, it) } }
 
     suspend fun save(reason: String) {
-        val toWrite = latestText
-        if (toWrite == savedText) return
-        val written = withContext(Dispatchers.IO) { notes.write(notePath, toWrite) }
+        if (text == savedText) return
+        val written = withContext(Dispatchers.IO) { saver.save { text } }
         if (written) {
-            savedText = toWrite
+            savedText = saver.savedText ?: savedText
             status = "Saved"
             AppLog.i(TAG, "Saved $notePath ($reason)")
         } else {
@@ -78,9 +81,17 @@ fun NoteEditorScreen(
     }
 
     LaunchedEffect(notePath) {
-        val loadedText = withContext(Dispatchers.IO) { notes.read(notePath) }
+        val loadedText = withContext(Dispatchers.IO) { notes.readOrNull(notePath) }
+        if (loadedText == null) {
+            // The field stays off. Typing into an empty page here would end
+            // with that page saved over a note that is still on the disk.
+            status = "This note could not be read"
+            AppLog.e(TAG, "Could not read $notePath. The editor stays closed to typing.")
+            return@LaunchedEffect
+        }
         text = loadedText
         savedText = loadedText
+        saver.loaded(loadedText)
         loaded = true
         status = "Ready"
     }
@@ -100,16 +111,27 @@ fun NoteEditorScreen(
         if (saveRequests > 0 && loaded) save("keyboard")
     }
 
-    // The last chance to write. The Home key can take this screen away at any
-    // moment, and a writing app that loses the last sentence is not usable.
-    DisposableEffect(notePath) {
-        onDispose {
-            if (loaded && latestText != savedText) {
-                runCatching { notes.write(notePath, latestText) }
-                    .onSuccess { AppLog.i(TAG, "Saved $notePath on the way out") }
-                    .onFailure { AppLog.e(TAG, "Lost the last edit of $notePath", it) }
+    // The last chance to write, and it does not wait for a thread. A writing
+    // app that loses the last sentence is not usable.
+    fun saveOnTheWayOut(reason: String) {
+        if (!loaded || text == saver.savedText) return
+        runCatching { saver.save { text } }
+            .onSuccess { written ->
+                if (written) savedText = saver.savedText ?: savedText
+                AppLog.i(TAG, "Saved $notePath ($reason): $written")
             }
-        }
+            .onFailure { AppLog.e(TAG, "Lost the last edit of $notePath ($reason)", it) }
+    }
+
+    // "Done", Back and Escape close the screen, and this runs.
+    DisposableEffect(notePath) {
+        onDispose { saveOnTheWayOut("the editor closed") }
+    }
+    // The Home key does not close the screen, it only stops it, and Android
+    // may end a stopped app without another word. So this is the save that
+    // covers the Home key. The one above never runs for it.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        saveOnTheWayOut("the editor went to the back")
     }
 
     ScreenScaffold(

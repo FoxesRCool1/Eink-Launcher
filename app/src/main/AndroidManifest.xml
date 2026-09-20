@@ -70,7 +70,7 @@
         -->
         <activity
             android:name=".HomeActivity"
-            android:configChanges="keyboardHidden|navigation"
+            android:configChanges="keyboard|keyboardHidden|navigation"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
@@ -87,9 +87,15 @@
         <!--
           The typed note editor. Its own activity, so the Home key closes the
           launcher and not the note the user is in the middle of writing.
+
+          configChanges: a Bluetooth keyboard that wakes up or goes to sleep is
+          a configuration change. Without this line Android would build the
+          editor again each time, and the cursor would jump to the end of the
+          note in the middle of a sentence.
         -->
         <activity
             android:name=".ui.writing.NoteEditorActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation"
             android:exported="false"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
@@ -132,6 +138,7 @@
         -->
         <activity
             android:name=".ui.ink.InkNoteActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation"
             android:exported="false"
             android:label="@string/app_name"
             android:screenOrientation="portrait"

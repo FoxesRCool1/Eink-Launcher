@@ -137,17 +137,54 @@ fun JournalScreen(
     }
 
     fun saveEntry() {
+        // Both taken now. The day on show can change before the write runs,
+        // and the text belongs to the day it was written for.
         val text = entryText
+        val date = viewDate
         scope.launch {
-            val written = withContext(Dispatchers.IO) { data.writeJournalEntry(viewDate, text) }
+            val written = withContext(Dispatchers.IO) { data.writeJournalEntry(date, text) }
             if (written) {
-                savedText = text
-                AppLog.i(TAG, "Saved the entry for $viewDate")
+                if (date == viewDate) savedText = text
+                AppLog.i(TAG, "Saved the entry for $date")
             } else {
-                AppLog.e(TAG, "Could not save the entry for $viewDate")
+                AppLog.e(TAG, "Could not save the entry for $date")
             }
             refresh++
         }
+    }
+
+    /**
+     * Ends an edit by saving it. Every control that shows another day or
+     * another view calls this first. Without it, Previous and Next moved the
+     * day under an open edit, and Save then wrote today's text over the entry
+     * of another day.
+     */
+    fun commitEdit() {
+        if (!editing) return
+        if (entryText != savedText) saveEntry()
+        editing = false
+    }
+
+    // The Home key, Back and "Today" all take this screen away with no
+    // warning, and an entry that was being written must not go with it. The
+    // coroutine scope is already gone by then, so this write is a plain one.
+    fun saveOnTheWayOut(reason: String) {
+        if (!editing || entryText == savedText) return
+        val date = viewDate
+        val text = entryText
+        runCatching { data.writeJournalEntry(date, text) }
+            .onSuccess { written ->
+                if (written) savedText = text
+                AppLog.i(TAG, "Saved the entry for $date ($reason): $written")
+            }
+            .onFailure { AppLog.e(TAG, "Lost the entry for $date ($reason)", it) }
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { saveOnTheWayOut("the screen closed") }
+    }
+    // Another app in front: Android may stop this process without a word.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+        saveOnTheWayOut("the app went to the back")
     }
 
     ScreenScaffold(
@@ -174,6 +211,7 @@ fun JournalScreen(
                 InvertPressButton(
                     text = "Previous",
                     onClick = {
+                        commitEdit()
                         viewDate = if (mode == JournalMode.Day) {
                             viewDate.minusDays(1)
                         } else {
@@ -185,6 +223,7 @@ fun JournalScreen(
                     text = if (mode == JournalMode.Day) "Month" else "Day",
                     selected = mode == JournalMode.Month,
                     onClick = {
+                        commitEdit()
                         mode = if (mode == JournalMode.Day) {
                             JournalMode.Month
                         } else {
@@ -195,6 +234,7 @@ fun JournalScreen(
                 InvertPressButton(
                     text = "Next",
                     onClick = {
+                        commitEdit()
                         viewDate = if (mode == JournalMode.Day) {
                             viewDate.plusDays(1)
                         } else {
@@ -368,7 +408,10 @@ fun JournalScreen(
                     InvertPressButton(text = "Add habit", onClick = { addingHabit = true })
                     InvertPressButton(
                         text = "Routine",
-                        onClick = { mode = JournalMode.Routine },
+                        onClick = {
+                            commitEdit()
+                            mode = JournalMode.Routine
+                        },
                         bordered = false,
                     )
                 }

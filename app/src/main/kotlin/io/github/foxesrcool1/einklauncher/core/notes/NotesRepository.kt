@@ -62,6 +62,14 @@ class NotesRepository(private val data: DataRepository) {
 
     fun read(path: String): String = data.store.readText(path).orEmpty()
 
+    /**
+     * Null when the note is there but could not be read. The editor must not
+     * show that as an empty note: the first autosave would then write the
+     * empty page over the real one. A note that is not there at all is "".
+     */
+    fun readOrNull(path: String): String? =
+        data.store.readText(path) ?: if (data.store.exists(path)) null else ""
+
     fun write(path: String, text: String): Boolean = data.store.writeText(path, text)
 
     /** Makes a new empty note and returns its path, or null. */
