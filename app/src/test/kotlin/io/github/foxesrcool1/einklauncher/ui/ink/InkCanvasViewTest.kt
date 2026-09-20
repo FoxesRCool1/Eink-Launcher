@@ -186,4 +186,27 @@ class InkCanvasViewTest {
         // The PDF export is not checked here. The test sandbox has no PDF
         // writer, so that one is on the device test list.
     }
+
+    @Test
+    fun `with a part of a pdf page on screen the ink still lands in page points`() {
+        // A 600 by 800 point page. The view is 720 by 960, so the whole page fits at 1.2.
+        view.unitScale = 600f / 1440f
+        view.setPage(emptyList(), 600f, 800f, PageTemplate.Blank)
+
+        // Zoom to the bottom right quarter of the page.
+        view.showPart(android.graphics.RectF(300f, 400f, 600f, 800f), null)
+        drag(MotionEvent.TOOL_TYPE_STYLUS, 0f to 0f, 720f to 960f)
+        val zoomed = view.editor.strokes.single()
+        assertEquals(300f, zoomed.xs.first(), 0.5f)
+        assertEquals(400f, zoomed.ys.first(), 0.5f)
+        assertEquals(600f, zoomed.xs.last(), 0.5f)
+        assertEquals(800f, zoomed.ys.last(), 0.5f)
+        // The pen is as wide on the glass as on a note page, so narrower in points.
+        assertEquals(PenWidths.MEDIUM * 600f / 1440f, zoomed.width, 0.001f)
+
+        // Back to the whole page: the same stroke now runs from the middle to the corner.
+        view.showPart(android.graphics.RectF(0f, 0f, 600f, 800f), null)
+        assertEquals(Color.BLACK, pixel(540, 720))
+        assertEquals(Color.WHITE, pixel(180, 240))
+    }
 }

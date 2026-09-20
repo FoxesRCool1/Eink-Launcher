@@ -434,6 +434,29 @@ class EpubReaderActivity : FragmentActivity() {
             lifecycleScope.launch { saveNow() }
         }
 
+        /**
+         * The card is an ink note of its own, beside the book's other
+         * annotations. Handwriting does not go onto the book page itself: the
+         * text moves when the font size changes, and the ink would not.
+         */
+        override fun handwrite(highlightId: String) {
+            val highlight = ui.annotations.highlight(highlightId) ?: return
+            val path = highlight.inkNotePath.ifBlank { reading.inkNotePath(bookId, highlightId) }
+            ui.annotations = ui.annotations.withHighlight(highlight.copy(inkNotePath = path))
+            ui.panel = ReaderPanel.None
+            lifecycleScope.launch { saveNow() }
+            runCatching {
+                startActivity(
+                    io.github.foxesrcool1.einklauncher.ui.ink.InkNoteActivity.intent(
+                        this@EpubReaderActivity,
+                        path,
+                        highlight.text.take(40),
+                        io.github.foxesrcool1.einklauncher.core.ink.PageTemplate.Lined,
+                    ),
+                )
+            }.onFailure { AppLog.e(TAG, "Could not open the note card $path", it) }
+        }
+
         override fun remove(highlightId: String) {
             ui.annotations = ui.annotations.without(highlightId)
             ui.panel = ReaderPanel.None
@@ -528,6 +551,9 @@ interface ReaderActions {
     fun highlightWithNote()
     fun cancelSelection()
     fun saveNote(highlightId: String, note: String)
+
+    /** Opens the handwritten note card of a highlight, and makes it first when there is none. */
+    fun handwrite(highlightId: String)
     fun remove(highlightId: String)
     fun change(settings: ReaderSettings)
     fun exportNotes()

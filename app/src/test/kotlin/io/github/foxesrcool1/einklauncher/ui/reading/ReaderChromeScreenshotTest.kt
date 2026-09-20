@@ -51,6 +51,7 @@ class ReaderChromeScreenshotTest {
         override fun highlightWithNote() = Unit
         override fun cancelSelection() = Unit
         override fun saveNote(highlightId: String, note: String) = Unit
+        override fun handwrite(highlightId: String) = Unit
         override fun remove(highlightId: String) = Unit
         override fun change(settings: ReaderSettings) = Unit
         override fun exportNotes() = Unit

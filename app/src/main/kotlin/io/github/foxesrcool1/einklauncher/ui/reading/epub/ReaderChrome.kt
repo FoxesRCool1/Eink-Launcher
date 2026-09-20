@@ -247,6 +247,10 @@ private fun HighlightPanel(state: ReaderUiState, highlightId: String, actions: R
                     text = if (highlight?.note.isNullOrBlank()) "Add note" else "Edit note",
                     onClick = { actions.show(ReaderPanel.NoteEditor(highlightId)) },
                 )
+                InvertPressButton(
+                    text = if (highlight?.inkNotePath.isNullOrBlank()) "Handwrite" else "Open card",
+                    onClick = { actions.handwrite(highlightId) },
+                )
                 InvertPressButton(text = "Remove", onClick = { actions.remove(highlightId) })
                 InvertPressButton(text = "Close", onClick = { actions.show(ReaderPanel.None) }, bordered = false)
             }

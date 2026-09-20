@@ -65,6 +65,14 @@ class InkCanvasView(context: Context) : View(context) {
     /** In page units. */
     var eraserRadius: Float = 18f
 
+    /**
+     * How many page units one unit of pen width stands for. A handwritten
+     * page is 1440 units wide and this is 1. A PDF page is about 600 points
+     * wide, so the same pen has to be narrower in page units to look the same
+     * on the glass. The host sets this to `pageWidth / 1440`.
+     */
+    var unitScale: Float = 1f
+
     var deviceDrawsLive: Boolean = false
 
     var redrawDelayMillis: Long = 900L
@@ -74,6 +82,9 @@ class InkCanvasView(context: Context) : View(context) {
 
     /** A finger swipe: -1 for the previous page, +1 for the next. */
     var onPageSwipe: ((direction: Int) -> Unit)? = null
+
+    /** A finger tap, in view pixels. The PDF reader uses it for tap zones. */
+    var onFingerTap: ((x: Float, y: Float) -> Unit)? = null
 
     /** The stylus changed between tip and eraser end, or the mode changed. For the fast pen tool type. */
     var onErasingChanged: ((erasing: Boolean) -> Unit)? = null
@@ -88,8 +99,12 @@ class InkCanvasView(context: Context) : View(context) {
     private var pageHeight = InkNote.DEFAULT_PAGE_HEIGHT
     private var template = PageTemplate.Blank
 
-    /** A picture under the ink, for example a PDF page. It fills the page box. */
+    /** A picture under the ink, for example a PDF page, and the part of the page it shows. */
     private var backdrop: Bitmap? = null
+    private var backdropBox: RectF? = null
+
+    /** The part of the page on screen, in page units. Null shows the whole page. */
+    private var viewport: RectF? = null
 
     private val renderer = InkRenderer()
     private var cache: Bitmap? = null
@@ -143,6 +158,22 @@ class InkCanvasView(context: Context) : View(context) {
         this.pageHeight = pageHeight
         this.template = template
         this.backdrop = backdrop
+        this.backdropBox = null
+        this.viewport = null
+        computeTransform()
+        rebuildAll()
+    }
+
+    /**
+     * Shows one part of the page, with a picture of exactly that part under
+     * the ink. The ink and its undo history stay. This is how the PDF reader
+     * changes zoom, crop and screen without the strokes moving on the page.
+     */
+    fun showPart(pageBox: RectF, picture: Bitmap?) {
+        settle()
+        viewport = RectF(pageBox)
+        backdrop = picture
+        backdropBox = RectF(pageBox)
         computeTransform()
         rebuildAll()
     }
@@ -156,6 +187,7 @@ class InkCanvasView(context: Context) : View(context) {
     /** Swaps the picture under the ink and keeps the ink and its undo history. */
     fun setBackdrop(backdrop: Bitmap?) {
         this.backdrop = backdrop
+        this.backdropBox = null
         rebuildAll()
     }
 
@@ -190,9 +222,16 @@ class InkCanvasView(context: Context) : View(context) {
 
     private fun computeTransform() {
         if (width <= 0 || height <= 0) return
-        scale = min(width / pageWidth, height / pageHeight)
-        offsetX = (width - pageWidth * scale) / 2f
-        offsetY = (height - pageHeight * scale) / 2f
+        val part = viewport
+        if (part == null || part.isEmpty) {
+            scale = min(width / pageWidth, height / pageHeight)
+            offsetX = (width - pageWidth * scale) / 2f
+            offsetY = (height - pageHeight * scale) / 2f
+        } else {
+            scale = min(width / part.width(), height / part.height())
+            offsetX = (width - part.width() * scale) / 2f - part.left * scale
+            offsetY = (height - part.height() * scale) / 2f - part.top * scale
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -246,8 +285,11 @@ class InkCanvasView(context: Context) : View(context) {
         target.save()
         target.translate(offsetX, offsetY)
         target.scale(scale, scale)
+        // With only a part of the page on screen, ink from the rest of the
+        // page must not show up in the white around that part.
+        viewport?.let { target.clipRect(it) }
         backdrop?.takeIf { !it.isRecycled }?.let {
-            target.drawBitmap(it, null, RectF(0f, 0f, pageWidth, pageHeight), bitmapPaint)
+            target.drawBitmap(it, null, backdropBox ?: RectF(0f, 0f, pageWidth, pageHeight), bitmapPaint)
         }
         renderer.drawTemplate(target, template, pageWidth, pageHeight)
         val strokes = editor.strokes
@@ -304,7 +346,7 @@ class InkCanvasView(context: Context) : View(context) {
                     eraseAlong(lastPageX, lastPageY, lastPageX, lastPageY)
                 } else {
                     val tool = if (mode == InkMode.Highlighter) InkTool.Highlighter else InkTool.Pen
-                    val width = if (tool == InkTool.Highlighter) highlighterWidth else penWidth
+                    val width = (if (tool == InkTool.Highlighter) highlighterWidth else penWidth) * unitScale
                     builder = InkStrokeBuilder(tool, width).also {
                         it.add(lastPageX, lastPageY, event.pressure)
                     }
@@ -405,7 +447,7 @@ class InkCanvasView(context: Context) : View(context) {
     }
 
     private fun eraseAlong(x0: Float, y0: Float, x1: Float, y1: Float) {
-        val hit = EraserGeometry.hits(editor.strokes, x0, y0, x1, y1, eraserRadius)
+        val hit = EraserGeometry.hits(editor.strokes, x0, y0, x1, y1, eraserRadius * unitScale)
         if (hit.isEmpty()) return
         val removed = editor.remove(hit)
         if (removed.isEmpty()) return
@@ -465,7 +507,7 @@ class InkCanvasView(context: Context) : View(context) {
     }
 
     private fun onFingerEvent(event: MotionEvent): Boolean {
-        val swipe = onPageSwipe ?: return false
+        if (onPageSwipe == null && onFingerTap == null) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 // Palm rejection: a finger that lands while the pen is on or
@@ -483,8 +525,11 @@ class InkCanvasView(context: Context) : View(context) {
                 val dx = event.x - fingerDownX
                 val dy = event.y - fingerDownY
                 val threshold = SWIPE_DP * resources.displayMetrics.density
+                val tapSlop = TAP_DP * resources.displayMetrics.density
                 if (abs(dx) > threshold && abs(dx) > abs(dy) * 2f) {
-                    swipe(if (dx < 0) 1 else -1)
+                    onPageSwipe?.invoke(if (dx < 0) 1 else -1)
+                } else if (abs(dx) < tapSlop && abs(dy) < tapSlop) {
+                    onFingerTap?.invoke(event.x, event.y)
                 }
             }
         }
@@ -503,6 +548,7 @@ class InkCanvasView(context: Context) : View(context) {
     private companion object {
         const val PALM_QUIET_MILLIS = 700L
         const val SWIPE_DP = 72f
+        const val TAP_DP = 12f
     }
 }
 

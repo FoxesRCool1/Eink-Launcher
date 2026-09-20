@@ -4,6 +4,66 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 8. PDF and handwritten annotations
+
+Model: Fable. Date: 2026-09-20. State: code and tests complete. Waiting for a
+device test.
+
+### What was built
+
+- The renderer is the platform `PdfRenderer`. No new dependency. See
+  `docs/decisions/0010-pdf-renderer.md` for the comparison and the memory
+  rules.
+- `PdfReaderActivity`: one screen of a page at a time. Tap the left or right
+  third, swipe, or use the page keys. Tap the middle for More.
+- Zoom steps: fit page, fit width, 150 %, 200 %. A page larger than the
+  screen is cut into overlapping screens, and Next walks through them.
+  Nothing scrolls and nothing is pinched.
+- Crop margins, found per page.
+- Go to page. The place, the zoom and the crop are remembered per book.
+- The pen, the marker and the eraser draw straight on the page, with undo and
+  redo. Strokes are in PDF points in
+  `annotations/<book-id>/page-0001.strokes`. The PDF is never changed.
+- "Pages with handwriting": the annotation list, with a jump to each page and
+  an export to Markdown.
+- "Export this page as a picture": the page and its ink as a PNG in
+  `exports/`.
+- EPUB: a highlight can now carry a handwritten note card. Tap a highlight,
+  then "Handwrite".
+- Reading time and the daily goal count PDF reading too.
+- Tests: the screen arithmetic at every zoom step, the margin search, the
+  sidecar files, the saved position, and a canvas test that draws at 200 %
+  and checks the ink at fit page.
+
+### What does not work yet
+
+- `PdfRenderer` has no test sandbox, so no PDF was rendered off the tablet.
+  The arithmetic around it is tested. The rendering itself is not.
+- Password protected PDFs do not open. The reader says so.
+- No read-ahead. The log records every screen that took over 400 ms.
+
+### Device test list for the owner
+
+1. Import a PDF. Tap it. The first page should fill the screen.
+2. Turn ten pages. Write down how long a page turn feels, and send the log.
+3. Press the zoom control until it says 200 %. Press the right third of the
+   page again and again. You should walk across the page, then down, then on
+   to the next page.
+4. At 200 %, circle a word with the pen. Go back to "Fit page". The circle
+   must still be around the same word.
+5. Press More, "Crop the margins". The text should get larger. The circle
+   must still be around the same word.
+6. Use the marker over a line of text. The text must stay readable.
+7. Press Close. Open the PDF again. Same page, same zoom, same ink.
+8. More, "Pages with handwriting". Tap a row. Then "Export as Markdown".
+9. More, "Export this page as a picture". Look in `EinkLauncher/exports/`.
+10. Open a large scanned PDF, 100 MB or more. Turn fifty pages. The app must
+    not close by itself. Send the log.
+11. In an EPUB, tap a highlight, press "Handwrite", write a line, press
+    Close. Tap the highlight again and press "Open card".
+
+---
+
 ## Step 7 part two. The EPUB reader
 
 Date: 2026-09-20. State: code and tests complete. **Judge it on the tablet

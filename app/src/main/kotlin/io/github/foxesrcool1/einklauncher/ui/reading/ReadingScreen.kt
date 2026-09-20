@@ -52,6 +52,7 @@ import io.github.foxesrcool1.einklauncher.core.settings.ReaderSettings
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.ui.reading.epub.EpubReaderActivity
 import io.github.foxesrcool1.einklauncher.ui.reading.epub.GoalLine
+import io.github.foxesrcool1.einklauncher.ui.reading.pdf.PdfReaderActivity
 
 private const val TAG = "ReadingScreen"
 private const val ROWS_PER_PAGE = 5
@@ -278,7 +279,9 @@ private fun BookRow(
 private fun openBook(context: Context, book: LibraryBook, say: (String) -> Unit) {
     runCatching {
         if (book.isPdf) {
-            say("PDF files open in step 8")
+            context.startActivity(
+                PdfReaderActivity.intent(context, book.path, book.bookId, book.metadata.title),
+            )
         } else {
             context.startActivity(
                 EpubReaderActivity.intent(context, book.path, book.bookId, book.metadata.title),
