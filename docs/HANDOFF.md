@@ -45,15 +45,14 @@ eyes there are.
 | 9. Journal | Done. |
 | 10. Audit and release | Audit done from code and screenshots. Release workflow ready. **No release was made.** |
 
-The work is in seven stacked pull requests, one per step branch:
-`step-02-device-spike`, `step-05-ink-engine`, `step-06-writing-tab`,
-`step-07-epub-reader`, `step-08-pdf-and-ink-annotations`,
-`step-09-journal-handwriting`, `step-10-audit-and-release`. Merge them in
-that order.
+The repository has two branches, `main` and `Dev`. Work happens on `Dev`.
+`main` gets what is ready. Do not make a new branch. The old step branches
+and their pull requests are gone. Every commit from them is in `main` and
+`Dev`.
 
 ### 2b. The app updates itself now
 
-Branch `in-app-updates`, on top of `dev-emulator`. Settings, Help, "Check for
+Settings, Help, "Check for
 updates" looks at the GitHub Releases of this repository, downloads the APK
 that fits the build, and hands it to Android. `tools/release.sh 0.1.1 "what
 changed"` makes a release with one command. Decision 0012 and

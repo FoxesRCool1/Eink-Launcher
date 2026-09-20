@@ -20,6 +20,8 @@ Read this file at the start of every session. It is the short form of
    on this device. Use unit tests, screenshot tests and the in-app log. End
    every step with a short device test list for the owner.
 8. Write plain English in the app and in the docs. Do not use em dashes.
+9. The repository has two branches, `main` and `Dev`. Work on `Dev`. Never
+   create a new branch.
 
 ## E-ink rules (mandatory in all UI code)
 
