@@ -157,6 +157,17 @@ class EpubReaderActivity : FragmentActivity() {
         root.addView(chrome, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         setContentView(root)
 
+        // Back closes whatever is open on top of the page first, and the book
+        // only when nothing is.
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (ui.panel != ReaderPanel.None) ui.panel = ReaderPanel.None else finish()
+                }
+            },
+        )
+
         lifecycleScope.launch { openBook() }
     }
 
@@ -275,16 +286,6 @@ class EpubReaderActivity : FragmentActivity() {
         }
 
         else -> super.onKeyDown(keyCode, event)
-    }
-
-    @Deprecated("The platform still calls it for the Back key on the Android versions this app supports.")
-    override fun onBackPressed() {
-        if (ui.panel != ReaderPanel.None) {
-            ui.panel = ReaderPanel.None
-        } else {
-            @Suppress("DEPRECATION")
-            super.onBackPressed()
-        }
     }
 
     // -- The place in the book -------------------------------------------------------
