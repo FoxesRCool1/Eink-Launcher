@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// The public notes on the ViWoods fast pen say the vendor library only loads
+// for an app that targets SDK 30. Nobody has proved that on a stock tablet
+// from this app yet, so the number can be changed from the command line:
+//   ./gradlew assembleViwoodsDebug -PviwoodsTargetSdk=37
+// See docs/decisions/0007-viwoods-ink-and-refresh.md.
+val viwoodsTargetSdk: Int =
+    (providers.gradleProperty("viwoodsTargetSdk").orNull ?: "30").toInt()
+
 android {
     namespace = "io.github.foxesrcool1.einklauncher"
     compileSdk = 37
@@ -46,10 +54,10 @@ android {
 
     flavorDimensions += "device"
     productFlavors {
-        // Tablets with the ViWoods e-ink platform. Step 2 decides whether this
-        // flavour has to drop to targetSdk 30 for the fast pen path.
+        // Tablets with the ViWoods e-ink platform.
         create("viwoods") {
             dimension = "device"
+            targetSdk = viwoodsTargetSdk
             versionNameSuffix = "-viwoods"
         }
         // Any other Android device. Jetpack Ink rendering only, no hidden APIs.
@@ -93,6 +101,11 @@ android {
         // A text report can be read straight out of the CI log.
         textReport = true
         disable += "GradleDependency"
+        // The viwoods flavour targets SDK 30 on purpose, see the top of this
+        // file. It never goes to the Play Store, which is what these two
+        // checks are about. The generic flavour targets the newest SDK.
+        disable += "ExpiredTargetSdkVersion"
+        disable += "OldTargetApi"
     }
 }
 
@@ -150,6 +163,12 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
+
+    // The Jetpack Ink baseline canvas on the device test screen. Debug only.
+    debugImplementation(libs.androidx.ink.authoring)
+    debugImplementation(libs.androidx.ink.brush)
+    debugImplementation(libs.androidx.ink.strokes)
+    debugImplementation(libs.androidx.ink.rendering)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

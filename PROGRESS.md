@@ -4,6 +4,64 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 2. Device spike: refresh control and fast pen
+
+Model: Fable. Date: 2026-09-20. State: code and tests complete. **The device
+test is not done**, and this step is only finished when it is.
+
+The build now runs on the dev machine. The Android SDK is in `~/Android/Sdk`
+and `local.properties` points at it. Every step from here on was built, tested
+and linted locally before it was pushed.
+
+### What was built
+
+- `core/eink/`: `EinkDevice`, `GenericEinkDevice`, `ViwoodsEinkDevice`,
+  `EinkDevices` and `FastPenGuard`. All vendor calls go through reflection,
+  none can throw, and each one writes its result to the log.
+- Three ways to reach a vendor call: the wrapper object, the binder service,
+  and the `service call` shell command. The log says which one worked.
+- `FastPenGuard`: a fast pen path that kills the app with a native crash is
+  switched off at the next start. One crash at most.
+- The `viwoods` flavour targets SDK 30. `tools/deploy.sh viwoods 8000 37`
+  builds it with target SDK 37 for the comparison.
+- Settings, then "Device test": device info, vendor API list, each picture
+  mode, full refresh, four pen canvases (this app draws, Jetpack Ink, path A,
+  path B), the crash guard, the home role, and a search for the ViWoods
+  settings app and the stock launcher.
+- The pen canvas has a toolbar that is handed to the tablet as "do not draw
+  here", an eraser switch, four width ranges and four redraw waits.
+- Jetpack Ink 1.0.0 is a debug only dependency, for the baseline canvas.
+- 16 new unit tests. The vendor class is tested against a fake of the same
+  shape.
+- `docs/decisions/0007-viwoods-ink-and-refresh.md`.
+
+### What does not work yet
+
+- Nothing in `ViwoodsEinkDevice` has touched a real tablet. The public notes
+  it is written from contradict themselves. Treat every call as unproved.
+
+### Device test list for the owner
+
+1. Run `tools/deploy.sh viwoods 8000` and install the build.
+2. Open Settings, then "Device test". Press each row from the top. Read the
+   answer under the row.
+3. For each picture mode in row 3: leave the screen, turn some pages in the
+   All apps list, and write down how the page turn looks.
+4. Row 5, both canvases: write fast with the pen. Write down how far the ink
+   is behind the pen tip.
+5. Row 6, path A. If the app closes by itself, open it again, run row 8, and
+   write that down. If it stays open: is the ink fast? Does ink appear on the
+   toolbar? Press "Redraw" to change the wait, and find the wait where the
+   stroke neither flickers nor doubles.
+6. Row 7, path B. Same questions.
+7. Try the Eraser and the Width button on the path that worked.
+8. Run rows 9 and 10.
+9. Press "Copy log to download" and send the log file.
+10. Run `tools/deploy.sh viwoods 8000 37`, install, and do steps 5, 6 and 9
+    again. That tells us whether target SDK 30 is really needed.
+
+---
+
 ## Step 7 part one. The library and import
 
 Model: Opus. Date: 2026-09-19. State: the library is built. **The reader is

@@ -20,6 +20,9 @@ PYTHON=/usr/bin/python3
 
 FLAVOUR="${1:-viwoods}"
 PORT="${2:-8000}"
+# Optional third argument: the target SDK of the viwoods flavour. The default
+# is 30, which the fast pen is said to need. Pass 37 to test the other case.
+VIWOODS_TARGET="${3:-}"
 
 case "$FLAVOUR" in
   viwoods) GRADLE_TASK="assembleViwoodsDebug" ;;
@@ -36,7 +39,11 @@ if [ ! -x "$PYTHON" ]; then
 fi
 
 echo "Building $FLAVOUR debug"
-./gradlew "$GRADLE_TASK"
+if [ -n "$VIWOODS_TARGET" ]; then
+  ./gradlew "$GRADLE_TASK" "-PviwoodsTargetSdk=$VIWOODS_TARGET"
+else
+  ./gradlew "$GRADLE_TASK"
+fi
 
 APK="app/build/outputs/apk/$FLAVOUR/debug/app-$FLAVOUR-debug.apk"
 if [ ! -f "$APK" ]; then

@@ -21,6 +21,10 @@ class EinkLauncherApp : Application() {
         // is useful to know which one ended up in the build.
         AppLog.i("App", "Kotlin ${KotlinVersion.CURRENT}, Android ${android.os.Build.VERSION.SDK_INT}")
 
+        // A fast pen path that killed the app last time is switched off here,
+        // before any screen can try it again.
+        io.github.foxesrcool1.einklauncher.core.eink.EinkDevices.settleAfterStart(this)
+
         // Making a few folders is fast, but a launcher must not touch the disk
         // on the main thread while the home screen is trying to appear.
         thread(name = "eink-data-root", isDaemon = true) {

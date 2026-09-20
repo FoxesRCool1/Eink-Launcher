@@ -147,6 +147,16 @@ fun SettingsScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
             InvertPressButton(text = "Log", onClick = onOpenLog)
             InvertPressButton(text = "Design demo", onClick = onOpenDemo)
+            InvertPressButton(
+                text = "Device test",
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(context, io.github.foxesrcool1.einklauncher.ui.devicetest.DeviceTestActivity::class.java),
+                        )
+                    }
+                },
+            )
         }
 
         Spacer(modifier = Modifier.weight(1f))
