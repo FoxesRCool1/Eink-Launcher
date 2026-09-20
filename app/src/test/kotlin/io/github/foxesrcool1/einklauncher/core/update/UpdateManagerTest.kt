@@ -64,10 +64,10 @@ class UpdateManagerTest {
 
     @Test
     fun `the saved token goes out with the check, and an empty one is no token`() {
-        UpdateToken.save(context, "  ghp_secret \n")
-        assertEquals("ghp_secret", UpdateToken.read(context))
+        UpdateToken.save(context, "  test-token \n")
+        assertEquals("test-token", UpdateToken.read(context))
         UpdateManager.check(context)
-        assertEquals("Bearer ghp_secret", http.requests.last().second["Authorization"])
+        assertEquals("Bearer test-token", http.requests.last().second["Authorization"])
 
         UpdateToken.save(context, "   ")
         assertNull(UpdateToken.read(context))

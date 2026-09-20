@@ -20,11 +20,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import io.github.foxesrcool1.einklauncher.BuildConfig
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.core.storage.StorageBenchmark
 import io.github.foxesrcool1.einklauncher.core.update.ApkInstaller
+import io.github.foxesrcool1.einklauncher.core.update.GithubReleases
 import io.github.foxesrcool1.einklauncher.core.update.UpdateManager
+import io.github.foxesrcool1.einklauncher.core.update.UrlConnectionHttp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
@@ -68,6 +71,7 @@ fun DevPanel(modifier: Modifier = Modifier) {
     var status by remember { mutableStateOf("Ready") }
     var benchmark by remember { mutableStateOf("Not measured yet") }
     var busy by remember { mutableStateOf(false) }
+    var updateTest by remember { mutableStateOf("Updates come from GitHub.") }
 
     Column(modifier = modifier.fillMaxWidth()) {
         CapsLabel(text = "Build URL", style = EinkType.capsSmall)
@@ -164,8 +168,40 @@ fun DevPanel(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(EinkDimens.targetGap))
         EinkText(text = benchmark, style = EinkType.body)
+
+        // Last on the panel, so it can only ever push itself off the screen.
+        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        CapsLabel(text = "Update test", style = EinkType.capsSmall)
+        Spacer(modifier = Modifier.height(6.dp))
+        InvertPressButton(
+            text = "Updates from the build URL",
+            onClick = { updateTest = useTestUpdateServer(url) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        EinkText(text = updateTest, style = EinkType.body)
     }
 }
+
+/**
+ * Points "Check for updates" at the server in the build URL until the app
+ * restarts, so the whole update can be tried without a release on GitHub.
+ * `tools/fake-github.py` is that server.
+ */
+private fun useTestUpdateServer(buildUrl: String): String = runCatching {
+    val parsed = URL(buildUrl)
+    val base = "${parsed.protocol}://${parsed.authority}"
+    UpdateManager.releasesFactory = {
+        GithubReleases(
+            http = UrlConnectionHttp(requireHttps = false),
+            repository = BuildConfig.UPDATE_REPOSITORY,
+            userAgent = "EinkLauncher/${BuildConfig.VERSION_NAME}",
+            apiBase = base,
+        )
+    }
+    UpdateManager.reset()
+    AppLog.i(TAG, "Updates now come from $base until the app restarts")
+    "Updates now come from $base until the app restarts."
+}.getOrElse { "That build URL is not an address: ${it.message}" }
 
 private fun download(context: Context, url: String): Result<File> = runCatching {
     // The same folder as the in-app update, because that is the one folder

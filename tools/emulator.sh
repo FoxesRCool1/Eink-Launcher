@@ -95,7 +95,9 @@ install_app() {
   ./gradlew assembleViwoodsDebug --console=plain -q < /dev/null
   local apk="app/build/outputs/apk/viwoods/debug/app-viwoods-debug.apk"
   echo "Installing"
-  "$ADB" -s "$(serial)" install -r "$apk" > /dev/null
+  # -d lets an older build go over a newer one. Only a debug build allows that,
+  # and the update tests leave a higher version behind.
+  "$ADB" -s "$(serial)" install -r -d "$apk" > /dev/null
 }
 
 push_samples() {
