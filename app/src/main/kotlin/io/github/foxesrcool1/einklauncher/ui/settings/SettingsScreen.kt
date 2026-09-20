@@ -58,6 +58,7 @@ fun SettingsScreen(
     var isDefault by remember { mutableStateOf(DefaultLauncher.isDefault(context)) }
     var showManualSteps by remember { mutableStateOf(false) }
     var lastMessage by remember { mutableStateOf<String?>(null) }
+    var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(SettingsPage.Home) }
 
     val roleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -72,6 +73,22 @@ fun SettingsScreen(
         corner = null,
         modifier = modifier,
     ) {
+        // One page of settings at a time. A settings screen that scrolls would
+        // break e-ink rule 2, and one that does not scroll runs out of room.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingsPage.entries.forEach { entry ->
+                InvertPressButton(
+                    text = entry.label,
+                    selected = page == entry,
+                    onClick = { page = entry },
+                    compact = true,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 16.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+
+        if (page == SettingsPage.Home) {
         CapsLabel(text = "Home app", style = EinkType.capsSmall)
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(10.dp))
@@ -126,7 +143,9 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        }
+
+        if (page == SettingsPage.Look) {
         CapsLabel(text = "Look", style = EinkType.capsSmall)
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(10.dp))
@@ -137,9 +156,14 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-        StorageSection()
+        PenAndScreenSection(settings)
+        }
 
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        if (page == SettingsPage.Storage) {
+        StorageSection()
+        }
+
+        if (page == SettingsPage.Help) {
         CapsLabel(text = "Trouble shooting", style = EinkType.capsSmall)
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(10.dp))
@@ -159,6 +183,8 @@ fun SettingsScreen(
             )
         }
 
+        }
+
         Spacer(modifier = Modifier.weight(1f))
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(EinkDimens.targetGap))
@@ -173,6 +199,13 @@ fun SettingsScreen(
             InvertPressButton(text = "Today", onClick = onBack, bordered = false)
         }
     }
+}
+
+private enum class SettingsPage(val label: String) {
+    Home("Home app"),
+    Look("Look and pen"),
+    Storage("Storage"),
+    Help("Help"),
 }
 
 /**

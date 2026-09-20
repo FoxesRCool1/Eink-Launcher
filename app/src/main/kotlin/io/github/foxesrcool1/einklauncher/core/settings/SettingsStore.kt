@@ -63,7 +63,41 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_ART] = enabled }
     }
 
+    /**
+     * Who paints the line while the pen is down: "off" (this app), "writing"
+     * (ViWoods fast pen path A) or "autodraw" (path B). Off until the device
+     * test has shown which path works. See decision 0007.
+     */
+    val fastPenMode: Flow<String> = store.data.map { it[KEY_FAST_PEN] ?: FAST_PEN_OFF }
+
+    suspend fun setFastPenMode(mode: String) {
+        store.edit { it[KEY_FAST_PEN] = mode }
+    }
+
+    /** How long after pen-up the real stroke replaces the fast one. */
+    val inkRedrawDelayMillis: Flow<Long> = store.data.map { it[KEY_INK_DELAY] ?: DEFAULT_INK_DELAY_MILLIS }
+
+    suspend fun setInkRedrawDelayMillis(millis: Long) {
+        store.edit { it[KEY_INK_DELAY] = millis.coerceIn(300L, 3000L) }
+    }
+
+    /** E-ink rule 8: a full refresh after a big screen change. It is a setting. */
+    val fullRefreshOnBigChange: Flow<Boolean> = store.data.map { it[KEY_FULL_REFRESH] ?: false }
+
+    suspend fun setFullRefreshOnBigChange(enabled: Boolean) {
+        store.edit { it[KEY_FULL_REFRESH] = enabled }
+    }
+
     companion object {
+        const val FAST_PEN_OFF = "off"
+        const val FAST_PEN_WRITING = "writing"
+        const val FAST_PEN_AUTODRAW = "autodraw"
+        const val DEFAULT_INK_DELAY_MILLIS = 900L
+
+        private val KEY_FAST_PEN = stringPreferencesKey("fast_pen_mode")
+        private val KEY_INK_DELAY = androidx.datastore.preferences.core.longPreferencesKey("ink_redraw_delay")
+        private val KEY_FULL_REFRESH = booleanPreferencesKey("full_refresh_on_big_change")
+
         /** Section 6: up to 8 pinned apps. */
         const val MAX_PINNED = 8
 

@@ -171,6 +171,16 @@ private fun LauncherHost(
         }
     }
 
+    // E-ink rule 8: a full refresh after a big screen change, when the user
+    // has turned it on. A change of tab is the big change of this activity.
+    val fullRefreshOn by remember(context) { SettingsStore(context).fullRefreshOnBigChange }
+        .collectAsStateWithLifecycle(initialValue = false)
+    LaunchedEffect(route, fullRefreshOn) {
+        if (fullRefreshOn) {
+            io.github.foxesrcool1.einklauncher.core.eink.EinkDevices.get(context).fullRefresh()
+        }
+    }
+
     // Back goes to Today. On Today it does nothing at all, because a home
     // screen has nowhere behind it.
     BackHandler(enabled = true) {

@@ -39,6 +39,8 @@ fun InvertPressButton(
     selected: Boolean = false,
     bordered: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+    /** Smaller text for a toolbar with many controls. The touch target does not shrink. */
+    compact: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -71,7 +73,7 @@ fun InvertPressButton(
     ) {
         EinkText(
             text = text.uppercase(Locale.ROOT),
-            style = EinkType.button.copy(color = foreground),
+            style = (if (compact) EinkType.buttonCompact else EinkType.button).copy(color = foreground),
             maxLines = 1,
         )
     }

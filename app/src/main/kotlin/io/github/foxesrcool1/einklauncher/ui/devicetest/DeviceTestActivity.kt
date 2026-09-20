@@ -169,6 +169,17 @@ private fun buildTests(): List<DeviceTest> {
         "Opened"
     }
 
+    tests += DeviceTest("7b. The real ink engine, on a test note") { context, _ ->
+        context.startActivity(
+            io.github.foxesrcool1.einklauncher.ui.ink.InkNoteActivity.intent(
+                context,
+                "notes/Ink test.inknote",
+                "Ink test",
+            ),
+        )
+        "Opened. It uses the pen setting from Settings, Look and pen."
+    }
+
     tests += DeviceTest("8. Fast pen crash guard") { context, _ ->
         val guard = EinkDevices.guard(context)
         FastPenPath.entries.joinToString(". ") { "${it.name}: ${guard.state(it).name}" }

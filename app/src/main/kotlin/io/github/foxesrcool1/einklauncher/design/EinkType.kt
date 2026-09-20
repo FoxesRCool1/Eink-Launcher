@@ -95,4 +95,14 @@ object EinkType {
         textAlign = TextAlign.Center,
         color = EinkColors.Ink,
     )
+
+    /** Text inside a control in a crowded toolbar. The control itself stays 56 dp tall. */
+    val buttonCompact = TextStyle(
+        fontFamily = Label,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.10.em,
+        textAlign = TextAlign.Center,
+        color = EinkColors.Ink,
+    )
 }

@@ -4,6 +4,68 @@ One section per step. Newest step at the top.
 
 ---
 
+## Step 5. Ink engine
+
+Model: Fable. Date: 2026-09-20. State: code and tests complete. Waiting for a
+device test.
+
+### What was built
+
+- `core/ink/`, no Android in it: `InkStroke`, `InkStrokeBuilder`, `InkNote`,
+  `StrokesCodec` (`.strokes`), `InkNoteCodec` (`.inknote`), `InkPageEditor`
+  (undo and redo), `EraserGeometry`, `TemplateGeometry`, `InkNotesRepository`.
+- `ui/ink/`: `InkRenderer`, `InkCanvasView`, `InkExport` (PNG and PDF),
+  `InkNoteController` (pages and autosave), `FastPenSession`, and
+  `InkNoteActivity`, the handwriting screen that Writing, Journal and the
+  reader will share.
+- Tools: pen in three widths, grey highlighter, stroke eraser, the eraser end
+  of the pen, the side button, undo, redo, clear page.
+- Pages: add, delete, previous, next, finger swipe, three templates.
+- Palm rejection: a finger never draws, and a finger swipe does nothing for
+  700 ms after the pen touched or hovered.
+- Fast pen hand-over, built on the Step 2 device layer. Off by default.
+- Settings is now four pages: Home app, Look and pen, Storage, Help. The pen
+  path, the redraw wait and the full refresh switch are under Look and pen.
+- A note that cannot be read is shown empty and is never saved over.
+- 50 new tests: file formats with damaged and lying input, eraser geometry,
+  the undo stack, and the canvas itself with made-up pen events, including
+  the fast pen wait.
+- `docs/decisions/0008-ink-engine.md`. **Read it: the engine does not use
+  Jetpack Ink for its model, and the file says why.**
+
+### What does not work yet
+
+- Nothing was tried with a real pen. Pressure range, the side button and the
+  hover events all depend on what the tablet reports.
+- The fast pen width pairs in `PenWidths.vendorRange` are a guess. They have
+  to be matched by eye.
+- The PDF export could not be tested off the tablet. The test sandbox has no
+  PDF writer.
+
+### Device test list for the owner
+
+1. Settings, Help, Device test, row "7b". A page opens.
+2. Write a full page with the pen. Rest your hand on the glass as you would
+   on paper. No stroke may be lost, and no page may turn by itself.
+3. Try Marker over your writing. The writing must stay black.
+4. Turn the pen around and rub out a word. Then pick Eraser and rub out
+   another. Press Undo twice. Both words must come back.
+5. Press the side button of the pen while drawing, if it has one. Write down
+   what happens.
+6. Press Add page, write a line, swipe right with a finger. You should be on
+   page 1 again.
+7. Press More, then each export. Look in `EinkLauncher/exports/` with a file
+   manager. Open the PDF on a computer.
+8. Press Close. Open row 7b again. Everything must be there.
+9. Copy `EinkLauncher/notes/Ink test.inknote` to a computer, rename it to
+   `.zip` and open it. It should hold `meta.json` and the pages.
+10. If the Step 2 test found a working fast pen path: Settings, Look and pen,
+    pick it, and do step 2 again. Watch for a double line or a flicker when
+    the real stroke replaces the fast one. Change the wait if you see one.
+11. Send the log. It holds the read and paint times.
+
+---
+
 ## Step 2. Device spike: refresh control and fast pen
 
 Model: Fable. Date: 2026-09-20. State: code and tests complete. **The device
