@@ -34,7 +34,9 @@ import io.github.foxesrcool1.einklauncher.design.components.EinkRow
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
 
 private const val TAG = "DeviceTest"
@@ -74,11 +76,29 @@ private fun DeviceTestScreen(onClose: () -> Unit) {
     ScreenScaffold(
         title = "Device test",
         overline = "${device.name} layer, target SDK ${context.applicationInfo.targetSdkVersion}",
-        corner = null,
+        onBack = onClose,
+        backIcon = Lucide.ArrowLeft,
+        backLabel = "Back",
+        showRotate = false,
+        actions = {
+            IconPressButton(
+                icon = Lucide.Download,
+                label = "Copy the log files to the Download folder",
+                bordered = true,
+                onClick = {
+                    AppLog.flush()
+                    val copied = AppLog.copyAllToDownloads(context)
+                    results["Log"] = "Copied $copied files to Download/EinkLauncher"
+                },
+            )
+        },
     ) {
+        // Every test gets the same room, and the list works out how many fit.
+        // With a fixed count of seven, the last tests fell off the screen.
         PagedList(
             items = tests,
-            pageSize = 7,
+            pageSize = 4,
+            rowHeight = TestRowHeight,
             modifier = Modifier.weight(1f),
         ) { _, test ->
             EinkRow(
@@ -95,31 +115,19 @@ private fun DeviceTestScreen(onClose: () -> Unit) {
                 EinkText(text = test.label, style = EinkType.rowTitle.copy(color = colour), maxLines = 1)
                 EinkText(
                     text = results[test.label] ?: "Not run yet",
-                    style = EinkType.body.copy(color = colour),
+                    style = EinkType.help.copy(color = colour),
                     maxLines = 2,
                 )
             }
-            HairlineDivider()
+            HairlineDivider(color = io.github.foxesrcool1.einklauncher.design.EinkColors.Faded)
         }
 
-        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
-        ) {
-            InvertPressButton(text = "Close", onClick = onClose)
-            InvertPressButton(
-                text = "Copy log to download",
-                onClick = {
-                    AppLog.flush()
-                    val copied = AppLog.copyAllToDownloads(context)
-                    results["Log"] = "Copied $copied files to Download/EinkLauncher"
-                },
-            )
-        }
-        EinkText(text = results["Log"].orEmpty(), style = EinkType.body, maxLines = 1)
+        EinkText(text = results["Log"].orEmpty(), style = EinkType.help, maxLines = 1)
     }
 }
+
+/** The name of a test, two lines of its answer, and the rule. */
+private val TestRowHeight = 96.dp
 
 private fun buildTests(): List<DeviceTest> {
     val tests = mutableListOf<DeviceTest>()

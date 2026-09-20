@@ -31,7 +31,9 @@ import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.design.components.TextPromptDialog
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
 
@@ -122,14 +124,14 @@ fun UpdateContent(
     ScreenScaffold(
         title = "Updates",
         overline = "Eink Launcher ${BuildConfig.VERSION_NAME}",
-        corner = null,
         modifier = modifier,
+        onBack = onBack,
+        backIcon = Lucide.ArrowLeft,
+        backLabel = "Back",
+        actions = {
+            IconPressButton(icon = Lucide.RefreshCw, label = "Check again", enabled = !busy, bordered = true, onClick = onCheck)
+        },
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            InvertPressButton(text = "Back", onClick = onBack, bordered = false)
-            InvertPressButton(text = "Check again", enabled = !busy, onClick = onCheck)
-        }
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
 
         // Cut off at the footer if a long message ever grows too tall. The
         // footer holds the permission and the token, and must stay in reach.
@@ -145,7 +147,7 @@ fun UpdateContent(
             when (state) {
                 is UpdateState.Available -> {
                     Spacer(modifier = Modifier.height(EinkDimens.targetGap))
-                    InvertPressButton(text = "Download and install", onClick = onDownload)
+                    InvertPressButton(text = "Download and install", icon = Lucide.Download, onClick = onDownload)
                     val notes = UpdateStrings.plainNotes(state.release.notes)
                     if (notes.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(EinkDimens.blockGap))
@@ -163,7 +165,7 @@ fun UpdateContent(
 
                 is UpdateState.Ready -> {
                     Spacer(modifier = Modifier.height(EinkDimens.targetGap))
-                    InvertPressButton(text = "Install", onClick = onInstall)
+                    InvertPressButton(text = "Install", icon = Lucide.Download, onClick = onInstall)
                 }
 
                 is UpdateState.Failed -> if (state.tokenProblem) {

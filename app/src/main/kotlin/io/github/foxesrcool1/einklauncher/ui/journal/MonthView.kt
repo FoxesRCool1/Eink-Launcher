@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
+import io.github.foxesrcool1.einklauncher.design.EinkShapes
 import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
@@ -40,7 +43,17 @@ fun MonthView(
     onSelectDay: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    val weeks = JournalStrings.monthGrid(month)
+    // A month of six weeks has to fit the tablet on its side as well. There
+    // the rows give up a few dp each, rather than the last week being cut off.
+    val cellHeight = if (constraints.hasBoundedHeight) {
+        minOf(EinkDimens.touchTarget, (maxHeight - HeaderHeight) / weeks.size)
+    } else {
+        EinkDimens.touchTarget
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
             JournalStrings.weekdayInitials().forEach { initial ->
                 CapsLabel(
@@ -58,7 +71,7 @@ fun MonthView(
         HairlineDivider(color = EinkColors.Faded)
         Spacer(modifier = Modifier.height(4.dp))
 
-        JournalStrings.monthGrid(month).forEach { week ->
+        weeks.forEach { week ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -70,13 +83,18 @@ fun MonthView(
                         isToday = day == today,
                         isSelected = day == selected,
                         onSelect = { if (day != null) onSelectDay(day) },
+                        height = cellHeight,
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
         }
     }
+    }
 }
+
+/** The weekday letters, the rule under them and the gaps. */
+private val HeaderHeight = 28.dp
 
 @Composable
 private fun DayCell(
@@ -85,25 +103,26 @@ private fun DayCell(
     isToday: Boolean,
     isSelected: Boolean,
     onSelect: () -> Unit,
+    height: Dp,
     modifier: Modifier = Modifier,
 ) {
     if (day == null) {
-        Box(modifier = modifier.height(EinkDimens.touchTarget))
+        Box(modifier = modifier.height(height))
         return
     }
 
     Column(
         modifier = modifier
-            .height(EinkDimens.touchTarget)
+            .height(height)
             .then(
                 if (isSelected) {
-                    Modifier.border(EinkDimens.rule, EinkColors.Ink)
+                    Modifier.border(EinkDimens.rule, EinkColors.Ink, EinkShapes.field)
                 } else {
                     Modifier
                 },
             )
             .einkClickable(onClick = onSelect)
-            .padding(vertical = 6.dp),
+            .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

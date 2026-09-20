@@ -24,10 +24,11 @@ import io.github.foxesrcool1.einklauncher.core.routine.RoutineRepository
 import io.github.foxesrcool1.einklauncher.core.routine.RoutineStatus
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
+import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import io.github.foxesrcool1.einklauncher.ui.apps.AppsScreen
 import io.github.foxesrcool1.einklauncher.ui.home.LauncherRoute
-import io.github.foxesrcool1.einklauncher.ui.home.TodayScreen
+import io.github.foxesrcool1.einklauncher.ui.home.HomeScreen
 import io.github.foxesrcool1.einklauncher.ui.journal.JournalScreen
 import io.github.foxesrcool1.einklauncher.ui.reading.ReadingScreen
 import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorActivity
@@ -44,7 +45,7 @@ private const val TAG = "HomeActivity"
  *
  * `singleTask` in the manifest means the Home key brings this same task
  * forward instead of starting a second copy. [onNewIntent] then fires, and
- * that is the moment to go back to Today, whatever screen was open.
+ * that is the moment to go back to Home, whatever screen was open.
  *
  * The reader and the editors will run in their own activities from Step 6 on,
  * so the Home key and Recents keep working the way the user expects.
@@ -55,7 +56,7 @@ class HomeActivity : ComponentActivity() {
      * Held on the activity, not inside the composition, so [onNewIntent] can
      * reach it.
      */
-    private val route: MutableState<LauncherRoute> = mutableStateOf(LauncherRoute.Today)
+    private val route: MutableState<LauncherRoute> = mutableStateOf(LauncherRoute.Home)
 
     /** Ctrl+N on a Bluetooth keyboard bumps this, and the Writing tab notices. */
     private val newNoteRequests = mutableIntStateOf(0)
@@ -65,6 +66,7 @@ class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppLog.i(TAG, "onCreate")
+        ScreenWindow.attach(this)
         logStartTime()
 
         setContent {
@@ -102,9 +104,9 @@ class HomeActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // The Home key sends us this. Always land on Today.
-        AppLog.i(TAG, "onNewIntent: back to Today")
-        route.value = LauncherRoute.Today
+        // The Home key sends us this. Always land on Home.
+        AppLog.i(TAG, "onNewIntent: back to Home")
+        route.value = LauncherRoute.Home
     }
 
     /**
@@ -128,7 +130,7 @@ class HomeActivity : ComponentActivity() {
     }
 
     /**
-     * One tap from Today makes a note and opens it. The name is the moment it
+     * One tap from Home makes a note and opens it. The name is the moment it
      * was made, because a note the user has not titled yet still needs to be
      * findable tomorrow.
      */
@@ -173,9 +175,9 @@ private fun LauncherHost(
         androidx.compose.runtime.mutableStateOf<RoutineStatus?>(null)
     }
 
-    // The next routine item is read again every time Today comes back, so
+    // The next routine item is read again every time Home comes back, so
     // ticking something off in the Journal shows up here at once. It is also
-    // read again when the tablet wakes up on Today: a new day has a new list,
+    // read again when the tablet wakes up on Home: a new day has a new list,
     // and the home screen is where a tablet spends the night.
     var wakeUps by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
@@ -183,8 +185,8 @@ private fun LauncherHost(
         onPauseOrDispose { }
     }
     LaunchedEffect(route, wakeUps) {
-        if (route != LauncherRoute.Today) return@LaunchedEffect
-        next = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        if (route != LauncherRoute.Home) return@LaunchedEffect
+        next = kotlinx.coroutines.withContext(io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers.io) {
             runCatching {
                 val data = DataRoot.repository(context)
                 val hour = HabitsRepository(data).load().dayBoundaryHour
@@ -197,6 +199,9 @@ private fun LauncherHost(
         }
     }
 
+    val homeLabels by remember(context) { SettingsStore(context).homeLabels }
+        .collectAsStateWithLifecycle(initialValue = false)
+
     // E-ink rule 8: a full refresh after a big screen change, when the user
     // has turned it on. A change of tab is the big change of this activity.
     val fullRefreshOn by remember(context) { SettingsStore(context).fullRefreshOnBigChange }
@@ -207,20 +212,21 @@ private fun LauncherHost(
         }
     }
 
-    // Back goes to Today. On Today it does nothing at all, because a home
+    // Back goes to Home. On Home it does nothing at all, because a home
     // screen has nowhere behind it.
     BackHandler(enabled = true) {
-        if (route != LauncherRoute.Today) onRoute(LauncherRoute.Today)
+        if (route != LauncherRoute.Home) onRoute(LauncherRoute.Home)
     }
 
     when (route) {
-        LauncherRoute.Today -> TodayScreen(
+        LauncherRoute.Home -> HomeScreen(
+            showLabels = homeLabels,
             onOpenTab = onRoute,
             onOpenSettings = { onRoute(LauncherRoute.Settings) },
             onQuickNote = onQuickNote,
             nextRoutineLabel = next?.item?.label,
             onStartNext = {
-                val item = next?.item ?: return@TodayScreen
+                val item = next?.item ?: return@HomeScreen
                 val tab = when (item.target) {
                     "read" -> LauncherRoute.Reading
                     "write" -> LauncherRoute.Writing
@@ -235,7 +241,7 @@ private fun LauncherHost(
                     // An item with nothing to open is just something to tick
                     // off, so Start marks it done and moves to the next one.
                     else -> scope.launch {
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        kotlinx.coroutines.withContext(io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers.io) {
                             val data = DataRoot.repository(context)
                             val hour = HabitsRepository(data).load().dayBoundaryHour
                             val today = DayBoundary(hour).dateOf(
@@ -252,11 +258,11 @@ private fun LauncherHost(
         )
 
         LauncherRoute.Reading -> ReadingScreen(
-            onBack = { onRoute(LauncherRoute.Today) },
+            onBack = { onRoute(LauncherRoute.Home) },
         )
 
         LauncherRoute.Writing -> WritingScreen(
-            onBack = { onRoute(LauncherRoute.Today) },
+            onBack = { onRoute(LauncherRoute.Home) },
             onOpenNote = onOpenNote,
             newNoteRequests = newNoteRequests,
             onOpenInkNote = { path, title ->
@@ -269,15 +275,15 @@ private fun LauncherHost(
         )
 
         LauncherRoute.Journal -> JournalScreen(
-            onBack = { onRoute(LauncherRoute.Today) },
+            onBack = { onRoute(LauncherRoute.Home) },
         )
 
         LauncherRoute.Apps -> AppsScreen(
-            onBack = { onRoute(LauncherRoute.Today) },
+            onBack = { onRoute(LauncherRoute.Home) },
         )
 
         LauncherRoute.Settings -> SettingsScreen(
-            onBack = { onRoute(LauncherRoute.Today) },
+            onBack = { onRoute(LauncherRoute.Home) },
             onOpenLog = { onRoute(LauncherRoute.Log) },
             onOpenDemo = onOpenDemo,
             onOpenUpdates = { onRoute(LauncherRoute.Update) },

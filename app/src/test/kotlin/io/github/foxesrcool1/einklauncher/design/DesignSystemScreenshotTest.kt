@@ -13,23 +13,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.support.captureTo
-import io.github.foxesrcool1.einklauncher.design.components.BotanicalCorner
-import io.github.foxesrcool1.einklauncher.design.components.BotanicalSprig
+import io.github.foxesrcool1.einklauncher.design.components.EinkIcon
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.components.PlantArt
+import io.github.foxesrcool1.einklauncher.design.components.Plants
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
+import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.ConfirmDialogContent
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
-import io.github.foxesrcool1.einklauncher.design.components.WordMenu
-import io.github.foxesrcool1.einklauncher.design.components.WordMenuItem
 import io.github.foxesrcool1.einklauncher.ui.demo.DesignDemoScreen
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,25 +61,47 @@ class DesignSystemScreenshotTest {
         compose.onRoot().captureTo(name)
     }
 
+    /** Every Lucide icon in the app, so a broken path shows up as a hole in the picture. */
     @Test
-    fun wordMenu() {
+    fun everyIcon() {
+        val icons = Lucide::class.java.declaredMethods
+            .filter { it.returnType == LucideIcon::class.java }
+            .sortedBy { it.name }
+            .map { it.invoke(Lucide) as LucideIcon }
+        assertTrue("the icon sheet is empty", icons.size > 50)
+
         compose.setContent {
             EinkTheme {
-                Box(modifier = Modifier.fillMaxSize().padding(EinkDimens.screenMargin)) {
-                    WordMenu(
-                        items = listOf(
-                            WordMenuItem("Read"),
-                            WordMenuItem("Write"),
-                            WordMenuItem("Journal"),
-                            WordMenuItem("Apps"),
-                        ),
-                        selectedIndex = 0,
-                        onSelect = {},
-                    )
+                Column(modifier = Modifier.fillMaxSize().padding(EinkDimens.screenMargin)) {
+                    icons.chunked(8).forEach { line ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+                            line.forEach { icon -> EinkIcon(icon = icon, size = 40.dp) }
+                        }
+                        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+                    }
                 }
             }
         }
-        capture("word_menu")
+        capture("lucide_icons")
+    }
+
+    @Test
+    fun iconButtons() {
+        compose.setContent {
+            EinkTheme {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(EinkDimens.screenMargin),
+                    horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
+                ) {
+                    IconPressButton(icon = Lucide.PenLine, label = "Pen", onClick = {})
+                    IconPressButton(icon = Lucide.Eraser, label = "Eraser", selected = true, onClick = {})
+                    IconPressButton(icon = Lucide.Plus, label = "Add", bordered = true, onClick = {})
+                    IconPressButton(icon = Lucide.Trash2, label = "Delete", enabled = false, onClick = {})
+                    IconPressButton(icon = Lucide.RotateCwSquare, label = "Turn", quiet = true, onClick = {})
+                }
+            }
+        }
+        capture("icon_buttons")
     }
 
     @Test
@@ -123,7 +149,7 @@ class DesignSystemScreenshotTest {
     @Test
     fun pagedListSecondPage() {
         compose.setContent { EinkTheme { DemoPagedList() } }
-        compose.onNodeWithText("NEXT").performClick()
+        compose.onNodeWithContentDescription("Next page").performClick()
         compose.waitForIdle()
         capture("paged_list_page_2")
     }
@@ -152,30 +178,23 @@ class DesignSystemScreenshotTest {
     }
 
     @Test
-    fun botanicalCorners() {
+    fun plants() {
+        val all = listOf(
+            Plants.Home, Plants.Reading, Plants.Writing, Plants.Journal, Plants.Apps, Plants.Settings, Plants.Other,
+        )
         compose.setContent {
             EinkTheme {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    BotanicalSprig(
-                        corner = BotanicalCorner.TopStart,
-                        modifier = Modifier.align(Alignment.TopStart),
-                    )
-                    BotanicalSprig(
-                        corner = BotanicalCorner.TopEnd,
-                        modifier = Modifier.align(Alignment.TopEnd),
-                    )
-                    BotanicalSprig(
-                        corner = BotanicalCorner.BottomStart,
-                        modifier = Modifier.align(Alignment.BottomStart),
-                    )
-                    BotanicalSprig(
-                        corner = BotanicalCorner.BottomEnd,
-                        modifier = Modifier.align(Alignment.BottomEnd),
-                    )
+                Column(modifier = Modifier.fillMaxSize().padding(EinkDimens.screenMargin)) {
+                    all.chunked(3).forEach { line ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.blockGap)) {
+                            line.forEach { plant -> PlantArt(plant = plant) }
+                        }
+                        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+                    }
                 }
             }
         }
-        capture("botanical_corners")
+        capture("plants")
     }
 
     @Test
@@ -202,9 +221,10 @@ private fun DemoPagedList() {
         PagedList(
             items = (1..13).map { "Sample row $it" },
             pageSize = 6,
+            rowHeight = EinkDimens.rowTwoLines,
             modifier = Modifier.fillMaxSize(),
         ) { index, row ->
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                 EinkText(text = row, style = EinkType.rowTitle, maxLines = 1)
                 CapsLabel(text = "Index $index", style = EinkType.capsSmall)
             }

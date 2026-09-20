@@ -1,8 +1,6 @@
 package io.github.foxesrcool1.einklauncher.ui.journal
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,8 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import io.github.foxesrcool1.einklauncher.core.ink.PageTemplate
 import io.github.foxesrcool1.einklauncher.core.storage.StorageLayout
@@ -30,6 +28,7 @@ import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitSummary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.routine.RoutineRepository
 import io.github.foxesrcool1.einklauncher.core.routine.RoutineStatus
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
@@ -40,12 +39,15 @@ import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.DialogOption
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
-import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.components.Plants
+import io.github.foxesrcool1.einklauncher.design.components.einkFieldBorder
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
+import io.github.foxesrcool1.einklauncher.ui.common.LocalWideScreen
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
 import io.github.foxesrcool1.einklauncher.design.components.TextPromptDialog
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -123,7 +125,7 @@ fun JournalScreen(
     var renaming by remember { mutableStateOf<HabitSummary?>(null) }
 
     LaunchedEffect(viewDate, refresh) {
-        val loaded = withContext(Dispatchers.IO) {
+        val loaded = withContext(AppDispatchers.io) {
             val document = habits.load()
             LoadedDay(
                 entry = data.journalEntry(viewDate).orEmpty(),
@@ -157,7 +159,7 @@ fun JournalScreen(
         val text = entryText
         val date = viewDate
         scope.launch {
-            val written = withContext(Dispatchers.IO) { data.writeJournalEntry(date, text) }
+            val written = withContext(AppDispatchers.io) { data.writeJournalEntry(date, text) }
             if (written) {
                 if (date == viewDate) savedText = text
                 AppLog.i(TAG, "Saved the entry for $date")
@@ -202,236 +204,197 @@ fun JournalScreen(
         saveOnTheWayOut("the app went to the back")
     }
 
+    fun openHandwriting() {
+        runCatching {
+            context.startActivity(
+                InkNoteActivity.intent(
+                    context,
+                    StorageLayout.journalPath(viewDate, handwritten = true),
+                    JournalStrings.dayTitle(viewDate),
+                    PageTemplate.Lined,
+                ),
+            )
+        }.onFailure { AppLog.e(TAG, "Could not open the handwritten entry", it) }
+    }
+
+    fun step(by: Long) {
+        commitEdit()
+        viewDate = if (mode == JournalMode.Day) viewDate.plusDays(by) else viewDate.plusMonths(by)
+    }
+
     ScreenScaffold(
-        title = if (mode == JournalMode.Day) {
-            JournalStrings.dayTitle(viewDate)
-        } else {
-            JournalStrings.monthTitle(viewDate)
+        title = when (mode) {
+            JournalMode.Day -> JournalStrings.dayTitle(viewDate)
+            JournalMode.Month -> JournalStrings.monthTitle(viewDate)
+            JournalMode.Routine -> "Routine"
         },
-        overline = JournalStrings.dayOverline(viewDate, today),
-        corner = null,
+        overline = if (mode == JournalMode.Routine) "Journal" else JournalStrings.dayOverline(viewDate, today),
+        plant = Plants.Journal,
         modifier = modifier,
-    ) {
-        if (mode == JournalMode.Routine) {
-            Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-                InvertPressButton(text = "Day", onClick = { mode = JournalMode.Day })
-                CapsLabel(
-                    text = "Drag is not allowed on e-ink. Use the arrows.",
-                    style = EinkType.capsSmall.copy(color = EinkColors.Faded),
-                    maxLines = 2,
+        // The routine is a page inside the Journal, so its way back leads to
+        // the day, and only the day leads Home.
+        onBack = if (mode == JournalMode.Routine) ({ mode = JournalMode.Day }) else onBack,
+        backIcon = if (mode == JournalMode.Routine) Lucide.ArrowLeft else Lucide.House,
+        backLabel = if (mode == JournalMode.Routine) "Back to the day" else "Home",
+        actions = {
+            if (mode == JournalMode.Routine) {
+                IconPressButton(
+                    icon = Lucide.Plus,
+                    label = "Add a routine item",
+                    bordered = true,
+                    onClick = { addingRoutineItem = true },
                 )
-            }
-        } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-                InvertPressButton(
-                    text = "Previous",
-                    onClick = {
-                        commitEdit()
-                        viewDate = if (mode == JournalMode.Day) {
-                            viewDate.minusDays(1)
-                        } else {
-                            viewDate.minusMonths(1)
-                        }
-                    },
+            } else {
+                IconPressButton(
+                    icon = Lucide.ChevronLeft,
+                    label = if (mode == JournalMode.Day) "The day before" else "The month before",
+                    onClick = { step(-1) },
                 )
-                InvertPressButton(
-                    text = if (mode == JournalMode.Day) "Month" else "Day",
+                IconPressButton(
+                    icon = Lucide.CalendarDays,
+                    label = "Month",
                     selected = mode == JournalMode.Month,
                     onClick = {
                         commitEdit()
-                        mode = if (mode == JournalMode.Day) {
-                            JournalMode.Month
-                        } else {
-                            JournalMode.Day
-                        }
+                        mode = if (mode == JournalMode.Day) JournalMode.Month else JournalMode.Day
                     },
                 )
-                InvertPressButton(
-                    text = "Next",
-                    onClick = {
-                        commitEdit()
-                        viewDate = if (mode == JournalMode.Day) {
-                            viewDate.plusDays(1)
-                        } else {
-                            viewDate.plusMonths(1)
-                        }
-                    },
+                IconPressButton(
+                    icon = Lucide.ChevronRight,
+                    label = if (mode == JournalMode.Day) "The day after" else "The month after",
+                    onClick = { step(1) },
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+        },
+    ) {
+        val wide = LocalWideScreen.current
 
         when (mode) {
-            JournalMode.Routine -> {
-                CapsLabel(text = "Routine", style = EinkType.capsSmall)
-                HairlineDivider(color = EinkColors.Faded)
-
-                PagedList(
-                    items = routineRows,
-                    pageSize = 4,
-                    emptyText = "No routine yet",
-                    modifier = Modifier.weight(1f),
-                ) { index, status ->
-                    RoutineRow(
-                        status = status,
-                        isFirst = index == 0,
-                        isLast = index == routineRows.size - 1,
-                        onToggle = {
-                            scope.launch {
-                                withContext(Dispatchers.IO) {
-                                    routine.toggle(status.item.id, today)
-                                }
-                                refresh++
+            JournalMode.Routine -> PagedList(
+                items = routineRows,
+                pageSize = 4,
+                rowHeight = RoutineRowHeight,
+                emptyText = "No routine yet. Press the plus sign to add the first item.",
+                modifier = Modifier.weight(1f),
+            ) { index, status ->
+                RoutineRow(
+                    status = status,
+                    isFirst = index == 0,
+                    isLast = index == routineRows.size - 1,
+                    onToggle = {
+                        scope.launch {
+                            withContext(AppDispatchers.io) {
+                                routine.toggle(status.item.id, today)
                             }
-                        },
-                        onMove = { by ->
-                            scope.launch {
-                                withContext(Dispatchers.IO) { routine.move(status.item.id, by) }
-                                refresh++
-                            }
-                        },
-                        onRemove = {
-                            scope.launch {
-                                withContext(Dispatchers.IO) { routine.remove(status.item.id) }
-                                refresh++
-                            }
-                        },
-                    )
-                }
-            }
-
-            JournalMode.Month -> {
-                MonthView(
-                    month = viewDate,
-                    daysWithEntries = daysWithEntries,
-                    today = today,
-                    selected = viewDate,
-                    onSelectDay = { day ->
-                        viewDate = day
-                        mode = JournalMode.Day
+                            refresh++
+                        }
                     },
-                    modifier = Modifier.weight(1f),
+                    onMove = { by ->
+                        scope.launch {
+                            withContext(AppDispatchers.io) { routine.move(status.item.id, by) }
+                            refresh++
+                        }
+                    },
+                    onRemove = {
+                        scope.launch {
+                            withContext(AppDispatchers.io) { routine.remove(status.item.id) }
+                            refresh++
+                        }
+                    },
                 )
             }
 
-            JournalMode.Day -> {
-                CapsLabel(text = "Entry", style = EinkType.capsSmall)
-                HairlineDivider(color = EinkColors.Faded)
-                Spacer(modifier = Modifier.height(10.dp))
+            JournalMode.Month -> MonthView(
+                month = viewDate,
+                daysWithEntries = daysWithEntries,
+                today = today,
+                selected = viewDate,
+                onSelectDay = { day ->
+                    viewDate = day
+                    mode = JournalMode.Day
+                },
+                modifier = Modifier.weight(1f),
+            )
 
-                if (editing) {
-                    EinkTextField(
-                        value = entryText,
-                        onValueChange = { entryText = it },
-                        textStyle = EinkType.body,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp, max = 220.dp)
-                            .border(EinkDimens.hairline, EinkColors.Ink)
-                            .padding(12.dp),
+            JournalMode.Day -> {
+                val entry: @Composable (Modifier) -> Unit = { entryModifier ->
+                    DayEntry(
+                        text = entryText,
+                        savedText = savedText,
+                        editing = editing,
+                        hasInkEntry = hasInkEntry,
+                        onText = { entryText = it },
+                        onEdit = { editing = true },
+                        onSave = {
+                            saveEntry()
+                            editing = false
+                        },
+                        onCancel = {
+                            entryText = savedText
+                            editing = false
+                        },
+                        onHandwrite = { openHandwriting() },
+                        modifier = entryModifier,
                     )
-                    Spacer(modifier = Modifier.height(EinkDimens.targetGap))
-                    Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-                        InvertPressButton(
-                            text = "Save",
-                            onClick = {
-                                saveEntry()
-                                editing = false
-                            },
-                        )
-                        InvertPressButton(
-                            text = "Cancel",
-                            onClick = {
-                                entryText = savedText
-                                editing = false
-                            },
-                        )
+                }
+                val habitList: @Composable (Modifier) -> Unit = { listModifier ->
+                    Column(modifier = listModifier) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CapsLabel(text = "Habits", style = EinkType.capsSmall, modifier = Modifier.weight(1f))
+                            IconPressButton(icon = Lucide.ListPlus, label = "Add a habit", onClick = { addingHabit = true })
+                            IconPressButton(
+                                icon = Lucide.ListChecks,
+                                label = "Routine",
+                                onClick = {
+                                    commitEdit()
+                                    mode = JournalMode.Routine
+                                },
+                            )
+                        }
+                        HairlineDivider(color = EinkColors.Faded)
+                        PagedList(
+                            items = summaries,
+                            pageSize = HABITS_PER_PAGE,
+                            rowHeight = HabitRowHeight,
+                            emptyText = "No habits yet",
+                            modifier = Modifier.weight(1f),
+                        ) { _, summary ->
+                            HabitRow(
+                                summary = summary,
+                                onToggle = {
+                                    scope.launch {
+                                        withContext(AppDispatchers.io) {
+                                            habits.toggle(summary.habit.id, today)
+                                        }
+                                        refresh++
+                                    }
+                                },
+                                onOptions = { optionsFor = summary },
+                            )
+                        }
+                    }
+                }
+
+                if (wide) {
+                    // On its side the tablet has room for both halves of the
+                    // day next to each other, and not for one under the other.
+                    Row(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(EinkDimens.blockGap),
+                    ) {
+                        entry(Modifier.weight(1f))
+                        habitList(Modifier.weight(1f))
                     }
                 } else {
-                    Box(modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp)) {
-                        EinkText(
-                            text = savedText.ifBlank { "Nothing written yet." },
-                            style = EinkType.body.copy(
-                                color = if (savedText.isBlank()) {
-                                    EinkColors.Faded
-                                } else {
-                                    EinkColors.Ink
-                                },
-                            ),
-                            maxLines = 3,
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(EinkDimens.targetGap))
-                    Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-                        InvertPressButton(
-                            text = if (savedText.isBlank()) "Write" else "Edit",
-                            onClick = { editing = true },
-                        )
-                        InvertPressButton(
-                            text = if (hasInkEntry) "Open handwriting" else "Handwrite",
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        InkNoteActivity.intent(
-                                            context,
-                                            StorageLayout.journalPath(viewDate, handwritten = true),
-                                            JournalStrings.dayTitle(viewDate),
-                                            PageTemplate.Lined,
-                                        ),
-                                    )
-                                }.onFailure { AppLog.e(TAG, "Could not open the handwritten entry", it) }
-                            },
-                        )
+                    entry(Modifier.fillMaxWidth())
+                    // While the entry is being typed it has the page to itself.
+                    // The keyboard covers the habits then anyway.
+                    if (!editing) {
+                        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+                        habitList(Modifier.fillMaxWidth().weight(1f))
                     }
                 }
-
-                Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-                CapsLabel(text = "Habits", style = EinkType.capsSmall)
-                HairlineDivider(color = EinkColors.Faded)
-
-                PagedList(
-                    items = summaries,
-                    pageSize = HABITS_PER_PAGE,
-                    emptyText = "No habits yet",
-                    modifier = Modifier.weight(1f),
-                ) { _, summary ->
-                    HabitRow(
-                        summary = summary,
-                        onToggle = {
-                            scope.launch {
-                                withContext(Dispatchers.IO) {
-                                    habits.toggle(summary.habit.id, today)
-                                }
-                                refresh++
-                            }
-                        },
-                        onOptions = { optionsFor = summary },
-                    )
-                }
             }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = EinkDimens.targetGap),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            if (mode == JournalMode.Routine) {
-                InvertPressButton(text = "Add item", onClick = { addingRoutineItem = true })
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-                    InvertPressButton(text = "Add habit", onClick = { addingHabit = true })
-                    InvertPressButton(
-                        text = "Routine",
-                        onClick = {
-                            commitEdit()
-                            mode = JournalMode.Routine
-                        },
-                        bordered = false,
-                    )
-                }
-            }
-            InvertPressButton(text = "Today", onClick = onBack, bordered = false)
         }
     }
 
@@ -441,13 +404,13 @@ fun JournalScreen(
             title = selected.habit.name,
             onDismiss = { optionsFor = null },
             options = listOf(
-                DialogOption(label = "Rename") {
+                DialogOption(label = "Rename", icon = Lucide.Pencil) {
                     renaming = selected
                     optionsFor = null
                 },
-                DialogOption(label = "Archive") {
+                DialogOption(label = "Archive", icon = Lucide.Archive) {
                     scope.launch {
-                        withContext(Dispatchers.IO) {
+                        withContext(AppDispatchers.io) {
                             habits.setArchived(selected.habit.id, true)
                         }
                         refresh++
@@ -457,6 +420,7 @@ fun JournalScreen(
                 DialogOption(
                     label = "Longest streak: ${selected.longestStreak}",
                     enabled = false,
+                    icon = Lucide.Flame,
                     onSelect = { },
                 ),
             ),
@@ -470,7 +434,7 @@ fun JournalScreen(
             onConfirm = { label ->
                 addingRoutineItem = false
                 scope.launch {
-                    withContext(Dispatchers.IO) { routine.add(label) }
+                    withContext(AppDispatchers.io) { routine.add(label) }
                     refresh++
                 }
             },
@@ -485,7 +449,7 @@ fun JournalScreen(
             onConfirm = { name ->
                 addingHabit = false
                 scope.launch {
-                    withContext(Dispatchers.IO) { habits.add(name, today) }
+                    withContext(AppDispatchers.io) { habits.add(name, today) }
                     refresh++
                 }
             },
@@ -501,7 +465,7 @@ fun JournalScreen(
             onConfirm = { name ->
                 renaming = null
                 scope.launch {
-                    withContext(Dispatchers.IO) {
+                    withContext(AppDispatchers.io) {
                         habits.rename(beingRenamed.habit.id, name)
                     }
                     refresh++
@@ -520,3 +484,76 @@ private data class LoadedDay(
     val boundaryHour: Int,
     val routine: List<RoutineStatus>,
 )
+
+/** A habit row: the name, the dots under it, and the rule. */
+private val HabitRowHeight = 74.dp
+
+/** A routine row: the name, where it leads, the two arrows, and the rule. */
+private val RoutineRowHeight = 86.dp
+
+/**
+ * The written entry of one day.
+ *
+ * At rest it is the first lines of the entry with two icons beside them: one
+ * to type, one to write by hand. While it is being typed it is a text box with
+ * a tick to save and a cross to give up.
+ */
+@Composable
+private fun DayEntry(
+    text: String,
+    savedText: String,
+    editing: Boolean,
+    hasInkEntry: Boolean,
+    onText: (String) -> Unit,
+    onEdit: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+    onHandwrite: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CapsLabel(text = "Entry", style = EinkType.capsSmall, modifier = Modifier.weight(1f))
+            if (editing) {
+                IconPressButton(icon = Lucide.X, label = "Cancel", onClick = onCancel)
+                IconPressButton(icon = Lucide.Check, label = "Save", bordered = true, onClick = onSave)
+            } else {
+                IconPressButton(
+                    icon = Lucide.Keyboard,
+                    label = if (savedText.isBlank()) "Type an entry" else "Edit the entry",
+                    onClick = onEdit,
+                )
+                IconPressButton(
+                    icon = Lucide.Signature,
+                    label = if (hasInkEntry) "Open the handwritten entry" else "Write by hand",
+                    selected = hasInkEntry,
+                    onClick = onHandwrite,
+                )
+            }
+        }
+        HairlineDivider(color = EinkColors.Faded)
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (editing) {
+            EinkTextField(
+                value = text,
+                onValueChange = onText,
+                textStyle = EinkType.body,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp, max = 260.dp)
+                    .einkFieldBorder()
+                    .padding(14.dp),
+            )
+        } else {
+            EinkText(
+                text = savedText.ifBlank { "Nothing written yet." },
+                style = EinkType.body.copy(
+                    color = if (savedText.isBlank()) EinkColors.Faded else EinkColors.Ink,
+                ),
+                maxLines = 3,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            )
+        }
+    }
+}

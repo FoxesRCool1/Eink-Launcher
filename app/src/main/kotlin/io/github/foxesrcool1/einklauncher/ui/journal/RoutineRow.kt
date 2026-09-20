@@ -22,7 +22,8 @@ import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.EinkRow
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
-import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 
 /**
  * One item in the routine.
@@ -72,17 +73,17 @@ fun RoutineRow(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                InvertPressButton(
-                    text = "Up",
+                IconPressButton(
+                    icon = Lucide.ArrowUp,
+                    label = "Move up",
                     enabled = !isFirst,
                     onClick = { onMove(-1) },
-                    bordered = false,
                 )
-                InvertPressButton(
-                    text = "Down",
+                IconPressButton(
+                    icon = Lucide.ArrowDown,
+                    label = "Move down",
                     enabled = !isLast,
                     onClick = { onMove(1) },
-                    bordered = false,
                 )
             }
         }

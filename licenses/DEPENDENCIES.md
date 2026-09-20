@@ -54,6 +54,13 @@ is to drop Readium, which is the only thing that needs it.
 | Roborazzi | Apache-2.0 |
 | kotlinx-coroutines-test, Compose UI test | Apache-2.0 |
 
+## Icons, with no library
+
+The icons are Lucide icons, but no icon library is in the APK. The app holds
+the path data of the icons it uses and draws them itself. That makes them an
+asset, so they are in `ASSETS.md`, and their licence text is in
+`licenses/lucide/LICENSE`. ISC, and MIT for the icons that come from Feather.
+
 ## Platform parts used, with no library
 
 - PDF pages are rendered by `android.graphics.pdf.PdfRenderer`, which is part

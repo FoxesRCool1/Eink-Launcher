@@ -4,6 +4,109 @@ One section per step. Newest step at the top.
 
 ---
 
+## The owner's first list: icons, round shapes, landscape, split screen, folders, Settings
+
+Date: 2026-09-20. Branch `Dev`. The owner used the first build and sent eight
+points. All eight are done. Decisions 0013, 0014 and 0015 have the reasoning.
+
+### What was done
+
+1. **Lucide icons in place of words**, in every screen and toolbar. The app
+   icon is the Lucide sprout, and the plants are Lucide icons drawn large.
+   No icon library was added: `tools/lucide.py` writes the path data of the
+   icons in use into the app. Licence ISC, and MIT for a part. `ASSETS.md`.
+2. **The Android status bar is hidden**, in every screen and every dialog. A
+   swipe down from the top shows it for a moment. Settings can bring it back.
+3. **Landscape.** A small grey icon at the top of every screen turns the
+   screen. It is kept for the whole app. Every screen has a layout for the
+   tablet on its side. A turn does not close what is open.
+4. **Split screen.** In the EPUB reader and the PDF reader, one icon opens a
+   note beside the book. Typed or handwritten, one of each per book, in
+   `notes/Reading notes/`. Beside the page in landscape, under it upright.
+5. **No square corners.** Controls are round, dialogs and text boxes have
+   round corners, lines are finer. `design/EinkShapes.kt`.
+6. **Folders on the Apps tab.** Hold an app, choose Folders. They are a plain
+   file, `apps/folders.json`, and they are in a backup.
+7. **"Home", not "Today"**, in the app, the code and the docs.
+8. **A new Settings.** A menu of six groups. Every row has a short name, one
+   or two lines of help, and a switch, a value or an arrow.
+
+### What works
+
+Build, 513 unit tests in each flavour, and lint, all green, and the release
+build assembles. Every screen has a
+picture upright and on its side in `app/build/outputs/roborazzi/`, 56 new
+pictures, and each one was looked at. In the emulator, on Android 13, by hand:
+the turn on Home and inside both readers, the status bar hidden, the split
+screen in the EPUB reader with a real book and in the PDF reader, typed and
+handwritten, upright and on its side, a turn with the split open, and both
+note files on the disk afterwards.
+
+### Bugs found and fixed on the way
+
+1. **The Apps tab could not show every app.** The list asked for eight rows a
+   page and six fit, and the screen does not scroll. The last two apps of
+   every page could not be seen or pressed. Lists work out their own page size
+   now, from the room they have.
+2. **The device test had the same fault**: seven tests a page where four fit.
+   The owner has not run it yet, and would have missed the tests at the end.
+3. **The pinned page was taller than the screen** with eight pins and the
+   three ways out. It is a paged list now.
+4. **The Writing tab said "notes" above the title** at the top of the notes
+   folder. It was meant to say "All notes".
+5. **The EPUB reader lost its place by a page or two** each time the width of
+   the book changed. Found in the emulator. It is sent back to its place.
+6. **The Journal did not fit the tablet on its side at all**, and its day view
+   was tight upright. The entry and the habits stand side by side when wide.
+7. **Screenshot tests of a screen that reads the disk were a race.** The
+   screen went on with its work on a background thread and wrote its state in
+   the middle of a layout pass. `AppDispatchers` lets a test run that work in
+   place. This is the old "fails once a month for no reason".
+
+### What does not work, or is not known
+
+- **Nothing here has run on the tablet.** The emulator has no e-ink and no
+  ViWoods firmware.
+- **The fast pen in the split screen** is a guess. The tablet draws its fast
+  line in one box, so with a handwritten note beside a PDF the fast pen goes
+  to the note, and marks on the PDF are drawn by the app. Fast pen is still
+  off by default.
+- **Hiding the status bar on this firmware** is not proven. If the bar does
+  not hide, or does not come back on a swipe, Settings, Look and screen,
+  "Android status bar" is the way out.
+- **Typing in landscape with the on-screen keyboard** leaves very little room.
+  The keyboard takes more than half of the height. A Bluetooth keyboard is
+  what landscape typing wants.
+- The split screen always opens the note of the book. It cannot open another
+  note, and a note cannot open a book beside it.
+
+### What the owner must test on the tablet
+
+1. Home shows four icons, a plant, and no Android bar at the top. Swipe down
+   from the top edge: the bar comes for a moment. The front light panel still
+   opens from it.
+2. Press the small grey icon at the top left of Home. The screen turns. Press
+   it again. Look for grey marks after the turn. If they are bad, turn on
+   "Clean the screen on each change" and say so.
+3. With the screen on its side: are the tablet keys under your hand? If yes,
+   Settings, Look and screen, "Turn it the other way".
+4. Open each tab upright and on its side. Nothing may be cut off at the
+   bottom or the right.
+5. Apps: hold an app, Folders, make a folder, put two apps in it. Open the
+   folder. Hold the folder: rename it, delete it.
+6. Open an EPUB. Tap the middle, then the split icon at the top right. Type a
+   line. Switch to handwriting and write a line. Close the split. The book
+   must be on the same page as before. Both notes must be in Write, in
+   "Reading notes".
+7. The same in a PDF. Then turn the screen with the split open. The page and
+   the note must both still be there.
+8. Settings: can you find each thing without help? Tell me any row whose help
+   text is not clear.
+9. Send the log file. It holds `ScreenWindow: Read the window settings in N
+   ms`, which is what the turn costs at start-up.
+
+---
+
 ## In-app updates, and a second bug hunt
 
 Date: 2026-09-20. Branch `in-app-updates`, on top of `dev-emulator`.

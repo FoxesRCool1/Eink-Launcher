@@ -11,7 +11,7 @@
         android:name="android.permission.WAKE_LOCK"
         tools:node="remove" />
 
-    <!-- Needed for the Wi-Fi word in the status line on Today. -->
+    <!-- Needed for the Wi-Fi icon in the status line on Home. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!--
@@ -58,6 +58,15 @@
         android:theme="@style/Theme.EinkLauncher">
 
         <!--
+          Turning the screen. No activity below is locked upright in this
+          file. Each one asks ScreenWindow which way the screen should be,
+          from the setting the small icon at the top of every screen changes.
+          Each one also handles "orientation|screenSize" itself, so a turn
+          does not build the activity again: the open book, the ink on the
+          page and the half typed note stay, and Compose lays the screen out
+          again at the new size. The two device test screens at the end stay
+          locked upright. They are tools, and a turn would wipe their results.
+
           The home screen.
 
           singleTask plus stateNotNeeded is what a launcher needs: the Home key
@@ -70,10 +79,9 @@
         -->
         <activity
             android:name=".HomeActivity"
-            android:configChanges="keyboard|keyboardHidden|navigation"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
             android:stateNotNeeded="true"
             android:theme="@style/Theme.EinkLauncher">
             <intent-filter>
@@ -88,49 +96,47 @@
           The typed note editor. Its own activity, so the Home key closes the
           launcher and not the note the user is in the middle of writing.
 
-          configChanges: a Bluetooth keyboard that wakes up or goes to sleep is
+          configChanges, the keyboard part: a Bluetooth keyboard that wakes up or goes to sleep is
           a configuration change. Without this line Android would build the
           editor again each time, and the cursor would jump to the end of the
           note in the middle of a sentence.
         -->
         <activity
             android:name=".ui.writing.NoteEditorActivity"
-            android:configChanges="keyboard|keyboardHidden|navigation"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.EinkLauncher"
             android:windowSoftInputMode="adjustResize" />
 
         <!--
           The design system demo. A separate activity, so the launcher task
-          stays clean and the Home key still goes to Today.
+          stays clean and the Home key still goes to Home.
         -->
         <activity
             android:name=".DemoActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/demo_title"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.EinkLauncher" />
 
         <!-- The EPUB reader, on the Readium toolkit. Its own activity, as the plan says. -->
         <activity
             android:name=".ui.reading.epub.EpubReaderActivity"
-            android:configChanges="keyboard|keyboardHidden|navigation"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.EinkLauncher"
             android:windowSoftInputMode="adjustResize" />
 
         <!-- The PDF reader: one screen of a page at a time, with ink on top. -->
         <activity
             android:name=".ui.reading.pdf.PdfReaderActivity"
-            android:configChanges="keyboard|keyboardHidden|navigation"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.EinkLauncher" />
+            android:theme="@style/Theme.EinkLauncher"
+            android:windowSoftInputMode="adjustResize" />
 
         <!--
           A handwritten note. Writing, Journal and the reader all open it.
@@ -138,10 +144,9 @@
         -->
         <activity
             android:name=".ui.ink.InkNoteActivity"
-            android:configChanges="keyboard|keyboardHidden|navigation"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.EinkLauncher" />
 
         <!-- The Step 2 device spike: refresh modes, fast pen paths, home role. -->

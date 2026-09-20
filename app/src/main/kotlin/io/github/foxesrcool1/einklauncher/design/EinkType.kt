@@ -28,14 +28,6 @@ object EinkType {
     /** Literata. Reading and writing body text. */
     val Body: FontFamily = FontFamily(Font(R.font.literata))
 
-    /** The four big words on Today. */
-    val word = TextStyle(
-        fontFamily = Display,
-        fontSize = 52.sp,
-        lineHeight = 68.sp,
-        color = EinkColors.Ink,
-    )
-
     /** A screen title. */
     val title = TextStyle(
         fontFamily = Display,
@@ -57,6 +49,14 @@ object EinkType {
         fontFamily = Body,
         fontSize = 17.sp,
         lineHeight = 26.sp,
+        color = EinkColors.Ink,
+    )
+
+    /** The line under a setting that says what it does. One step under the body size. */
+    val help = TextStyle(
+        fontFamily = Body,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
         color = EinkColors.Ink,
     )
 

@@ -88,6 +88,34 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_FULL_REFRESH] = enabled }
     }
 
+    /** Home shows four icons. This puts the name of each one under it. */
+    val homeLabels: Flow<Boolean> = store.data.map { it[KEY_HOME_LABELS] ?: false }
+
+    suspend fun setHomeLabels(enabled: Boolean) {
+        store.edit { it[KEY_HOME_LABELS] = enabled }
+    }
+
+    /**
+     * How the window is set up: which way the screen is turned, and whether
+     * the Android status bar shows. One flow, because an activity needs all
+     * of it at once, before its first frame.
+     */
+    val window: Flow<WindowSettings> = store.data.map { prefs ->
+        WindowSettings(
+            landscape = prefs[KEY_LANDSCAPE] ?: false,
+            landscapeFlipped = prefs[KEY_LANDSCAPE_FLIPPED] ?: false,
+            statusBarHidden = prefs[KEY_STATUS_BAR_HIDDEN] ?: true,
+        )
+    }
+
+    suspend fun setWindow(settings: WindowSettings) {
+        store.edit { prefs ->
+            prefs[KEY_LANDSCAPE] = settings.landscape
+            prefs[KEY_LANDSCAPE_FLIPPED] = settings.landscapeFlipped
+            prefs[KEY_STATUS_BAR_HIDDEN] = settings.statusBarHidden
+        }
+    }
+
     /** Everything the reader lets the user change. One flow, so the reader repaints once. */
     val reader: Flow<ReaderSettings> = store.data.map { prefs ->
         ReaderSettings(
@@ -137,6 +165,11 @@ class SettingsStore(context: Context) {
 
         /** Section 6: up to 8 pinned apps. */
         const val MAX_PINNED = 8
+
+        private val KEY_HOME_LABELS = booleanPreferencesKey("home_labels")
+        private val KEY_LANDSCAPE = booleanPreferencesKey("landscape")
+        private val KEY_LANDSCAPE_FLIPPED = booleanPreferencesKey("landscape_flipped")
+        private val KEY_STATUS_BAR_HIDDEN = booleanPreferencesKey("status_bar_hidden")
 
         private val KEY_PINNED = stringPreferencesKey("pinned_apps")
         private val KEY_ART = booleanPreferencesKey("botanical_art")

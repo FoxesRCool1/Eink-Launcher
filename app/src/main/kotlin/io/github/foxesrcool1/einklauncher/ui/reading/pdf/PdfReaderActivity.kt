@@ -38,6 +38,7 @@ import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.core.storage.RelativePaths
 import io.github.foxesrcool1.einklauncher.core.storage.StorageLayout
+import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import io.github.foxesrcool1.einklauncher.ui.ink.FastPenSession
 import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
@@ -76,6 +77,9 @@ class PdfUiState {
 
     /** Emulator only: whether the mouse draws, or taps and swipes like a finger. */
     var mouseDraws by mutableStateOf(false)
+
+    /** The split screen: a note beside the page. */
+    var split by mutableStateOf(false)
 }
 
 /** What the Compose layer can ask for. */
@@ -96,6 +100,12 @@ interface PdfActions {
 
     /** Emulator only. */
     fun toggleMouse()
+
+    /** Opens or closes the note beside the page. */
+    fun toggleSplit()
+
+    /** The handwriting canvas of the note pane, or null when it shows none. */
+    fun noteCanvas(canvas: InkCanvasView?)
 }
 
 /**
@@ -122,6 +132,9 @@ class PdfReaderActivity : ComponentActivity() {
     private var bookPath = ""
     private var pages: PdfPages? = null
     private var canvas: InkCanvasView? = null
+
+    /** The handwriting canvas of the split screen, while it is on show. */
+    private var noteCanvas: InkCanvasView? = null
     private var session: FastPenSession? = null
     private var fastPenMode = SettingsStore.FAST_PEN_OFF
     private var redrawDelay = SettingsStore.DEFAULT_INK_DELAY_MILLIS
@@ -143,6 +156,7 @@ class PdfReaderActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ScreenWindow.attach(this)
         bookPath = intent.getStringExtra(EXTRA_PATH).orEmpty()
         bookId = intent.getStringExtra(EXTRA_BOOK_ID).orEmpty()
         ui.title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
@@ -321,9 +335,19 @@ class PdfReaderActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * The tablet draws its fast line in one place at a time. With a
+     * handwritten note open beside the page, that place is the note: it is
+     * where the long writing happens. A mark on the PDF is then drawn by this
+     * app, which is slower and still correct.
+     */
     private fun startFastPen() {
-        val view = canvas ?: return
+        val view = noteCanvas ?: canvas ?: return
         if (fastPenMode == SettingsStore.FAST_PEN_OFF || view.width == 0 || ui.panel != PdfPanel.None) return
+        if (session?.canvas !== view) {
+            session?.stop()
+            session = null
+        }
         val current = session ?: FastPenSession(this, view, fastPenMode, redrawDelay).also { session = it }
         current.start()
     }
@@ -356,6 +380,13 @@ class PdfReaderActivity : ComponentActivity() {
         override fun close() = finish()
 
         override fun attach(canvas: InkCanvasView) {
+            // A turn of the screen, or the split screen, lays the page out
+            // again on a new canvas. The ink of the old one is saved first,
+            // and the page is loaded again into the new one.
+            if (this@PdfReaderActivity.canvas !== canvas) {
+                saveInk()
+                inkPage = -1
+            }
             this@PdfReaderActivity.canvas = canvas
             // On the emulator the mouse starts as a finger here, so a click
             // turns the page. The toolbar has a switch to make it draw.
@@ -470,6 +501,20 @@ class PdfReaderActivity : ComponentActivity() {
         override fun toggleMouse() {
             ui.mouseDraws = !ui.mouseDraws
             canvas?.fingerDraws = ui.mouseDraws
+        }
+
+        override fun toggleSplit() {
+            ui.split = !ui.split
+            AppLog.i(TAG, "Split screen: ${ui.split}")
+        }
+
+        override fun noteCanvas(canvas: InkCanvasView?) {
+            noteCanvas = canvas
+            session?.stop()
+            session = null
+            val target = canvas ?: this@PdfReaderActivity.canvas ?: return
+            // The canvas has no size yet when it is brand new.
+            target.post { startFastPen() }
         }
 
         override fun exportNotes() {

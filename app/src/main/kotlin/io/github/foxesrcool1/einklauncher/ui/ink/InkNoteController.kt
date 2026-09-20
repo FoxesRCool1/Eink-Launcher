@@ -57,6 +57,9 @@ class InkNoteController(
     private val autosave = Runnable { save() }
 
     fun attach(view: InkCanvasView) {
+        // A turn of the screen lays the page out again on a new canvas. What
+        // was drawn on the old one and not yet collected comes along.
+        if (canvas != null && canvas !== view) collect()
         canvas = view
         view.onInkChanged = {
             pages[pageIndex].previewStale = true
@@ -79,7 +82,10 @@ class InkNoteController(
         shapeSettled = true
         if (pages.any { it.strokes.isNotEmpty() }) return
         val wanted = (pageWidth * viewHeight / viewWidth).toInt().toFloat()
-        if (wanted == pageHeight || wanted < pageWidth / 2f) return
+        // A quarter, not a half: the note pane of the split screen is a wide
+        // and short canvas when the tablet is upright, and a page that kept
+        // the upright shape there was a narrow strip in the middle of it.
+        if (wanted == pageHeight || wanted < pageWidth / 4f) return
         pageHeight = wanted
         showCurrentPage()
     }

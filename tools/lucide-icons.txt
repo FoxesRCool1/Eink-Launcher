@@ -1,0 +1,109 @@
+# The Lucide icons the app uses, one name a line. Names are the ones on
+# https://lucide.dev/icons. After a change, run tools/lucide.py.
+
+# Home and the four tabs
+book-open
+pen-line
+notebook
+layout-grid
+square-pen
+settings
+play
+house
+
+# The status line on Home
+wifi
+wifi-off
+battery
+battery-low
+battery-medium
+battery-full
+battery-warning
+
+# Moving around
+arrow-left
+arrow-up
+arrow-down
+chevron-left
+chevron-right
+x
+check
+plus
+minus
+ellipsis
+rotate-cw-square
+search
+
+# Files and folders
+file-plus
+file-text
+folder
+folder-plus
+folder-up
+folder-input
+folder-open
+book-plus
+trash-2
+pencil
+share
+download
+upload
+
+# Sorting and lists
+history
+arrow-down-a-z
+pin
+pin-off
+list
+list-plus
+list-checks
+
+# Pen tools
+highlighter
+eraser
+undo-2
+redo-2
+signature
+keyboard
+zoom-in
+crop
+image
+
+# The readers
+table-of-contents
+type
+message-square-text
+message-square-plus
+square-split-horizontal
+square-split-vertical
+
+# Journal
+calendar-days
+calendar
+circle
+circle-check
+flame
+
+# Settings
+eye
+monitor
+hard-drive
+archive
+refresh-cw
+scroll-text
+life-buoy
+info
+toggle-left
+toggle-right
+wrench
+mouse-pointer
+
+# Plants: the corner drawings and the app icon
+sprout
+leaf
+flower-2
+tree-deciduous
+clover
+shrub
+wheat
+trees

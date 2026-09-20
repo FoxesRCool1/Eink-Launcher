@@ -54,7 +54,7 @@ The owner wants to share the project online later. All code, fonts and art must 
 | SoC / RAM | MediaTek octa-core 2.0 GHz (A73 + A53), 4 GB RAM, 128 GB storage |
 | Input | Touch + Wacom EMR stylus with eraser end. Capacitive keys: Back, Home, AI. |
 | Audio | Microphones only. No speakers. |
-| Rotation | Reviews disagree about a G-sensor. Lock the app to portrait for v1. |
+| Rotation | Reviews disagree about a G-sensor. The app does not follow a sensor. Changed by the owner on 2026-09-20: a small icon on every screen turns the screen by hand. Decision 0014. |
 
 ### 3.2 Launcher facts
 
@@ -145,14 +145,17 @@ EinkLauncher/
 
 ### Look
 
-- Home screen: date and time at the top centre in small tracked capitals. Below that, four large serif words on the left: Read, Write, Journal, Apps. A lot of white space.
+Changed by the owner on 2026-09-20, after the first build: icons in place of words, round corners, "Home" in place of "Today". Decision 0013. The lines below say what holds now.
+
+- Home screen: date and time at the top centre in small tracked capitals. Below that, four large line icons: Read, Write, Journal, Apps. A lot of white space.
 - One fine botanical line drawing in a corner per main screen. The user can turn it off. Save the art as 1-bit or clean vector so it needs no dithering.
 - Art sources: public domain botanical engravings (for example Biodiversity Heritage Library scans from before 1900) or original vector drawings. Record each file in `ASSETS.md` with source and licence.
 - Fonts, all SIL OFL. Verify each licence:
   - Display serif for large words: Bodoni Moda or Playfair Display. Use only at large sizes. Thin hairlines break at small sizes on e-ink.
   - Labels: Jost, capitals, wide tracking.
   - Reading and writing body: Literata. Second option: Source Serif 4.
-- Icons: almost none. Use words. Where an icon is needed, use a simple 2 dp line glyph.
+- Icons: Lucide line icons (ISC licence) for every control, the app icon and the plants, all with a 2 dp line. Words stay where a picture is not safe: the answer to a confirm question, values, and Settings rows.
+- Shapes: no square corners. Controls are fully round, panels have round corners. Still no shadows and no gradients.
 - Apps tab: app names as text. No colour icons by default. Optional monochrome icons later.
 
 ---
@@ -162,9 +165,11 @@ EinkLauncher/
 ### Version 1
 
 Home
-- Today screen: date, time, four tabs, battery and Wi-Fi status line, settings entry.
+- Home screen: date, time, four tabs, battery and Wi-Fi status line, settings entry. The Android status bar is hidden.
 - Optional "Next" line: the next routine item for the day (for example Journal) with a Start control.
-- Quick note: one tap from Today opens a new note.
+- Quick note: one tap from Home opens a new note.
+- Landscape: a small icon on every screen turns the screen. Added by the owner on 2026-09-20.
+- Split screen: a note beside the book, in both readers. Added by the owner on 2026-09-20.
 
 Reading
 - Import EPUB and PDF with the system file picker. The app copies the file into `books/`.
@@ -188,6 +193,7 @@ Journal
 
 Apps
 - Up to 8 pinned apps shown as text.
+- Folders of apps, made by the user. Added by the owner on 2026-09-20. Decision 0015.
 - All apps: paginated A to Z text list. Long press: pin, unpin, app info, uninstall.
 - Fixed entries: ViWoods settings, stock launcher, Android settings (if reachable).
 
@@ -201,7 +207,7 @@ Settings
 - Text selection highlights in PDF.
 - Lasso select and move in the ink editor.
 - Focus mode: hide the Apps tab for a set time. A three position connection control like the Prose slider. Note: an app on Android 10+ cannot switch Wi-Fi itself. It can only open the system panel.
-- Dark theme. Landscape. Boox device layer. Sync helpers (Syncthing works already, because the data is plain files).
+- Dark theme. Boox device layer. Sync helpers (Syncthing works already, because the data is plain files).
 - Simple silent meditation timer (the tablet has no speaker).
 
 ### Out of scope

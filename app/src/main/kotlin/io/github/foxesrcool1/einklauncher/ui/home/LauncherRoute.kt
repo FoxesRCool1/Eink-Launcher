@@ -8,7 +8,7 @@ package io.github.foxesrcool1.einklauncher.ui.home
  * fight with, and cannot play a transition.
  */
 enum class LauncherRoute(val title: String) {
-    Today("Today"),
+    Home("Home"),
     Reading("Read"),
     Writing("Write"),
     Journal("Journal"),
@@ -18,7 +18,7 @@ enum class LauncherRoute(val title: String) {
     Update("Updates"),
     ;
 
-    /** The four words on Today, in the order they are shown. */
+    /** The four tabs on Home, in the order they are shown. */
     companion object {
         val tabs: List<LauncherRoute> = listOf(Reading, Writing, Journal, Apps)
     }

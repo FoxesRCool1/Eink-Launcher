@@ -17,15 +17,15 @@ import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
-import io.github.foxesrcool1.einklauncher.design.components.BotanicalCorner
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.ConfirmDialog
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
-import io.github.foxesrcool1.einklauncher.design.components.WordMenu
-import io.github.foxesrcool1.einklauncher.design.components.WordMenuItem
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.components.Plants
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
 
 /** The rows the demo list pages through. */
@@ -41,58 +41,55 @@ private val demoRows: List<String> = (1..26).map { index ->
  */
 @Composable
 fun DesignDemoScreen(modifier: Modifier = Modifier) {
-    var selectedWord by remember { mutableStateOf(0) }
+    var selectedIcon by remember { mutableStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
     var lastAction by remember { mutableStateOf("Nothing pressed yet") }
 
     ScreenScaffold(
         title = "Design system",
         overline = "Eink Launcher demo",
-        corner = BotanicalCorner.BottomEnd,
+        plant = Plants.Other,
         modifier = modifier,
     ) {
-        CapsLabel(text = "Word menu")
+        CapsLabel(text = "Icon controls")
         Spacer(modifier = Modifier.height(8.dp))
-        WordMenu(
-            items = listOf(
-                WordMenuItem("Read"),
-                WordMenuItem("Write"),
-                WordMenuItem("Journal"),
-                WordMenuItem("Apps", enabled = false),
-            ),
-            selectedIndex = selectedWord,
-            onSelect = { index ->
-                selectedWord = index
-                lastAction = "Word $index"
-            },
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+            listOf(Lucide.BookOpen, Lucide.PenLine, Lucide.Notebook, Lucide.LayoutGrid).forEachIndexed { index, icon ->
+                IconPressButton(
+                    icon = icon,
+                    label = icon.name,
+                    selected = index == selectedIcon,
+                    onClick = {
+                        selectedIcon = index
+                        lastAction = "Icon ${icon.name}"
+                    },
+                )
+            }
+            IconPressButton(icon = Lucide.Plus, label = "With a line around it", bordered = true, onClick = { })
+            IconPressButton(icon = Lucide.Trash2, label = "Off", enabled = false, onClick = { })
+        }
 
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-        HairlineDivider()
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-
-        CapsLabel(text = "Controls")
+        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+        CapsLabel(text = "Word controls")
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
             InvertPressButton(text = "Press me", onClick = { lastAction = "Pressed" })
-            InvertPressButton(text = "Delete", onClick = { showDialog = true })
+            InvertPressButton(text = "Delete", icon = Lucide.Trash2, onClick = { showDialog = true })
             InvertPressButton(text = "Off", onClick = { }, enabled = false)
         }
         Spacer(modifier = Modifier.height(8.dp))
         EinkText(text = lastAction, style = EinkType.body.copy(color = EinkColors.Faded))
 
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-        HairlineDivider()
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-
+        Spacer(modifier = Modifier.height(EinkDimens.targetGap))
         CapsLabel(text = "Paged list")
-        Spacer(modifier = Modifier.height(8.dp))
+        HairlineDivider(color = EinkColors.Faded)
         PagedList(
             items = demoRows,
             pageSize = 5,
+            rowHeight = EinkDimens.rowTwoLines,
             modifier = Modifier.weight(1f),
         ) { index, row ->
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                 EinkText(text = row, style = EinkType.rowTitle, maxLines = 1)
                 CapsLabel(
                     text = "Index $index",

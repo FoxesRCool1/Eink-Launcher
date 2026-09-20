@@ -43,6 +43,7 @@ class ReaderChromeScreenshotTest {
     val compose = createComposeRule()
 
     private val nothing = object : ReaderActions {
+        override fun toggleSplit() = Unit
         override fun close() = Unit
         override fun show(panel: ReaderPanel) = Unit
         override fun goTo(row: TocRow) = Unit

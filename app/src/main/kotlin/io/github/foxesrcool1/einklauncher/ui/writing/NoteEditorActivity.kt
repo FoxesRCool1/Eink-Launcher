@@ -27,6 +27,7 @@ class NoteEditorActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        io.github.foxesrcool1.einklauncher.core.window.ScreenWindow.attach(this)
 
         val path = intent.getStringExtra(EXTRA_NOTE_PATH)
         if (path.isNullOrBlank()) {

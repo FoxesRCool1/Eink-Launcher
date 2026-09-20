@@ -25,6 +25,18 @@ object EinkDimens {
     /** A fine rule. */
     val hairline: Dp = 1.dp
 
-    /** A heavy rule, and the border of a control. */
+    /** A heavy rule, and the line of an icon. */
     val rule: Dp = 2.dp
+
+    /** A row in a list with one line of text, and the rule under it. */
+    val rowOneLine: Dp = 58.dp
+
+    /** A row in a list with a title and one small line under it, and the rule under it. */
+    val rowTwoLines: Dp = 68.dp
+
+    /** The side of an icon inside a control. */
+    val icon: Dp = 24.dp
+
+    /** The side of one of the four large icons on Home. */
+    val homeIcon: Dp = 56.dp
 }

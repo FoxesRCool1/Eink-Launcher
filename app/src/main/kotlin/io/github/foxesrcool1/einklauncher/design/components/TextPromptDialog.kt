@@ -1,7 +1,5 @@
 package io.github.foxesrcool1.einklauncher.design.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,17 +9,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
 
@@ -45,9 +41,9 @@ fun TextPromptDialog(
     ) {
         Column(
             modifier = Modifier
+                .widthIn(max = DialogMaxWidth)
                 .fillMaxWidth(0.86f)
-                .background(EinkColors.Paper)
-                .border(width = EinkDimens.rule, color = EinkColors.Ink)
+                .einkPanel()
                 .padding(EinkDimens.blockGap),
         ) {
             EinkText(text = title, style = EinkType.title, maxLines = 2)
@@ -61,8 +57,8 @@ fun TextPromptDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = EinkDimens.touchTarget)
-                    .border(width = EinkDimens.hairline, color = EinkColors.Ink)
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                    .einkFieldBorder()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
             )
 
             Spacer(modifier = Modifier.height(EinkDimens.blockGap))

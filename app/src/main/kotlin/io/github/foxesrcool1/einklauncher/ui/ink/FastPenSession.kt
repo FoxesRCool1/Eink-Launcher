@@ -23,7 +23,7 @@ private const val TAG = "FastPenSession"
  */
 class FastPenSession(
     private val activity: Activity,
-    private val canvas: InkCanvasView,
+    val canvas: InkCanvasView,
     private val mode: String,
     private val redrawDelayMillis: Long,
 ) {

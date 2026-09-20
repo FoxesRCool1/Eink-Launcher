@@ -14,12 +14,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
+import io.github.foxesrcool1.einklauncher.design.EinkShapes
 
 /**
  * A row in a list. It inverts while pressed and it can hold a long press.
@@ -51,6 +53,7 @@ fun EinkRow(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = minHeight)
+            .clip(EinkShapes.field)
             .background(if (pressed) EinkColors.Ink else EinkColors.Paper)
             .pointerInput(hasLongClick) {
                 // detectTapGestures wants ((Offset) -> Unit)?, so the parameter
@@ -74,7 +77,7 @@ fun EinkRow(
                     onLongPress = longPress,
                 )
             }
-            .padding(vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         content(pressed)
     }

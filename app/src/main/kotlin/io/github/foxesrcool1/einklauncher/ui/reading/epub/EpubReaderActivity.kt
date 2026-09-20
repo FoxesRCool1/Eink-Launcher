@@ -22,6 +22,7 @@ import io.github.foxesrcool1.einklauncher.core.eink.EinkDevices
 import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.reading.BookAnnotations
 import io.github.foxesrcool1.einklauncher.core.reading.Highlight
 import io.github.foxesrcool1.einklauncher.core.reading.ReadingLog
@@ -31,8 +32,8 @@ import io.github.foxesrcool1.einklauncher.core.settings.ReaderSettings
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.core.storage.RelativePaths
+import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -85,6 +86,9 @@ class ReaderUiState {
     var placeLabel by mutableStateOf("")
     var secondsToday by mutableStateOf(0L)
     var notice by mutableStateOf<String?>(null)
+
+    /** The split screen: a note beside the book. */
+    var split by mutableStateOf(false)
 }
 
 /**
@@ -109,6 +113,14 @@ class EpubReaderActivity : FragmentActivity() {
     private lateinit var settingsStore: SettingsStore
     private lateinit var root: SwipeInterceptLayout
 
+    /** The book and the note pane side by side, or one above the other. */
+    private lateinit var halves: android.widget.LinearLayout
+    private lateinit var paneDivider: android.view.View
+    private lateinit var notePane: ComposeView
+
+    /** The fast pen of the tablet, for the handwritten note in the split screen. */
+    private var paneSession: io.github.foxesrcool1.einklauncher.ui.ink.FastPenSession? = null
+
     private var bookId = ""
     private var bookPath = ""
     private var publication: Publication? = null
@@ -124,6 +136,7 @@ class EpubReaderActivity : FragmentActivity() {
         // Never restore fragments. The book view cannot be rebuilt before the
         // book is open, and the place in the book is saved by this app anyway.
         super.onCreate(null)
+        ScreenWindow.attach(this)
 
         bookPath = intent.getStringExtra(EXTRA_PATH).orEmpty()
         bookId = intent.getStringExtra(EXTRA_BOOK_ID).orEmpty()
@@ -155,7 +168,22 @@ class EpubReaderActivity : FragmentActivity() {
             }
         }
         root.addView(chrome, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        setContentView(root)
+
+        // The split screen. The book keeps its own half with everything that
+        // belongs to it: the swipes, the tap zones and the menus. The note
+        // pane is a second half that is simply not there until it is asked
+        // for, so a reader who never splits the screen pays nothing for it.
+        paneDivider = android.view.View(this).apply {
+            setBackgroundColor(Color.BLACK)
+            visibility = android.view.View.GONE
+        }
+        notePane = ComposeView(this).apply { visibility = android.view.View.GONE }
+        halves = android.widget.LinearLayout(this).apply { setBackgroundColor(Color.WHITE) }
+        halves.addView(root)
+        halves.addView(paneDivider)
+        halves.addView(notePane)
+        layOutHalves()
+        setContentView(halves)
 
         // Back closes whatever is open on top of the page first, and the book
         // only when nothing is.
@@ -207,12 +235,97 @@ class EpubReaderActivity : FragmentActivity() {
         }
     }
 
+    /**
+     * Side by side when the tablet is on its side, one above the other when
+     * it is upright. Called again after a turn of the screen: the activity
+     * handles that change itself and is not built again.
+     */
+    private fun layOutHalves() {
+        val wide = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val line = (resources.displayMetrics.density * 2f).toInt().coerceAtLeast(1)
+        halves.orientation = if (wide) android.widget.LinearLayout.HORIZONTAL else android.widget.LinearLayout.VERTICAL
+        val half = { android.widget.LinearLayout.LayoutParams(if (wide) 0 else ViewGroup.LayoutParams.MATCH_PARENT, if (wide) ViewGroup.LayoutParams.MATCH_PARENT else 0, 1f) }
+        root.layoutParams = half()
+        notePane.layoutParams = half()
+        paneDivider.layoutParams = android.widget.LinearLayout.LayoutParams(
+            if (wide) line else ViewGroup.LayoutParams.MATCH_PARENT,
+            if (wide) ViewGroup.LayoutParams.MATCH_PARENT else line,
+        )
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::halves.isInitialized) {
+            keepPlaceAcrossNewLayout()
+            layOutHalves()
+        }
+    }
+
+    /**
+     * A new width means the book engine cuts the text into pages again, and it
+     * then lands a page or two away from where the reader was. Found on the
+     * emulator: split on and off again moved the book back by two pages. So
+     * the place is taken before the change, and the book is sent back to it
+     * once the new pages are made.
+     */
+    private fun keepPlaceAcrossNewLayout() {
+        val place = navigator?.currentLocator?.value ?: return
+        root.postDelayed({
+            if (!isDestroyed) navigator?.go(place, animated = false)
+        }, NEW_LAYOUT_SETTLE_MILLIS)
+    }
+
+    private fun setSplit(on: Boolean) {
+        keepPlaceAcrossNewLayout()
+        ui.split = on
+        ui.panel = ReaderPanel.None
+        AppLog.i(TAG, "Split screen: $on")
+        val visibility = if (on) android.view.View.VISIBLE else android.view.View.GONE
+        paneDivider.visibility = visibility
+        notePane.visibility = visibility
+        if (on) {
+            notePane.setContent {
+                EinkTheme(botanicalArt = false) {
+                    io.github.foxesrcool1.einklauncher.ui.split.NotePane(
+                        bookTitle = ui.title,
+                        onClose = { setSplit(false) },
+                        onInkCanvas = { canvas -> servePaneCanvas(canvas) },
+                    )
+                }
+            }
+        } else {
+            // Throwing the content away is what saves the note: the pane
+            // writes its last words as it leaves the composition.
+            notePane.setContent { }
+            servePaneCanvas(null)
+        }
+    }
+
+    /** Points the fast pen at the handwriting canvas of the note pane, or takes it away. */
+    private fun servePaneCanvas(canvas: io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView?) {
+        paneSession?.stop()
+        paneSession = null
+        if (canvas == null) return
+        lifecycleScope.launch {
+            val mode = settingsStore.fastPenMode.first()
+            if (mode == SettingsStore.FAST_PEN_OFF) return@launch
+            val delayMillis = settingsStore.inkRedrawDelayMillis.first()
+            // The canvas has no size until it has been laid out once.
+            canvas.post {
+                if (canvas.width == 0 || !ui.split) return@post
+                paneSession = io.github.foxesrcool1.einklauncher.ui.ink.FastPenSession(
+                    this@EpubReaderActivity, canvas, mode, delayMillis,
+                ).also { it.start() }
+            }
+        }
+    }
+
     private suspend fun openBook() {
         val started = System.currentTimeMillis()
         ui.settings = settingsStore.reader.first()
 
         val file = File(DataRoot.folder(this), RelativePaths.normalise(bookPath))
-        val (opened, annotations, day) = withContext(Dispatchers.IO) {
+        val (opened, annotations, day) = withContext(AppDispatchers.io) {
             val data = DataRoot.repository(this@EpubReaderActivity)
             val hour = runCatching { HabitsRepository(data).load().dayBoundaryHour }.getOrDefault(DayBoundary.DEFAULT_HOUR)
             Triple(
@@ -232,7 +345,7 @@ class EpubReaderActivity : FragmentActivity() {
         if (ui.title.isBlank()) ui.title = opened.metadata.title.orEmpty()
         ui.annotations = annotations.copy(bookPath = bookPath, title = ui.title)
         ui.contents = flatten(opened.tableOfContents, 0)
-        loggedSecondsToday = withContext(Dispatchers.IO) { reading.secondsReadOn(today) }
+        loggedSecondsToday = withContext(AppDispatchers.io) { reading.secondsReadOn(today) }
         ui.secondsToday = loggedSecondsToday
 
         val factory = EpubNavigatorFactory(opened)
@@ -348,7 +461,7 @@ class EpubReaderActivity : FragmentActivity() {
 
     private suspend fun saveNow() {
         val snapshot = ui.annotations
-        withContext(Dispatchers.IO) { reading.save(bookId, snapshot) }
+        withContext(AppDispatchers.io) { reading.save(bookId, snapshot) }
     }
 
     // -- Selection, highlights and notes ------------------------------------------------
@@ -515,10 +628,12 @@ class EpubReaderActivity : FragmentActivity() {
 
         override fun exportNotes() {
             lifecycleScope.launch {
-                val path = withContext(Dispatchers.IO) { reading.exportMarkdown(ui.annotations) }
+                val path = withContext(AppDispatchers.io) { reading.exportMarkdown(ui.annotations) }
                 ui.notice = if (path != null) "Saved as $path" else "The export did not work"
             }
         }
+
+        override fun toggleSplit() = setSplit(!ui.split)
     }
 
     // -- Reading time ------------------------------------------------------------------------
@@ -536,6 +651,8 @@ class EpubReaderActivity : FragmentActivity() {
     }
 
     override fun onPause() {
+        // The tablet must stop drawing on the glass before another screen shows.
+        paneSession?.stop()
         timer.pause(nowSeconds())
         val seconds = timer.take()
         selectionMode?.finish()
@@ -562,6 +679,9 @@ class EpubReaderActivity : FragmentActivity() {
         const val EXTRA_TITLE = "book_title"
 
         private const val SAVE_EVERY_MILLIS = 5_000L
+
+        /** How long the book engine gets to cut the text into pages again after the width changed. */
+        private const val NEW_LAYOUT_SETTLE_MILLIS = 800L
         private val HIGHLIGHT_GREY = Color.rgb(200, 200, 200)
         private val CONTAINER_ID = android.view.View.generateViewId()
 
@@ -593,4 +713,7 @@ interface ReaderActions {
     fun remove(highlightId: String)
     fun change(settings: ReaderSettings)
     fun exportNotes()
+
+    /** Opens or closes the note beside the book. */
+    fun toggleSplit()
 }

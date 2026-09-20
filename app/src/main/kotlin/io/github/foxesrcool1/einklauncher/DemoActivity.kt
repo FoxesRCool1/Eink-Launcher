@@ -34,12 +34,13 @@ private enum class DemoTab { Design, Log, Dev }
  * The design system demo and the dev tools.
  *
  * Its own activity, so the launcher task stays clean and the Home key still
- * lands on Today. Settings opens it.
+ * lands on Home. Settings opens it.
  */
 class DemoActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        io.github.foxesrcool1.einklauncher.core.window.ScreenWindow.attach(this)
         AppLog.i("DemoActivity", "onCreate")
         setContent {
             EinkTheme {
@@ -93,7 +94,7 @@ private fun DemoHost() {
 
 @Composable
 private fun DevHost(modifier: Modifier = Modifier) {
-    ScreenScaffold(title = "Dev", overline = "Debug build only", corner = null, modifier = modifier) {
+    ScreenScaffold(title = "Dev", overline = "Debug build only", modifier = modifier) {
         Spacer(modifier = Modifier.height(4.dp))
         DevPanel()
     }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,40 +15,64 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.foxesrcool1.einklauncher.core.apps.AppFolder
+import io.github.foxesrcool1.einklauncher.core.apps.AppFolders
+import io.github.foxesrcool1.einklauncher.core.apps.AppFoldersRepository
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
+import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
+import io.github.foxesrcool1.einklauncher.design.components.ConfirmDialog
+import io.github.foxesrcool1.einklauncher.design.components.DialogMaxWidth
 import io.github.foxesrcool1.einklauncher.design.components.DialogOption
+import io.github.foxesrcool1.einklauncher.design.components.EinkDialog
+import io.github.foxesrcool1.einklauncher.design.components.EinkIcon
 import io.github.foxesrcool1.einklauncher.design.components.EinkRow
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
-import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
+import io.github.foxesrcool1.einklauncher.design.components.Plants
+import io.github.foxesrcool1.einklauncher.design.components.TextPromptDialog
+import io.github.foxesrcool1.einklauncher.design.components.einkPanel
 import io.github.foxesrcool1.einklauncher.design.components.rememberPagedListState
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
+import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val TAG = "AppsScreen"
-private const val PAGE_SIZE = 8
+private const val PAGE_SIZE = 6
 
-private enum class AppsPage { Pinned, All }
+private enum class AppsPage { Pinned, Folders, All }
+
+/** One line on the first page: a pinned app, or one of the ways out. */
+private sealed interface FirstPageRow {
+    data class Pinned(val entry: LauncherEntry) : FirstPageRow
+    data class WayOut(val escape: EscapeEntry) : FirstPageRow
+}
 
 /**
  * The Apps tab.
  *
- * Two pages, because 640 dp of height cannot hold eight pinned apps, the ways
- * out and a full list at 56 dp per row. Page one holds the short lists the
- * user needs every day. Page two is the whole list, A to Z, paginated.
+ * Three pages, picked with three icons: the pinned apps, the folders, and
+ * every app from A to Z. The pinned page also holds the ways out of this
+ * launcher, which plan section 3.2 says must always be there.
+ *
+ * Every list works out its own page size from the room it has. The first
+ * version of this screen asked for eight rows where six fit, and the last two
+ * apps of every page could not be seen.
  *
  * App names are text. There are no colour icons. Plan section 5.
  */
@@ -55,73 +80,167 @@ private enum class AppsPage { Pinned, All }
 fun AppsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** For the screenshot tests, which have no tablet to list the apps of. */
+    previewApps: List<LauncherEntry>? = null,
+    previewFolders: AppFolders? = null,
+    initialPage: Int = 0,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember(context) { AppsRepository(context) }
     val settings = remember(context) { SettingsStore(context) }
+    val folderStore = remember(context) { AppFoldersRepository(DataRoot.repository(context)) }
 
-    var page by remember { mutableStateOf(AppsPage.Pinned) }
-    var apps by remember { mutableStateOf<List<LauncherEntry>>(emptyList()) }
+    var page by remember { mutableStateOf(AppsPage.entries[initialPage.coerceIn(0, AppsPage.entries.size - 1)]) }
+    var apps by remember { mutableStateOf(previewApps.orEmpty()) }
     var escapes by remember { mutableStateOf<List<EscapeEntry>>(emptyList()) }
+    var folders by remember { mutableStateOf(previewFolders ?: AppFolders()) }
+    var openFolder by remember { mutableStateOf<String?>(null) }
+
     var menuFor by remember { mutableStateOf<LauncherEntry?>(null) }
+    var foldersFor by remember { mutableStateOf<LauncherEntry?>(null) }
+    var folderMenuFor by remember { mutableStateOf<AppFolder?>(null) }
+    var renamingFolder by remember { mutableStateOf<AppFolder?>(null) }
+    var deletingFolder by remember { mutableStateOf<AppFolder?>(null) }
+    var addingFolder by remember { mutableStateOf(false) }
 
     val pinnedKeys by settings.pinnedApps.collectAsStateWithLifecycle(initialValue = emptyList())
     val listState = rememberPagedListState()
 
     LaunchedEffect(repository) {
+        if (previewApps != null) return@LaunchedEffect
+        folders = withContext(AppDispatchers.io) { folderStore.load() }
         repository.packageChanges().collect {
-            val loaded = withContext(Dispatchers.IO) { repository.loadAll() }
-            val ways = withContext(Dispatchers.IO) { repository.escapeEntries(loaded) }
+            val loaded = withContext(AppDispatchers.io) { repository.loadAll() }
+            val ways = withContext(AppDispatchers.io) { repository.escapeEntries(loaded) }
             apps = loaded
             escapes = ways
         }
     }
 
+    fun changeFolders(transform: (AppFolders) -> AppFolders) {
+        if (previewFolders != null) {
+            folders = transform(folders)
+            return
+        }
+        scope.launch { folders = withContext(AppDispatchers.io) { folderStore.change(transform) } }
+    }
+
     val byKey = remember(apps) { apps.associateBy { it.key } }
-    val pinned = remember(pinnedKeys, byKey) { pinnedKeys.mapNotNull { byKey[it] } }
+    val firstPage = remember(pinnedKeys, byKey, escapes) {
+        pinnedKeys.mapNotNull { byKey[it] }.map(FirstPageRow::Pinned) + escapes.map(FirstPageRow::WayOut)
+    }
+    val inFolder = openFolder?.let(folders::folder)
+    val folderApps = remember(inFolder, byKey) { inFolder?.apps?.mapNotNull { byKey[it] }.orEmpty() }
 
     ScreenScaffold(
-        title = "Apps",
-        overline = "${apps.size} apps",
-        corner = null,
+        title = inFolder?.name ?: "Apps",
+        overline = when {
+            inFolder != null -> "Folder"
+            else -> "${apps.size} apps"
+        },
+        plant = Plants.Apps,
         modifier = modifier,
+        onBack = if (inFolder != null) ({ openFolder = null }) else onBack,
+        backIcon = if (inFolder != null) Lucide.ArrowLeft else Lucide.House,
+        backLabel = if (inFolder != null) "Back to the folders" else "Home",
+        actions = {
+            if (inFolder == null) {
+                IconPressButton(
+                    icon = Lucide.Pin,
+                    label = "Pinned apps",
+                    selected = page == AppsPage.Pinned,
+                    onClick = { page = AppsPage.Pinned },
+                )
+                IconPressButton(
+                    icon = Lucide.Folder,
+                    label = "Folders",
+                    selected = page == AppsPage.Folders,
+                    onClick = { page = AppsPage.Folders },
+                )
+                IconPressButton(
+                    icon = Lucide.ArrowDownAZ,
+                    label = "All apps",
+                    selected = page == AppsPage.All,
+                    onClick = { page = AppsPage.All },
+                )
+                if (page == AppsPage.Folders) {
+                    IconPressButton(
+                        icon = Lucide.FolderPlus,
+                        label = "New folder",
+                        bordered = true,
+                        onClick = { addingFolder = true },
+                    )
+                }
+            }
+        },
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            InvertPressButton(
-                text = "Pinned",
-                selected = page == AppsPage.Pinned,
-                onClick = { page = AppsPage.Pinned },
-            )
-            InvertPressButton(
-                text = "All apps",
-                selected = page == AppsPage.All,
-                onClick = { page = AppsPage.All },
-            )
-            InvertPressButton(text = "Today", onClick = onBack, bordered = false)
-        }
+        when {
+            inFolder != null -> PagedList(
+                items = folderApps,
+                pageSize = PAGE_SIZE,
+                rowHeight = EinkDimens.rowOneLine,
+                emptyText = "This folder is empty. Hold an app on the A to Z page and choose Folders.",
+                modifier = Modifier.weight(1f),
+            ) { _, entry ->
+                AppRow(
+                    label = entry.label,
+                    onOpen = { repository.launch(entry) },
+                    onLongPress = { menuFor = entry },
+                )
+            }
 
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
+            page == AppsPage.Pinned -> PagedList(
+                items = firstPage,
+                pageSize = PAGE_SIZE,
+                rowHeight = EinkDimens.rowOneLine,
+                emptyText = "Nothing pinned yet. Hold an app on the A to Z page and choose Pin.",
+                modifier = Modifier.weight(1f),
+            ) { _, row ->
+                when (row) {
+                    is FirstPageRow.Pinned -> AppRow(
+                        label = row.entry.label,
+                        onOpen = { repository.launch(row.entry) },
+                        onLongPress = { menuFor = row.entry },
+                    )
 
-        when (page) {
-            AppsPage.Pinned -> PinnedPage(
-                pinned = pinned,
-                escapes = escapes,
-                onOpen = { repository.launch(it) },
-                onLongPress = { menuFor = it },
-                onOpenEscape = { repository.launchEscape(it) },
-            )
+                    is FirstPageRow.WayOut -> AppRow(
+                        label = row.escape.label,
+                        hint = row.escape.hint,
+                        icon = if (row.escape.kind == EscapeKind.OtherHome) Lucide.House else Lucide.Settings,
+                        onOpen = { repository.launchEscape(row.escape) },
+                    )
+                }
+            }
 
-            AppsPage.All -> PagedList(
+            page == AppsPage.Folders -> PagedList(
+                items = folders.folders,
+                pageSize = PAGE_SIZE,
+                rowHeight = EinkDimens.rowOneLine,
+                emptyText = "No folders yet. Press the folder with the plus sign.",
+                modifier = Modifier.weight(1f),
+            ) { _, folder ->
+                val installed = folder.apps.count { it in byKey }
+                AppRow(
+                    label = folder.name,
+                    hint = if (installed == 1) "1 app" else "$installed apps",
+                    icon = Lucide.Folder,
+                    onOpen = { openFolder = folder.name },
+                    onLongPress = { folderMenuFor = folder },
+                )
+            }
+
+            else -> PagedList(
                 items = apps,
                 pageSize = PAGE_SIZE,
+                rowHeight = EinkDimens.rowOneLine,
                 state = listState,
                 emptyText = "No apps found",
                 modifier = Modifier.weight(1f),
             ) { _, entry ->
                 AppRow(
-                    entry = entry,
-                    pinnedMark = pinnedKeys.contains(entry.key),
+                    label = entry.label,
+                    mark = if (pinnedKeys.contains(entry.key)) Lucide.Pin else null,
                     onOpen = { repository.launch(entry) },
                     onLongPress = { menuFor = entry },
                 )
@@ -140,9 +259,10 @@ fun AppsScreen(
                 DialogOption(
                     label = when {
                         isPinned -> "Unpin"
-                        pinnedFull -> "Pinned list is full"
+                        pinnedFull -> "The pinned list is full"
                         else -> "Pin"
                     },
+                    icon = if (isPinned) Lucide.PinOff else Lucide.Pin,
                     enabled = isPinned || !pinnedFull,
                     onSelect = {
                         scope.launch { settings.togglePinned(selected.key) }
@@ -151,7 +271,16 @@ fun AppsScreen(
                     },
                 ),
                 DialogOption(
+                    label = "Folders",
+                    icon = Lucide.Folder,
+                    onSelect = {
+                        foldersFor = selected
+                        menuFor = null
+                    },
+                ),
+                DialogOption(
                     label = "App info",
+                    icon = Lucide.Info,
                     onSelect = {
                         repository.openAppInfo(selected)
                         menuFor = null
@@ -159,6 +288,7 @@ fun AppsScreen(
                 ),
                 DialogOption(
                     label = "Uninstall",
+                    icon = Lucide.Trash2,
                     onSelect = {
                         repository.requestUninstall(selected)
                         menuFor = null
@@ -167,84 +297,171 @@ fun AppsScreen(
             ),
         )
     }
-}
 
-@Composable
-private fun PinnedPage(
-    pinned: List<LauncherEntry>,
-    escapes: List<EscapeEntry>,
-    onOpen: (LauncherEntry) -> Unit,
-    onLongPress: (LauncherEntry) -> Unit,
-    onOpenEscape: (EscapeEntry) -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        CapsLabel(text = "Pinned", style = EinkType.capsSmall)
-        HairlineDivider(color = EinkColors.Faded)
+    val sorting = foldersFor
+    if (sorting != null) {
+        FolderPickerDialog(
+            appLabel = sorting.label,
+            folders = folders,
+            appKey = sorting.key,
+            onToggle = { name -> changeFolders { it.toggled(name, sorting.key) } },
+            onNewFolder = { addingFolder = true },
+            onDismiss = { foldersFor = null },
+        )
+    }
 
-        if (pinned.isEmpty()) {
-            EinkText(
-                text = "Nothing pinned yet. Hold an app on the All apps page and choose Pin.",
-                style = EinkType.body.copy(color = EinkColors.Faded),
-                modifier = Modifier.padding(vertical = 12.dp),
-            )
-        } else {
-            pinned.forEach { entry ->
-                AppRow(
-                    entry = entry,
-                    pinnedMark = false,
-                    onOpen = { onOpen(entry) },
-                    onLongPress = { onLongPress(entry) },
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-
-        CapsLabel(text = "Always available", style = EinkType.capsSmall)
-        HairlineDivider(color = EinkColors.Faded)
-
-        if (escapes.isEmpty()) {
-            EinkText(
-                text = "No other home app or settings app was found on this tablet.",
-                style = EinkType.body.copy(color = EinkColors.Faded),
-                modifier = Modifier.padding(vertical = 12.dp),
-            )
-        } else {
-            escapes.forEach { escape ->
-                EinkRow(onClick = { onOpenEscape(escape) }) { pressed ->
-                    val colour = if (pressed) EinkColors.Paper else EinkColors.Ink
-                    EinkText(
-                        text = escape.label,
-                        style = EinkType.rowTitle.copy(color = colour),
-                        maxLines = 1,
-                    )
-                    CapsLabel(
-                        text = escape.hint,
-                        style = EinkType.capsSmall.copy(
-                            color = if (pressed) EinkColors.Paper else EinkColors.Faded,
-                        ),
-                    )
+    if (addingFolder) {
+        TextPromptDialog(
+            title = "New folder",
+            confirmText = "Make",
+            onConfirm = { name ->
+                addingFolder = false
+                // Made from the picker, the folder is for that app, so the app goes in.
+                val forApp = foldersFor?.key
+                changeFolders { before ->
+                    val made = before.withFolder(name)
+                    if (forApp != null && before.folder(name) == null) made.toggled(name, forApp) else made
                 }
-                HairlineDivider(color = EinkColors.Faded)
-            }
-        }
+            },
+            onDismiss = { addingFolder = false },
+        )
+    }
+
+    val folderMenu = folderMenuFor
+    if (folderMenu != null) {
+        OptionsDialog(
+            title = folderMenu.name,
+            onDismiss = { folderMenuFor = null },
+            options = listOf(
+                DialogOption(label = "Rename", icon = Lucide.Pencil) {
+                    renamingFolder = folderMenu
+                    folderMenuFor = null
+                },
+                DialogOption(label = "Delete the folder", icon = Lucide.Trash2) {
+                    deletingFolder = folderMenu
+                    folderMenuFor = null
+                },
+            ),
+        )
+    }
+
+    val beingRenamed = renamingFolder
+    if (beingRenamed != null) {
+        TextPromptDialog(
+            title = "Rename the folder",
+            initialValue = beingRenamed.name,
+            onConfirm = { name ->
+                renamingFolder = null
+                changeFolders { it.renamed(beingRenamed.name, name) }
+            },
+            onDismiss = { renamingFolder = null },
+        )
+    }
+
+    val beingDeleted = deletingFolder
+    if (beingDeleted != null) {
+        ConfirmDialog(
+            title = "Delete ${beingDeleted.name}?",
+            message = "Only the folder goes. The apps in it stay on the tablet.",
+            confirmText = "Delete",
+            cancelText = "Keep",
+            onConfirm = {
+                deletingFolder = null
+                changeFolders { it.without(beingDeleted.name) }
+            },
+            onDismiss = { deletingFolder = null },
+        )
     }
 }
 
+/** One line: a name, and around it an icon in front, a small word behind, or a small mark behind. */
 @Composable
 private fun AppRow(
-    entry: LauncherEntry,
-    pinnedMark: Boolean,
+    label: String,
     onOpen: () -> Unit,
-    onLongPress: () -> Unit,
+    onLongPress: (() -> Unit)? = null,
+    icon: LucideIcon? = null,
+    hint: String? = null,
+    mark: LucideIcon? = null,
 ) {
     EinkRow(onClick = onOpen, onLongClick = onLongPress) { pressed ->
         val colour = if (pressed) EinkColors.Paper else EinkColors.Ink
-        EinkText(
-            text = if (pinnedMark) "${entry.label}  *" else entry.label,
-            style = EinkType.rowTitle.copy(color = colour),
-            maxLines = 1,
-        )
+        val faded = if (pressed) EinkColors.Paper else EinkColors.Faded
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) EinkIcon(icon = icon, color = colour)
+            EinkText(
+                text = label,
+                style = EinkType.rowTitle.copy(color = colour),
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            if (hint != null) CapsLabel(text = hint, style = EinkType.capsSmall.copy(color = faded))
+            if (mark != null) EinkIcon(icon = mark, size = 18.dp, color = faded)
+        }
     }
     HairlineDivider(color = EinkColors.Faded)
+}
+
+/**
+ * Which folders one app is in. A tap on a folder puts the app in or takes it
+ * out, and the dialog stays open, because sorting one app into two folders
+ * should not take two trips through the menu.
+ */
+@Composable
+private fun FolderPickerDialog(
+    appLabel: String,
+    folders: AppFolders,
+    appKey: String,
+    onToggle: (String) -> Unit,
+    onNewFolder: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    EinkDialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = DialogMaxWidth)
+                .fillMaxWidth(0.86f)
+                .einkPanel()
+                .padding(EinkDimens.blockGap),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    CapsLabel(text = "Folders for", style = EinkType.capsSmall)
+                    EinkText(text = appLabel, style = EinkType.title, maxLines = 1)
+                }
+                IconPressButton(icon = Lucide.X, label = "Close", onClick = onDismiss)
+            }
+            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+
+            PagedList(
+                items = folders.folders,
+                pageSize = 4,
+                emptyText = "No folders yet",
+                modifier = Modifier.height(EinkDimens.rowOneLine * 4 + 70.dp),
+            ) { _, folder ->
+                val isIn = appKey in folder.apps
+                EinkRow(onClick = { onToggle(folder.name) }) { pressed ->
+                    val colour = if (pressed) EinkColors.Paper else EinkColors.Ink
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        EinkIcon(icon = if (isIn) Lucide.CircleCheck else Lucide.Circle, color = colour)
+                        EinkText(text = folder.name, style = EinkType.rowTitle.copy(color = colour), maxLines = 1)
+                    }
+                }
+            }
+
+            IconPressButton(
+                icon = Lucide.FolderPlus,
+                label = "New folder",
+                bordered = true,
+                onClick = onNewFolder,
+            )
+        }
+    }
 }

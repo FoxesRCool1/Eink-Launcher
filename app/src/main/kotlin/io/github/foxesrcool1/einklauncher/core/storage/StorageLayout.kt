@@ -18,6 +18,7 @@ import java.util.Locale
  *   notes/          user folders, *.md typed, *.inknote handwritten
  *   journal/        YYYY/YYYY-MM-DD.md, YYYY/YYYY-MM-DD.inknote
  *   habits/         habits.json, log.csv
+ *   apps/           folders.json, the folders on the Apps tab
  *   exports/
  *   logs/
  * ```
@@ -31,16 +32,17 @@ object StorageLayout {
     const val NOTES = "notes"
     const val JOURNAL = "journal"
     const val HABITS = "habits"
+    const val APPS = "apps"
     const val EXPORTS = "exports"
     const val LOGS = "logs"
 
     /** Created on first run, so the folder reads as a finished thing. */
     val topLevelFolders: List<String> =
-        listOf(BOOKS, ANNOTATIONS, NOTES, JOURNAL, HABITS, EXPORTS, LOGS)
+        listOf(BOOKS, ANNOTATIONS, NOTES, JOURNAL, HABITS, APPS, EXPORTS, LOGS)
 
     /** These go into a backup. Exports and logs are left out: both can be made again. */
     val backedUpFolders: List<String> =
-        listOf(BOOKS, ANNOTATIONS, NOTES, JOURNAL, HABITS)
+        listOf(BOOKS, ANNOTATIONS, NOTES, JOURNAL, HABITS, APPS)
 
     const val TYPED_NOTE_EXTENSION = "md"
     const val INK_NOTE_EXTENSION = "inknote"
@@ -69,6 +71,21 @@ object StorageLayout {
     fun habitsPath(): String = "$HABITS/habits.json"
 
     fun habitLogPath(): String = "$HABITS/log.csv"
+
+    /** The folders the user sorts apps into, on the Apps tab. */
+    fun appFoldersPath(): String = "$APPS/folders.json"
+
+    /** The folder the split screen keeps its notes in, one per book. */
+    const val READING_NOTES_FOLDER = "Reading notes"
+
+    /**
+     * The note that opens beside a book in the split screen. It lives in the
+     * notes folder like any other note, so the Writing tab shows it too.
+     */
+    fun readingNotePath(bookTitle: String, handwritten: Boolean): String {
+        val extension = if (handwritten) INK_NOTE_EXTENSION else TYPED_NOTE_EXTENSION
+        return "$NOTES/$READING_NOTES_FOLDER/${safeName(bookTitle)}.$extension"
+    }
 
     /**
      * Turns anything into a name that is safe on every file system the folder

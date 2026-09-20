@@ -1,0 +1,406 @@
+package io.github.foxesrcool1.einklauncher.ui.screens
+
+import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import io.github.foxesrcool1.einklauncher.core.apps.AppFolder
+import io.github.foxesrcool1.einklauncher.core.apps.AppFolders
+import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
+import io.github.foxesrcool1.einklauncher.core.ink.InkNote
+import io.github.foxesrcool1.einklauncher.core.ink.InkNotesRepository
+import io.github.foxesrcool1.einklauncher.core.ink.InkPageData
+import io.github.foxesrcool1.einklauncher.core.ink.InkTestData
+import io.github.foxesrcool1.einklauncher.core.ink.PageTemplate
+import io.github.foxesrcool1.einklauncher.core.log.LogLevel
+import io.github.foxesrcool1.einklauncher.core.log.LogLine
+import io.github.foxesrcool1.einklauncher.core.notes.NotesRepository
+import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
+import io.github.foxesrcool1.einklauncher.core.storage.StorageLayout
+import io.github.foxesrcool1.einklauncher.design.EinkColors
+import io.github.foxesrcool1.einklauncher.design.EinkTheme
+import io.github.foxesrcool1.einklauncher.design.EinkType
+import io.github.foxesrcool1.einklauncher.design.components.EinkText
+import io.github.foxesrcool1.einklauncher.support.captureTo
+import io.github.foxesrcool1.einklauncher.ui.apps.AppsScreen
+import io.github.foxesrcool1.einklauncher.ui.apps.LauncherEntry
+import io.github.foxesrcool1.einklauncher.ui.home.HomeScreen
+import io.github.foxesrcool1.einklauncher.ui.ink.InkNoteController
+import io.github.foxesrcool1.einklauncher.ui.ink.InkNoteScreen
+import io.github.foxesrcool1.einklauncher.ui.journal.JournalScreen
+import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
+import io.github.foxesrcool1.einklauncher.ui.reading.ReadingScreen
+import io.github.foxesrcool1.einklauncher.ui.reading.pdf.PdfReaderScreenshotSupport
+import io.github.foxesrcool1.einklauncher.ui.settings.SettingsPage
+import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
+import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorScreen
+import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
+import kotlinx.coroutines.Dispatchers
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.time.LocalDate
+import java.time.LocalDateTime
+
+/**
+ * A picture of every screen, with the tablet upright and with it on its side.
+ *
+ * No screen in this app scrolls, so a screen that is too tall simply loses its
+ * bottom, and on a home app that is a trap. These pictures are how that is
+ * caught: look at each PNG after a layout change. The two classes at the end
+ * run every test here once per orientation, and the landscape pictures end in
+ * `_land`.
+ *
+ * The screens that read the data folder get a few files to read first, and
+ * they read them in place, not on a background thread, so the picture is the
+ * same on every run.
+ */
+abstract class ScreensScreenshotBase(private val suffix: String) {
+
+    @get:Rule
+    val compose = createComposeRule()
+
+    private val context: Context get() = ApplicationProvider.getApplicationContext()
+    private val fixedTime = LocalDateTime.of(2026, 9, 19, 8, 4)
+    private val today = LocalDate.of(2026, 9, 19)
+
+    private fun capture(name: String) {
+        compose.waitForIdle()
+        compose.onRoot().captureTo(name + suffix)
+    }
+
+    private fun waitForText(text: String) {
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithText(text, substring = true, ignoreCase = true).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /**
+     * The tests share one process and one data folder, so each one starts from
+     * an empty folder. The screens read the disk in place here, and not on a
+     * background thread: see [AppDispatchers] for the race that takes away.
+     */
+    @Before
+    fun emptyDataFolder() {
+        AppDispatchers.io = Dispatchers.Unconfined
+        val data = DataRoot.repository(context)
+        StorageLayout.topLevelFolders.forEach { data.store.delete(it) }
+        data.ensureFolders()
+    }
+
+    @After
+    fun backgroundThreadsAgain() {
+        AppDispatchers.io = Dispatchers.IO
+    }
+
+    // -- Home -------------------------------------------------------------------------
+
+    @Test
+    fun home() {
+        compose.setContent {
+            EinkTheme {
+                HomeScreen(onOpenTab = {}, onOpenSettings = {}, now = fixedTime, battery = 82, wifi = true)
+            }
+        }
+        capture("home")
+    }
+
+    /** The tightest case: the Next line takes room away from the four icons, and the names are on. */
+    @Test
+    fun homeWithNextLineAndNames() {
+        compose.setContent {
+            EinkTheme {
+                HomeScreen(
+                    onOpenTab = {},
+                    onOpenSettings = {},
+                    nextRoutineLabel = "Read 30 minutes",
+                    now = fixedTime,
+                    battery = 9,
+                    wifi = false,
+                    showLabels = true,
+                )
+            }
+        }
+        capture("home_with_next")
+    }
+
+    @Test
+    fun homeWithoutPlants() {
+        compose.setContent {
+            EinkTheme(botanicalArt = false) {
+                HomeScreen(onOpenTab = {}, onOpenSettings = {}, now = fixedTime, battery = 50, wifi = true)
+            }
+        }
+        capture("home_no_art")
+    }
+
+    // -- The four tabs ------------------------------------------------------------------
+
+    @Test
+    fun readingLibrary() {
+        val data = DataRoot.repository(context)
+        listOf("Walden.pdf", "Pride and Prejudice.pdf", "Moby Dick.pdf", "Middlemarch.pdf", "Emma.pdf", "Jane Eyre.pdf", "Dracula.pdf")
+            .forEach { data.store.write(StorageLayout.bookPath(it), ByteArray(2048)) }
+        compose.setContent { EinkTheme { ReadingScreen(onBack = {}) } }
+        // The newest file is first, so the last name written is the one on page one.
+        waitForText("Dracula")
+        capture("reading")
+    }
+
+    @Test
+    fun writingBrowser() {
+        val notes = NotesRepository(DataRoot.repository(context))
+        notes.createFolder(notes.rootPath, "Essays")
+        listOf("Shopping", "Ideas for the garden", "Letter to Anna", "Book list", "Packing", "Recipes").forEach { title ->
+            val path = notes.createNote(notes.rootPath, title)!!
+            notes.write(path, "# $title\n\nThe first line of the note, which shows as the small line.")
+        }
+        compose.setContent { EinkTheme { WritingScreen(onBack = {}, onOpenNote = {}) } }
+        waitForText("Essays")
+        capture("writing")
+    }
+
+    private fun seedJournal() {
+        val data = DataRoot.repository(context)
+        val habits = HabitsRepository(data)
+        listOf("Read 30 minutes", "Walk outside", "Write a page", "Stretch").forEach { habits.add(it, today.minusDays(20)) }
+        data.writeJournalEntry(today, "A quiet morning. I read by the window until the rain stopped, and then I walked to the river.")
+    }
+
+    @Test
+    fun journalDay() {
+        seedJournal()
+        compose.setContent { EinkTheme { JournalScreen(onBack = {}, fixedToday = today) } }
+        waitForText("Walk outside")
+        capture("journal_day")
+    }
+
+    @Test
+    fun journalMonth() {
+        seedJournal()
+        compose.setContent { EinkTheme { JournalScreen(onBack = {}, fixedToday = LocalDate.of(2026, 8, 31)) } }
+        compose.onNodeWithContentDescription("Month").performClick()
+        capture("journal_month")
+    }
+
+    @Test
+    fun journalEditing() {
+        seedJournal()
+        compose.setContent { EinkTheme { JournalScreen(onBack = {}, fixedToday = today) } }
+        waitForText("Walk outside")
+        compose.onNodeWithContentDescription("Edit the entry").performClick()
+        capture("journal_editing")
+    }
+
+    private val someApps = listOf(
+        "Calculator", "Calendar", "Camera", "Chrome", "Clock", "Contacts", "DevCheck", "Files", "Gallery", "Kindle",
+        "KOReader", "Libby", "Maps", "Notes", "Play Store", "Pocket", "Recorder", "Syncthing", "ViWoods Settings",
+    ).map { LauncherEntry("com.example.${it.lowercase().replace(' ', '.')}", "Main", it) }
+
+    private val someFolders = AppFolders(
+        listOf(
+            AppFolder("Reading", someApps.filter { it.label in setOf("Kindle", "KOReader", "Libby", "Pocket") }.map { it.key }),
+            AppFolder("Tools", someApps.filter { it.label in setOf("Calculator", "Files", "DevCheck") }.map { it.key }),
+            AppFolder("Writing"),
+        ),
+    )
+
+    @Test
+    fun appsAll() {
+        compose.setContent {
+            EinkTheme { AppsScreen(onBack = {}, previewApps = someApps, previewFolders = someFolders, initialPage = 2) }
+        }
+        capture("apps_all")
+    }
+
+    @Test
+    fun appsFolders() {
+        compose.setContent {
+            EinkTheme { AppsScreen(onBack = {}, previewApps = someApps, previewFolders = someFolders, initialPage = 1) }
+        }
+        capture("apps_folders")
+    }
+
+    @Test
+    fun appsInsideAFolder() {
+        compose.setContent {
+            EinkTheme { AppsScreen(onBack = {}, previewApps = someApps, previewFolders = someFolders, initialPage = 1) }
+        }
+        compose.onAllNodesWithText("Reading")[0].performClick()
+        capture("apps_folder_open")
+    }
+
+    @Test
+    fun appsPinnedWhenEmpty() {
+        compose.setContent {
+            EinkTheme { AppsScreen(onBack = {}, previewApps = someApps, previewFolders = someFolders, initialPage = 0) }
+        }
+        capture("apps_pinned_empty")
+    }
+
+    // -- Settings ------------------------------------------------------------------------
+
+    private fun settings(page: SettingsPage, name: String) {
+        compose.setContent {
+            EinkTheme { SettingsScreen(onBack = {}, onOpenLog = {}, onOpenDemo = {}, initialPage = page.ordinal) }
+        }
+        capture(name)
+    }
+
+    @Test
+    fun settingsMenu() = settings(SettingsPage.Menu, "settings_menu")
+
+    @Test
+    fun settingsHomeApp() = settings(SettingsPage.HomeApp, "settings_home_app")
+
+    @Test
+    fun settingsLook() = settings(SettingsPage.Look, "settings_look")
+
+    @Test
+    fun settingsPen() = settings(SettingsPage.Pen, "settings_pen")
+
+    @Test
+    fun settingsBackup() = settings(SettingsPage.Backup, "settings_backup")
+
+    @Test
+    fun settingsUpdates() = settings(SettingsPage.Updates, "settings_updates")
+
+    @Test
+    fun settingsHelp() = settings(SettingsPage.Help, "settings_help")
+
+    @Test
+    fun settingsCredits() = settings(SettingsPage.About, "settings_credits")
+
+    @Test
+    fun logViewer() {
+        val lines = (1..9).map { index ->
+            LogLine(
+                timeMillis = 0L,
+                level = if (index % 4 == 0) LogLevel.ERROR else LogLevel.INFO,
+                tag = "HomeActivity",
+                message = "Line $index of the log. A message can be long, and then it takes the second line of its row as well.",
+            )
+        }
+        compose.setContent { EinkTheme { LogViewerScreen(linesProvider = { lines }, onCopyToDownloads = { 0 }, onBack = {}) } }
+        capture("log")
+    }
+
+    // -- Writing and reading ----------------------------------------------------------------
+
+    @Test
+    fun typedNote() {
+        val notes = NotesRepository(DataRoot.repository(context))
+        val path = notes.createNote(notes.rootPath, "Letter to Anna")!!
+        notes.write(path, "# Letter to Anna\n\nDear Anna,\n\nThe garden is full of apples this year, and I thought of you.")
+        compose.setContent { EinkTheme { NoteEditorScreen(notePath = path, onClose = {}) } }
+        waitForText("Dear Anna")
+        capture("typed_note")
+    }
+
+    @Test
+    fun inkNote() {
+        val data = DataRoot.repository(context)
+        val note = InkNote(
+            template = PageTemplate.Lined,
+            pages = listOf(InkPageData(InkTestData.fullPage(240)), InkPageData(emptyList())),
+        )
+        val controller = InkNoteController(InkNotesRepository(data), "notes/test.inknote", note, mayWrite = true)
+        compose.setContent {
+            EinkTheme {
+                InkNoteScreen(
+                    title = "Ideas",
+                    controller = controller,
+                    problem = null,
+                    onCanvas = { controller.attach(it) },
+                    onDialog = {},
+                    onWidth = {},
+                    onExport = { "" },
+                    onClose = {},
+                )
+            }
+        }
+        capture("ink_note")
+    }
+
+    @Test
+    fun pdfReader() {
+        compose.setContent { EinkTheme(botanicalArt = false) { PdfReaderScreenshotSupport.Screen(split = false) } }
+        capture("pdf_reader")
+    }
+
+    @Test
+    fun pdfReaderSplitWithATypedNote() {
+        compose.setContent { EinkTheme(botanicalArt = false) { PdfReaderScreenshotSupport.Screen(split = true) } }
+        waitForText("words")
+        capture("pdf_reader_split_typed")
+    }
+
+    @Test
+    fun pdfReaderSplitWithAHandwrittenNote() {
+        compose.setContent { EinkTheme(botanicalArt = false) { PdfReaderScreenshotSupport.Screen(split = true) } }
+        waitForText("words")
+        compose.onNodeWithContentDescription("Handwritten note").performClick()
+        // The page has an Undo of its own. The second one is the note's, and it
+        // is there once the note has been read from the disk.
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithContentDescription("Undo").fetchSemanticsNodes().size == 2
+        }
+        capture("pdf_reader_split_ink")
+    }
+
+    /** The note pane on a plain page, as the EPUB reader shows it. */
+    @Test
+    fun notePaneAlone() {
+        compose.setContent {
+            EinkTheme(botanicalArt = false) {
+                Box(modifier = Modifier.fillMaxSize().background(EinkColors.Paper)) {
+                    io.github.foxesrcool1.einklauncher.ui.split.NotePane(
+                        bookTitle = "Walden",
+                        onClose = {},
+                        onInkCanvas = {},
+                    )
+                }
+            }
+        }
+        waitForText("words")
+        capture("note_pane")
+    }
+
+    @Test
+    fun anOverflowMarker() {
+        // A plain page with one line at the very bottom. If this line is not
+        // in the picture, the capture itself is cutting the screen off, and
+        // every other picture in this class proves nothing.
+        compose.setContent {
+            EinkTheme {
+                Box(modifier = Modifier.fillMaxSize().padding(4.dp), contentAlignment = androidx.compose.ui.Alignment.BottomEnd) {
+                    EinkText(text = "bottom right corner", style = EinkType.capsSmall)
+                }
+            }
+        }
+        capture("frame_check")
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "sw480dp-w480dp-h640dp-port-xxhdpi")
+class ScreensPortraitScreenshotTest : ScreensScreenshotBase("")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "sw480dp-w640dp-h480dp-land-xxhdpi")
+class ScreensLandscapeScreenshotTest : ScreensScreenshotBase("_land")

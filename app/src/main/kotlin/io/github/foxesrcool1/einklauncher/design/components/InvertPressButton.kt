@@ -4,8 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -13,15 +14,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
+import io.github.foxesrcool1.einklauncher.design.EinkShapes
 import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.einkClickable
+import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import java.util.Locale
 
 /**
- * A control.
+ * A control with a word on it.
+ *
+ * Most controls in the app are an [IconPressButton] now. This one is for the
+ * places where a word is safer than a picture: the answer to "Delete this?",
+ * and a choice between values that have no picture.
  *
  * E-ink rule 5: the pressed state is an instant colour invert. There is no
  * ripple, no shadow and no fade, because each of those is an animation or a
@@ -38,9 +46,11 @@ fun InvertPressButton(
     enabled: Boolean = true,
     selected: Boolean = false,
     bordered: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
     /** Smaller text for a toolbar with many controls. The touch target does not shrink. */
     compact: Boolean = false,
+    /** Drawn in front of the word. */
+    icon: LucideIcon? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -53,15 +63,17 @@ fun InvertPressButton(
         else -> EinkColors.Ink
     }
 
-    Box(
+    Row(
         modifier = modifier
             .defaultMinSize(minHeight = EinkDimens.touchTarget)
+            .clip(EinkShapes.control)
             .background(background)
             .then(
                 if (bordered) {
                     Modifier.border(
-                        width = EinkDimens.rule,
+                        width = EinkDimens.hairline,
                         color = if (enabled) EinkColors.Ink else EinkColors.Faded,
+                        shape = EinkShapes.control,
                     )
                 } else {
                     Modifier
@@ -69,8 +81,10 @@ fun InvertPressButton(
             )
             .einkClickable(enabled = enabled, interactionSource = interactionSource, onClick = onClick)
             .padding(contentPadding),
-        contentAlignment = Alignment.Center,
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (icon != null) EinkIcon(icon = icon, size = 20.dp, color = foreground)
         EinkText(
             text = text.uppercase(Locale.ROOT),
             style = (if (compact) EinkType.buttonCompact else EinkType.button).copy(color = foreground),

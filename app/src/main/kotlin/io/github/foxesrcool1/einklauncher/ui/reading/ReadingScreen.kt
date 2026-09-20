@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import io.github.foxesrcool1.einklauncher.core.books.BooksRepository
 import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.core.storage.ImportResult
 import io.github.foxesrcool1.einklauncher.core.storage.RelativePaths
@@ -40,7 +41,9 @@ import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
-import kotlinx.coroutines.Dispatchers
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.components.Plants
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.unit.dp
@@ -99,7 +102,7 @@ fun ReadingScreen(
     }
 
     LaunchedEffect(sort, refresh) {
-        val loaded = withContext(Dispatchers.IO) {
+        val loaded = withContext(AppDispatchers.io) {
             val list = if (sort == LibrarySort.Title) books.byTitle() else books.byRecent()
             val data = DataRoot.repository(context)
             val hour = runCatching { HabitsRepository(data).load().dayBoundaryHour }.getOrDefault(DayBoundary.DEFAULT_HOUR)
@@ -121,7 +124,7 @@ fun ReadingScreen(
         busy = true
         status = "Copying the file in"
         scope.launch {
-            status = withContext(Dispatchers.IO) { importFrom(context, books, uri) }
+            status = withContext(AppDispatchers.io) { importFrom(context, books, uri) }
             busy = false
             refresh++
         }
@@ -130,13 +133,15 @@ fun ReadingScreen(
     ScreenScaffold(
         title = "Read",
         overline = if (rows.isEmpty()) "Library" else "${rows.size} books",
-        corner = null,
+        plant = Plants.Reading,
+        onBack = onBack,
         modifier = modifier,
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            InvertPressButton(
-                text = "Import",
+        actions = {
+            IconPressButton(
+                icon = Lucide.BookPlus,
+                label = "Add a book",
                 enabled = !busy,
+                bordered = true,
                 onClick = {
                     runCatching {
                         picker.launch(
@@ -148,20 +153,21 @@ fun ReadingScreen(
                     }
                 },
             )
-            InvertPressButton(
-                text = "Recent",
+            IconPressButton(
+                icon = Lucide.History,
+                label = "Sort by last read",
                 selected = sort == LibrarySort.Recent,
                 onClick = { sort = LibrarySort.Recent },
             )
-            InvertPressButton(
-                text = "Title",
+            IconPressButton(
+                icon = Lucide.ArrowDownAZ,
+                label = "Sort by title",
                 selected = sort == LibrarySort.Title,
                 onClick = { sort = LibrarySort.Title },
             )
-        }
-
+        },
+    ) {
         if (status != null) {
-            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
             CapsLabel(
                 text = status.orEmpty(),
                 style = EinkType.capsSmall.copy(color = EinkColors.Faded),
@@ -170,22 +176,20 @@ fun ReadingScreen(
         }
 
         if (readerSettings.goalMinutes > 0) {
-            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
             CapsLabel(
                 text = "Read today: ${secondsToday / 60} of ${readerSettings.goalMinutes} minutes",
                 style = EinkType.capsSmall,
             )
             Spacer(modifier = Modifier.height(6.dp))
             GoalLine(ReadingLog.goalFraction(secondsToday, readerSettings.goalMinutes))
+            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
         }
-
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-        HairlineDivider(color = EinkColors.Faded)
 
         PagedList(
             items = rows,
             pageSize = ROWS_PER_PAGE,
-            emptyText = "No books yet. Press Import.",
+            rowHeight = EinkDimens.rowTwoLines,
+            emptyText = "No books yet. Press the book with the plus sign.",
             modifier = Modifier.weight(1f),
         ) { _, book ->
             BookRow(
@@ -194,13 +198,6 @@ fun ReadingScreen(
                 onOpen = { openBook(context, book) { status = it } },
                 onOptions = { optionsFor = book },
             )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            InvertPressButton(text = "Today", onClick = onBack, bordered = false)
         }
     }
 
@@ -216,7 +213,7 @@ fun ReadingScreen(
                     onSelect = { },
                 ),
                 DialogOption(label = "Size: ${selected.sizeLabel()}", enabled = false) { },
-                DialogOption(label = "Delete") {
+                DialogOption(label = "Delete", icon = Lucide.Trash2) {
                     deleting = selected
                     optionsFor = null
                 },
@@ -234,7 +231,7 @@ fun ReadingScreen(
             onConfirm = {
                 deleting = null
                 scope.launch {
-                    val gone = withContext(Dispatchers.IO) { books.delete(beingDeleted) }
+                    val gone = withContext(AppDispatchers.io) { books.delete(beingDeleted) }
                     status = if (gone) "Deleted" else "Could not delete it"
                     refresh++
                 }

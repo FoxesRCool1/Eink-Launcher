@@ -8,13 +8,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -32,9 +36,12 @@ import io.github.foxesrcool1.einklauncher.core.ink.InkNoteLoad
 import io.github.foxesrcool1.einklauncher.core.ink.InkNotesRepository
 import io.github.foxesrcool1.einklauncher.core.ink.PageTemplate
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
+import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
 import io.github.foxesrcool1.einklauncher.design.EinkColors
+import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
@@ -42,9 +49,10 @@ import io.github.foxesrcool1.einklauncher.design.components.ConfirmDialog
 import io.github.foxesrcool1.einklauncher.design.components.DialogOption
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
-import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
+import io.github.foxesrcool1.einklauncher.ui.common.RotateButton
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -71,6 +79,7 @@ class InkNoteActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ScreenWindow.attach(this)
 
         val path = intent.getStringExtra(EXTRA_PATH)
         if (path.isNullOrBlank()) {
@@ -89,7 +98,7 @@ class InkNoteActivity : ComponentActivity() {
 
             val repository = InkNotesRepository(DataRoot.repository(this@InkNoteActivity))
             val started = System.currentTimeMillis()
-            val load = withContext(Dispatchers.IO) { repository.load(path) }
+            val load = withContext(AppDispatchers.io) { repository.load(path) }
             val (note, problem) = when (load) {
                 is InkNoteLoad.Loaded -> load.note to null
                 InkNoteLoad.Missing -> InkNote(template = newTemplate) to null
@@ -110,6 +119,12 @@ class InkNoteActivity : ComponentActivity() {
                         controller = made,
                         problem = problem,
                         onCanvas = { view ->
+                            // A new canvas after a turn of the screen. The
+                            // fast pen was tied to the old one.
+                            if (canvasView !== view) {
+                                session?.stop()
+                                session = null
+                            }
                             canvasView = view
                             made.attach(view)
                             view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> startFastPen() }
@@ -139,7 +154,7 @@ class InkNoteActivity : ComponentActivity() {
     ): String {
         val note = controller.snapshot()
         val page = controller.pageIndex
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(AppDispatchers.io) {
             runCatching {
                 val written = if (asPdf) {
                     repository.writeExport("$name.pdf", InkExport.notePdf(note))
@@ -198,7 +213,11 @@ class InkNoteActivity : ComponentActivity() {
     }
 }
 
-private val ToolPadding = PaddingValues(horizontal = 9.dp, vertical = 16.dp)
+/** The fine line between a rail of tools and the page. */
+@Composable
+internal fun VerticalRule() {
+    Box(modifier = Modifier.fillMaxHeight().width(EinkDimens.hairline).background(EinkColors.Ink))
+}
 
 @Composable
 internal fun InkNoteScreen(
@@ -236,72 +255,43 @@ internal fun InkNoteScreen(
         canvas?.mode = next
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(EinkColors.Paper)
-            .systemBarsPadding(),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            InvertPressButton(text = "Close", onClick = onClose, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(text = "Pen", selected = mode == InkMode.Pen, onClick = { pick(InkMode.Pen) }, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(text = "Marker", selected = mode == InkMode.Highlighter, onClick = { pick(InkMode.Highlighter) }, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(text = "Eraser", selected = mode == InkMode.Eraser, onClick = { pick(InkMode.Eraser) }, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(
-                text = PenWidths.label(width),
-                onClick = {
-                    width = PenWidths.all[(PenWidths.all.indexOf(width) + 1) % PenWidths.all.size]
-                    canvas?.penWidth = width
-                    onWidth(width)
-                },
-                contentPadding = ToolPadding,
-                compact = true,
-            )
-            InvertPressButton(text = "Undo", onClick = { canvas?.undo() }, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(text = "Redo", onClick = { canvas?.redo() }, contentPadding = ToolPadding, compact = true)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp).padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            InvertPressButton(text = "Previous", enabled = pageIndex > 0, onClick = { turn(-1) }, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(text = "Next", enabled = pageIndex < pageCount - 1, onClick = { turn(1) }, contentPadding = ToolPadding, compact = true)
-            InvertPressButton(
-                text = "Add page",
-                onClick = {
-                    controller.addPage()
-                    refreshPages()
-                },
-                contentPadding = ToolPadding,
-                compact = true,
-            )
-            InvertPressButton(
-                text = "More",
-                onClick = {
-                    onDialog(true)
-                    menuOpen = true
-                },
-                contentPadding = ToolPadding,
-                compact = true,
-            )
-            CapsLabel(
-                text = "Page ${pageIndex + 1} of $pageCount" + if (title.isBlank()) "" else "  .  $title",
-                style = EinkType.capsSmall,
-                modifier = Modifier.weight(1f).padding(start = 8.dp),
-            )
-        }
-        notice?.let {
-            EinkText(text = it, style = EinkType.body, maxLines = 2, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
-        }
-        HairlineDivider()
-
+    val drawTools: @Composable () -> Unit = {
+        IconPressButton(icon = Lucide.X, label = "Close", onClick = onClose)
+        InkModeButtons(mode = mode, onPick = ::pick)
+        PenWidthButton(
+            width = width,
+            onNext = {
+                width = PenWidths.all[(PenWidths.all.indexOf(width) + 1) % PenWidths.all.size]
+                canvas?.penWidth = width
+                onWidth(width)
+            },
+        )
+        IconPressButton(icon = Lucide.Undo2, label = "Undo", onClick = { canvas?.undo() })
+        IconPressButton(icon = Lucide.Redo2, label = "Redo", onClick = { canvas?.redo() })
+    }
+    val pageTools: @Composable () -> Unit = {
+        IconPressButton(icon = Lucide.ChevronLeft, label = "Previous page", enabled = pageIndex > 0, onClick = { turn(-1) })
+        IconPressButton(icon = Lucide.ChevronRight, label = "Next page", enabled = pageIndex < pageCount - 1, onClick = { turn(1) })
+        IconPressButton(
+            icon = Lucide.FilePlus,
+            label = "Add a page",
+            onClick = {
+                controller.addPage()
+                refreshPages()
+            },
+        )
+        IconPressButton(
+            icon = Lucide.Ellipsis,
+            label = "More",
+            onClick = {
+                onDialog(true)
+                menuOpen = true
+            },
+        )
+    }
+    val page: @Composable (Modifier) -> Unit = { pageModifier ->
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = pageModifier,
             factory = { context ->
                 InkCanvasView(context).also { view ->
                     view.onPageSwipe = { direction -> turn(direction) }
@@ -311,16 +301,78 @@ internal fun InkNoteScreen(
             },
         )
     }
+    val pageLabel = "${pageIndex + 1} of $pageCount"
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(EinkColors.Paper)
+            .systemBarsPadding(),
+    ) {
+        if (maxWidth > maxHeight) {
+            // On its side the tablet has width to spare and no height, so the
+            // tools stand in a rail down each edge and the page keeps the
+            // whole height.
+            Row(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier.fillMaxHeight().padding(4.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) { drawTools() }
+                VerticalRule()
+                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    notice?.let {
+                        EinkText(text = it, style = EinkType.body, maxLines = 2, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+                    }
+                    page(Modifier.fillMaxSize())
+                }
+                VerticalRule()
+                Column(
+                    modifier = Modifier.fillMaxHeight().padding(4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    RotateButton()
+                    pageTools()
+                    Spacer(modifier = Modifier.weight(1f))
+                    CapsLabel(text = pageLabel, style = EinkType.capsSmall)
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) { drawTools() }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    pageTools()
+                    CapsLabel(
+                        text = pageLabel + if (title.isBlank()) "" else "  .  $title",
+                        style = EinkType.capsSmall,
+                        modifier = Modifier.weight(1f).padding(start = 8.dp),
+                    )
+                    RotateButton()
+                }
+                notice?.let {
+                    EinkText(text = it, style = EinkType.body, maxLines = 2, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+                }
+                HairlineDivider()
+                page(Modifier.fillMaxSize())
+            }
+        }
+    }
 
     if (menuOpen) {
         OptionsDialog(
             title = "Page ${pageIndex + 1}",
             options = listOf(
-                DialogOption("Page template") { menuOpen = false; templatesOpen = true },
-                DialogOption("Export this page as a picture") { menuOpen = false; onDialog(false); notice = onExport(false) },
-                DialogOption("Export the note as a PDF") { menuOpen = false; onDialog(false); notice = onExport(true) },
-                DialogOption("Clear this page") { menuOpen = false; confirmClear = true },
-                DialogOption("Delete this page") { menuOpen = false; confirmDelete = true },
+                DialogOption("Page template", icon = Lucide.FileText) { menuOpen = false; templatesOpen = true },
+                DialogOption("Export this page as a picture", icon = Lucide.Image) { menuOpen = false; onDialog(false); notice = onExport(false) },
+                DialogOption("Export the note as a PDF", icon = Lucide.Share) { menuOpen = false; onDialog(false); notice = onExport(true) },
+                DialogOption("Clear this page", icon = Lucide.Eraser) { menuOpen = false; confirmClear = true },
+                DialogOption("Delete this page", icon = Lucide.Trash2) { menuOpen = false; confirmDelete = true },
             ),
             onDismiss = { menuOpen = false; onDialog(false) },
         )

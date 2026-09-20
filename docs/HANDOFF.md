@@ -2,7 +2,8 @@
 
 For the next session, wherever it runs. Rewritten 2026-09-20 by the session
 that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9. Section 2b was
-added the same day by the session that built the in-app update.
+added the same day by the session that built the in-app update, and section
+2c by the session that did the owner's first list of changes.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
@@ -86,6 +87,31 @@ changed"` makes a release with one command. Decision 0012 and
 - The app has the internet permission now. `CLAUDE.md` has the network rules
   that keep that honest. Read them before adding anything that goes online.
 
+### 2c. The owner's first list changed the look and the plan
+
+On 2026-09-20 the owner used the first build and asked for eight changes. All
+are done: `PROGRESS.md`, top section, and decisions 0013 to 0015. What a new
+session must know:
+
+- **The plan was changed, by the owner.** Icons in place of words, round
+  corners, landscape, a split screen, "Home" in place of "Today". `plan.md`
+  sections 3.1, 5 and 6 say so with the date. Do not "fix" the app back to
+  words and square boxes because an older document says so.
+- **Icons are Lucide, and there is no icon library.** `tools/lucide.py` writes
+  `design/icons/LucideIcons.kt` from a pinned release. Add a name to
+  `tools/lucide-icons.txt`, run the script. Never edit the Kotlin file.
+- **Screens are built for two shapes.** `ScreenScaffold` gives `LocalWideScreen`.
+  `ScreensScreenshotTest` draws every screen upright and on its side. Add a
+  new screen there and look at both pictures.
+- **`PagedList` wants a `rowHeight`.** See trap 8.
+- **`ScreenWindow.attach(this)`** is the first line of every user activity.
+- **The split screen is inside the readers**: `ui/split/NotePane.kt`. It is
+  not Android's multi-window.
+- The emulator runs with no window too, which is how this session used it:
+  `emulator -avd eink_tablet -no-window`, then `adb exec-out screencap -p`.
+  A book can be pushed straight into the data folder with `adb push`, which
+  skips the file picker.
+
 ---
 
 ## 3. What to do next, in order
@@ -127,6 +153,11 @@ Still open from step 4. Settings, Help, "Design demo", Dev, "Time 500 files".
 6. `TextPromptDialog` does not take the focus when it opens, so every prompt
    costs one extra tap before the keyboard comes. Small, and it touches every
    prompt in the app, so it wants a look on the tablet first.
+7. The split screen opens the note of the book and no other. Choosing any
+   note, and opening a book from a note, were left out on purpose. Ask the
+   owner whether he misses them before building them.
+8. With a handwritten note beside a PDF, the fast pen serves the note only.
+   Once the fast pen works on the tablet, check how that feels.
 
 ---
 
@@ -208,7 +239,21 @@ agree, because plan section 4 says "no GPL".
    `build.gradle.kts` puts the Kotlin Gradle plugin 2.4.20 on the build
    classpath. If a dependency ever says "compiled with an incompatible
    version of Kotlin", that line is where to look.
-7. **Robolectric runs at API 36**, set in
+7. **A fixed page size overflows.** No screen scrolls, so a list that asks for
+   more rows than fit just loses them. The Apps tab lost two apps a page that
+   way and nobody saw it, because it had no screenshot test. Give `PagedList`
+   a `rowHeight` and it works out the count itself.
+8. **Text that is one pixel too tall loses its last line.** Compose ends the
+   line before with three dots and drops the rest, with no warning. A row
+   height that is the exact sum of its line heights will do this. Leave a few
+   dp to spare, and look at the picture.
+9. **A screen that loads from the disk races in a screenshot test.** In a
+   test, the code after `withContext(Dispatchers.IO)` goes on running on the
+   background thread, and writes Compose state in the middle of a layout pass
+   on the main thread. Sometimes the screen never hears of it. It shows up as
+   a test that passes alone and fails after another one. Screens use
+   `AppDispatchers.io`, and `ScreensScreenshotTest` sets it to run in place.
+10. **Robolectric runs at API 35**, set in
    `app/src/test/resources/robolectric.properties`, while the app compiles
    against API 37. Raise it when Robolectric ships an API 37 sandbox.
 

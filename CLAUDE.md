@@ -32,7 +32,8 @@ Read this file at the start of every session. It is the short form of
 3. Pure black `#000000` on pure white `#FFFFFF`. No cream. No beige.
 4. Grey is for large inactive text only.
 5. The pressed state is an instant colour invert. No shadows, no elevation,
-   no gradients. Lines are 1 dp or 2 dp.
+   no gradients. Lines are 1 dp or 2 dp. Corners are round: the owner asked
+   for that. Shapes come from `EinkShapes`.
 6. Touch targets are 56 dp or more, with space between them for finger and pen.
 7. Change as few pixels as possible per update. The clock updates once a minute.
 8. Ask for a full refresh through `EinkDevice` after a big screen change, once
@@ -46,15 +47,29 @@ Read this file at the start of every session. It is the short form of
   components in `design/components/`.
 - Every tap target goes through `Modifier.einkClickable`, which passes
   `indication = null`.
+- A control is an icon, not a word: `IconPressButton`, with a label for the
+  screen reader. Icons are Lucide icons, drawn by `EinkIcon`. To add one, put
+  its name in `tools/lucide-icons.txt` and run `tools/lucide.py`. Words stay
+  for the answer to "Delete this?", for values, and for Settings rows.
 - Text goes through `EinkText` or `CapsLabel`, never `BasicText` directly.
 - Lists go through `PagedList`. Do not add a `LazyColumn` to a user screen.
+  Give it a `rowHeight`, so it works out the page size from the room it has.
+  A fixed page size overflowed twice. Leave a row a few dp to spare: text
+  that is one pixel too tall loses its last line.
+- A screen uses `ScreenScaffold`, which has the way back and the icon that
+  turns the screen. It lays itself out by `LocalWideScreen`, not by the
+  device: half of a split screen is tall on a wide tablet.
+- An activity calls `ScreenWindow.attach(this)` first in `onCreate`, and
+  declares `orientation|screenSize` in the manifest like the others.
+- Slow work in a screen runs on `AppDispatchers.io`, never `Dispatchers.IO`.
+  The screenshot tests need that.
 - Dialogs go through `EinkDialog`, never `Dialog`. The platform dialog fades
   and dims the screen behind it.
 - Text fields go through `EinkTextField`, never `BasicTextField`. The platform
   cursor blinks.
-- A screen that does not scroll can overflow. Add a screenshot test for every
-  new screen and look at the PNG. A control that falls off the bottom of a
-  home app is a trap.
+- A screen that does not scroll can overflow. Add every new screen to
+  `ScreensScreenshotTest`, which runs upright and on its side, and look at
+  both PNG files. A control that falls off the bottom of a home app is a trap.
 - Every reflection call into a vendor API is wrapped in `runCatching` and
   writes its result to `AppLog`. A vendor API must never crash the app.
 
@@ -97,6 +112,9 @@ shrinking is off, so an APK reads almost like the source.
 app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
   core/log/      file logger, crash handler
   core/storage/  data folder, file store, backup, index
+  core/apps/     the folders on the Apps tab. No Android.
+  core/window/   screen orientation and the status bar, for every activity
+  core/threads/  the background dispatcher the screens use
   core/settings/ the few values that live in DataStore
   core/launcher/ becoming the home app
   core/eink/     EinkDevice, the ViWoods layer by reflection, the crash guard
@@ -105,9 +123,11 @@ app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
   core/pdf/      screens of a page, margin search, ink sidecar files
   core/update/   the in-app update from GitHub Releases. The only network code.
   ui/ink/        the ink canvas, the handwriting screen, export
+  ui/split/      the note pane of the split screen
   ui/reading/epub/  the Readium reader
   ui/reading/pdf/   the PDF reader
-  design/        colours, type, sizes, theme
+  design/        colours, type, sizes, shapes, theme
+  design/icons/  the Lucide icons, written by tools/lucide.py
   design/components/  the design system
   ui/            screens
 app/src/debug/   the dev panel, internet permission, file provider
@@ -129,4 +149,5 @@ finished, and which traps have already cost a day.
 tools/deploy.sh viwoods 8000            build and serve the APK on the LAN
 tools/release.sh 0.1.1 "what changed"   tag a release. GitHub builds it, the app finds it
 tools/emulator.sh                       run the app in an emulator on the dev machine
+tools/lucide.py                         write the icon file again after a change to the icon list
 ```

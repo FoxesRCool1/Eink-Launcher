@@ -1,11 +1,13 @@
 package io.github.foxesrcool1.einklauncher.ui.home
 
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
+import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * The strings on Today.
+ * The strings on Home.
  *
  * Kept free of Android so the unit tests can check them at a fixed time.
  */
@@ -20,8 +22,17 @@ object HomeStrings {
     fun time(now: LocalDateTime, use24Hour: Boolean): String =
         if (use24Hour) TIME_24.format(now) else TIME_12.format(now)
 
+    /** The battery icon for a charge: full, half, low, and a warning under 15 %. */
+    fun batteryIcon(percent: Int): LucideIcon = when {
+        percent >= 70 -> Lucide.BatteryFull
+        percent >= 35 -> Lucide.BatteryMedium
+        percent >= 15 -> Lucide.BatteryLow
+        else -> Lucide.BatteryWarning
+    }
+
     /**
-     * The one line status under the clock. Parts that are not known are left
+     * The status line in words. The screen shows it as icons, and a screen
+     * reader speaks this. Parts that are not known are left
      * out rather than shown as a guess.
      */
     fun status(batteryPercent: Int?, onWifi: Boolean): String {

@@ -11,13 +11,17 @@ Made for the ViWoods AiPaper Mini (8.2 inch E Ink Carta 1000, 1440 x 1920,
 Wacom EMR pen, Android 13). The `generic` build runs on any Android 10 or
 newer device, with no ViWoods code in it.
 
-| Today | Reading | Notes on a book |
+| Home | Reading | Notes on a book |
 | --- | --- | --- |
-| ![Today](docs/screenshots/today.png) | ![The reader menu](docs/screenshots/reader_menu.png) | ![Highlights](docs/screenshots/reader_notes.png) |
+| ![Home](docs/screenshots/home.png) | ![The reader menu](docs/screenshots/reader_menu.png) | ![Highlights](docs/screenshots/reader_notes.png) |
 
-| Handwriting | Journal month |
+| Handwriting | Journal month | Settings |
+| --- | --- | --- |
+| ![A handwritten note](docs/screenshots/ink_note_screen.png) | ![The month view](docs/screenshots/month_view.png) | ![Settings](docs/screenshots/settings.png) |
+
+| On its side | A book and a note, side by side |
 | --- | --- |
-| ![A handwritten note](docs/screenshots/ink_note_screen.png) | ![The month view](docs/screenshots/month_view.png) |
+| ![Home in landscape](docs/screenshots/home_land.png) | ![The split screen](docs/screenshots/split_screen_land.png) |
 
 The pictures come from the screenshot tests. The book text in them is the
 opening of *Walden* by Henry David Thoreau (1854), which is in the public
@@ -25,25 +29,33 @@ domain.
 
 ## What it does
 
-- **Today.** Date and time, four large words, battery and Wi-Fi, the next
-  item of your routine, and a quick note.
+- **Home.** Date and time, four large line icons, battery and Wi-Fi, the next
+  item of your routine, and a quick note. The Android status bar is hidden.
 - **Read.** Import EPUB and PDF files. EPUB: pages, not a scroll; font, size,
   margins and line spacing; highlights with typed notes or a handwritten note
   card. PDF: one screen of a page at a time, four zoom steps, crop margins,
   and the pen straight on the page. A reading timer and a daily goal.
+- **Split screen.** In a book, one icon opens a note beside the page: typed
+  or handwritten, one of each per book. It is made for the tablet on its
+  side, and it works upright too.
 - **Write.** Folders, typed Markdown notes with autosave and word count, and
   handwritten notebooks on blank, lined or dot grid pages. Export to PDF and
   PNG. Works with a Bluetooth keyboard.
 - **Journal.** One entry a day, typed or handwritten. A month view. Habits
   with streaks. A routine for the day.
-- **Apps.** Up to eight pinned apps as plain text, and every app from A to Z.
+- **Apps.** Up to eight pinned apps as plain text, your own folders of apps,
+  and every app from A to Z.
+- **Landscape.** A small grey icon at the top of every screen turns the
+  screen on its side, and back.
 
 ## How it is made for e-ink
 
 - No animations. None. Not in page turns, dialogs, buttons or the text
   cursor.
-- Pages, not scrolling. Every list has Previous and Next.
+- Pages, not scrolling. Every list works out how many rows fit, and has a
+  page before and a page after.
 - Pure black on pure white. A press turns a control black at once.
+- Line icons and round corners, no shadows and no gradients.
 - As few pixels as possible change at a time. The clock changes once a
   minute. The pen repaints only the small box around the newest piece of a
   line.
@@ -59,6 +71,7 @@ EinkLauncher/
   notes/          your folders, *.md typed, *.inknote handwritten
   journal/        2026/2026-09-20.md, 2026/2026-09-20.inknote
   habits/         habits.json, log.csv, routine.json
+  apps/           folders.json, the folders on the Apps tab
   exports/
 ```
 
@@ -112,7 +125,7 @@ with read access to "Contents". A public repository needs none.
      2. Open DevCheck, go to the Apps tab and tap Eink Launcher.
      3. Tap Manage. The standard app info screen opens.
      4. Tap "Set as default", then "Home app", then Eink Launcher.
-5. Press the Home key. You should land on Today.
+5. Press the Home key. You should land on Home.
 
 ### Go back to the stock launcher
 
@@ -203,8 +216,9 @@ the state of the work, `docs/decisions/` one short file per decision,
 - [Readium Kotlin Toolkit](https://github.com/readium/kotlin-toolkit), the
   EPUB engine. BSD 3-Clause.
 - Fonts: Bodoni Moda, Jost and Literata, all SIL Open Font License 1.1.
-- The corner drawing and the icon are original work for this project. No
-  other art is used yet.
+- [Lucide](https://lucide.dev): every icon, the plant drawings and the app
+  icon. ISC License. Some of the icons come from Feather, MIT License. The
+  licence text is in `licenses/lucide/LICENSE`.
 
 `ASSETS.md` lists every font and drawing with its source.
 `licenses/DEPENDENCIES.md` lists every library with its licence.

@@ -3,9 +3,11 @@ package io.github.foxesrcool1.einklauncher.design.components
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -18,10 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkType
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 
 /** Keeps the page index of a [PagedList] across recomposition and rotation. */
 @Stable
@@ -56,11 +61,21 @@ private val PagedListStateSaver =
     )
 
 /**
- * One page of rows, with Previous and Next below.
+ * One page of rows, with a way to the page before and the page after below.
  *
  * E-ink rule 2: paginate, do not scroll. A scroll repaints the whole panel on
  * every frame and leaves a grey smear. A page turn repaints once. A swipe left
  * or right turns exactly one page.
+ *
+ * Give [rowHeight] and the list works out by itself how many rows fit the
+ * room it has, and every row is made exactly that tall. That is what a screen
+ * wants: the same list has to fit the tablet upright, on its side, and in half
+ * of a split screen, and a fixed count fits only one of those. A fixed
+ * [pageSize] did overflow once: eight apps were asked for where six fit, and
+ * the last two of every page could not be seen. [pageSize] alone is for rows
+ * whose height is not known, and the caller then has to make sure they fit.
+ *
+ * A list that fits on one page shows no page controls at all.
  */
 @Composable
 fun <T> PagedList(
@@ -69,8 +84,34 @@ fun <T> PagedList(
     modifier: Modifier = Modifier,
     state: PagedListState = rememberPagedListState(),
     emptyText: String = "Nothing here yet",
-    previousText: String = "Previous",
-    nextText: String = "Next",
+    rowHeight: Dp? = null,
+    itemContent: @Composable (index: Int, item: T) -> Unit,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val size = if (rowHeight != null && constraints.hasBoundedHeight) {
+            val fitsAlone = (maxHeight / rowHeight).toInt().coerceAtLeast(1)
+            if (items.size <= fitsAlone) {
+                fitsAlone
+            } else {
+                ((maxHeight - PagerHeight) / rowHeight).toInt().coerceAtLeast(1)
+            }
+        } else {
+            pageSize
+        }
+        PagedListPage(items, size, state, emptyText, rowHeight, itemContent)
+    }
+}
+
+/** The page controls: a 56 dp target and the gap above it. */
+private val PagerHeight = EinkDimens.touchTarget + EinkDimens.targetGap
+
+@Composable
+private fun <T> PagedListPage(
+    items: List<T>,
+    pageSize: Int,
+    state: PagedListState,
+    emptyText: String,
+    rowHeight: Dp?,
     itemContent: @Composable (index: Int, item: T) -> Unit,
 ) {
     val page = Pagination.clampPage(state.page, items.size, pageSize)
@@ -83,7 +124,7 @@ fun <T> PagedList(
     var dragTotal by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .pointerInput(items.size, pageSize) {
                 detectHorizontalDragGestures(
@@ -111,39 +152,53 @@ fun <T> PagedList(
                 ) {
                     CapsLabel(
                         text = emptyText,
-                        style = EinkType.caps.copy(color = EinkColors.Faded),
+                        style = EinkType.caps.copy(color = EinkColors.Faded, textAlign = TextAlign.Center),
+                        maxLines = 3,
                     )
                 }
             } else {
                 visible.forEachIndexed { offset, item ->
-                    itemContent(firstIndex + offset, item)
+                    if (rowHeight != null) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().height(rowHeight),
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            itemContent(firstIndex + offset, item)
+                        }
+                    } else {
+                        itemContent(firstIndex + offset, item)
+                    }
                 }
             }
         }
 
-        HairlineDivider()
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = EinkDimens.targetGap),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            InvertPressButton(
-                text = previousText,
-                onClick = { state.previous(items.size, pageSize) },
-                enabled = Pagination.hasPrevious(page),
-            )
-            CapsLabel(
-                text = "Page ${page + 1} of $pageCount",
-                style = EinkType.capsSmall,
-            )
-            InvertPressButton(
-                text = nextText,
-                onClick = { state.next(items.size, pageSize) },
-                enabled = Pagination.hasNext(page, items.size, pageSize),
-            )
+        if (pageCount > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = EinkDimens.targetGap),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconPressButton(
+                    icon = Lucide.ChevronLeft,
+                    label = "Previous page",
+                    onClick = { state.previous(items.size, pageSize) },
+                    enabled = Pagination.hasPrevious(page),
+                    bordered = true,
+                )
+                CapsLabel(
+                    text = "${page + 1} of $pageCount",
+                    style = EinkType.capsSmall,
+                )
+                IconPressButton(
+                    icon = Lucide.ChevronRight,
+                    label = "Next page",
+                    onClick = { state.next(items.size, pageSize) },
+                    enabled = Pagination.hasNext(page, items.size, pageSize),
+                    bordered = true,
+                )
+            }
         }
     }
 }

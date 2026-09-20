@@ -24,7 +24,8 @@ import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
-import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
 import io.github.foxesrcool1.einklauncher.design.components.rememberPagedListState
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
@@ -53,19 +54,16 @@ fun LogViewerScreen(
     ScreenScaffold(
         title = "Log",
         overline = "Newest first",
-        corner = null,
         modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
-        ) {
-            if (onBack != null) {
-                InvertPressButton(text = "Back", onClick = onBack, bordered = false)
-            }
-            InvertPressButton(text = "Refresh", onClick = { refreshToken++ })
-            InvertPressButton(
-                text = "Copy to download",
+        onBack = onBack,
+        backIcon = Lucide.ArrowLeft,
+        backLabel = "Back",
+        actions = {
+            IconPressButton(icon = Lucide.RefreshCw, label = "Read the log again", onClick = { refreshToken++ })
+            IconPressButton(
+                icon = Lucide.Download,
+                label = "Copy the log files to the Download folder",
+                bordered = true,
                 onClick = {
                     val copied = onCopyToDownloads?.invoke()
                         ?: AppLog.copyAllToDownloads(context)
@@ -73,18 +71,17 @@ fun LogViewerScreen(
                     refreshToken++
                 },
             )
-        }
-
+        },
+    ) {
         if (status != null) {
-            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
             CapsLabel(text = status.orEmpty(), style = EinkType.capsSmall)
+            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
         }
-
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
 
         PagedList(
             items = lines,
-            pageSize = 12,
+            pageSize = 5,
+            rowHeight = LogRowHeight,
             state = state,
             emptyText = "No log lines yet",
             modifier = Modifier.weight(1f),
@@ -94,9 +91,12 @@ fun LogViewerScreen(
     }
 }
 
+/** The level and the tag, two lines of the message, and the rule. */
+private val LogRowHeight = 70.dp
+
 @Composable
 private fun LogRow(line: LogLine) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         CapsLabel(
             text = "${line.level.short}  ${line.tag}",
             style = EinkType.capsSmall.copy(
@@ -105,8 +105,8 @@ private fun LogRow(line: LogLine) {
         )
         EinkText(
             text = line.message,
-            style = EinkType.body,
-            maxLines = 3,
+            style = EinkType.help,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         Spacer(modifier = Modifier.height(4.dp))

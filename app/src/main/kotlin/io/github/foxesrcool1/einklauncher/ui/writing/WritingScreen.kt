@@ -14,12 +14,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.einklauncher.core.ink.InkNoteLoad
 import io.github.foxesrcool1.einklauncher.core.ink.InkNotesRepository
 import io.github.foxesrcool1.einklauncher.core.ink.PageTemplate
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.ui.ink.InkExport
 import io.github.foxesrcool1.einklauncher.core.notes.NoteEntry
 import io.github.foxesrcool1.einklauncher.core.notes.NoteText
@@ -33,15 +36,18 @@ import io.github.foxesrcool1.einklauncher.design.EinkType
 import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.ConfirmDialog
 import io.github.foxesrcool1.einklauncher.design.components.DialogOption
+import io.github.foxesrcool1.einklauncher.design.components.EinkIcon
 import io.github.foxesrcool1.einklauncher.design.components.EinkRow
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
+import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
+import io.github.foxesrcool1.einklauncher.design.components.Plants
 import io.github.foxesrcool1.einklauncher.design.components.TextPromptDialog
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -85,7 +91,7 @@ fun WritingScreen(
     var addingFolder by remember { mutableStateOf(false) }
 
     LaunchedEffect(folder, refresh) {
-        rows = withContext(Dispatchers.IO) { notes.list(folder) }
+        rows = withContext(AppDispatchers.io) { notes.list(folder) }
     }
 
     LaunchedEffect(newNoteRequests) {
@@ -94,7 +100,7 @@ fun WritingScreen(
 
     fun openNewNote(title: String) {
         scope.launch {
-            val path = withContext(Dispatchers.IO) { notes.createNote(folder, title) }
+            val path = withContext(AppDispatchers.io) { notes.createNote(folder, title) }
             refresh++
             if (path != null) {
                 onOpenNote(path)
@@ -110,7 +116,7 @@ fun WritingScreen(
             val name = title.ifBlank {
                 "Handwritten " + java.time.LocalDateTime.now().withNano(0).toString().replace(':', '-')
             }
-            val path = withContext(Dispatchers.IO) { inkNotes.create(folder, name, template) }
+            val path = withContext(AppDispatchers.io) { inkNotes.create(folder, name, template) }
             refresh++
             if (path != null) {
                 onOpenInkNote(path, name)
@@ -122,7 +128,7 @@ fun WritingScreen(
 
     fun export(entry: NoteEntry) {
         scope.launch {
-            val written = withContext(Dispatchers.IO) {
+            val written = withContext(AppDispatchers.io) {
                 runCatching {
                     val stem = entry.name.substringBeforeLast('.')
                     if (StorageLayout.isInkNote(entry.name)) {
@@ -139,33 +145,35 @@ fun WritingScreen(
 
     ScreenScaffold(
         title = "Write",
-        overline = folder.removePrefix("${StorageLayout.NOTES}/").ifBlank { "All notes" },
-        corner = null,
+        overline = if (notes.isRoot(folder)) "All notes" else folder.removePrefix("${StorageLayout.NOTES}/"),
+        plant = Plants.Writing,
+        onBack = onBack,
         modifier = modifier,
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            InvertPressButton(text = "New note", onClick = { choosingKind = true })
-            InvertPressButton(text = "New folder", onClick = { addingFolder = true })
-            InvertPressButton(
-                text = "Up",
+        actions = {
+            IconPressButton(icon = Lucide.FilePlus, label = "New note", bordered = true, onClick = { choosingKind = true })
+            IconPressButton(icon = Lucide.FolderPlus, label = "New folder", onClick = { addingFolder = true })
+            IconPressButton(
+                icon = Lucide.FolderUp,
+                label = "Up one folder",
                 enabled = !notes.isRoot(folder),
                 onClick = { folder = notes.parentOf(folder) },
             )
-        }
-
+        },
+    ) {
         if (marked != null || status != null) {
-            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 val pending = marked
                 if (pending != null) {
                     InvertPressButton(
                         text = "Paste here",
+                        icon = Lucide.FolderInput,
                         onClick = {
                             scope.launch {
-                                val moved = withContext(Dispatchers.IO) {
+                                val moved = withContext(AppDispatchers.io) {
                                     notes.move(pending.path, folder)
                                 }
                                 status = if (moved) {
@@ -178,13 +186,13 @@ fun WritingScreen(
                             }
                         },
                     )
-                    InvertPressButton(
-                        text = "Cancel move",
+                    IconPressButton(
+                        icon = Lucide.X,
+                        label = "Cancel the move",
                         onClick = {
                             marked = null
                             status = null
                         },
-                        bordered = false,
                     )
                 }
                 if (status != null) {
@@ -197,12 +205,10 @@ fun WritingScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(EinkDimens.blockGap))
-        HairlineDivider(color = EinkColors.Faded)
-
         PagedList(
             items = rows,
             pageSize = ROWS_PER_PAGE,
+            rowHeight = EinkDimens.rowTwoLines,
             emptyText = "No notes in here yet",
             modifier = Modifier.weight(1f),
         ) { _, row ->
@@ -225,13 +231,6 @@ fun WritingScreen(
                 onOptions = { optionsFor = row },
             )
         }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            InvertPressButton(text = "Today", onClick = onBack, bordered = false)
-        }
     }
 
     val selected = optionsFor
@@ -240,20 +239,20 @@ fun WritingScreen(
             title = selected.title,
             onDismiss = { optionsFor = null },
             options = listOfNotNull(
-                DialogOption(label = "Export as PDF") {
+                DialogOption(label = "Export as PDF", icon = Lucide.Share) {
                     export(selected)
                     optionsFor = null
                 }.takeIf { !selected.isFolder },
-                DialogOption(label = "Rename") {
+                DialogOption(label = "Rename", icon = Lucide.Pencil) {
                     renaming = selected
                     optionsFor = null
                 },
-                DialogOption(label = "Move") {
+                DialogOption(label = "Move", icon = Lucide.FolderInput) {
                     marked = selected
                     status = "Open a folder, then press Paste here"
                     optionsFor = null
                 },
-                DialogOption(label = "Delete") {
+                DialogOption(label = "Delete", icon = Lucide.Trash2) {
                     deleting = selected
                     optionsFor = null
                 },
@@ -266,12 +265,12 @@ fun WritingScreen(
             title = "New note",
             onDismiss = { choosingKind = false },
             options = listOf(
-                DialogOption(label = "Typed") {
+                DialogOption(label = "Typed", icon = Lucide.Keyboard) {
                     choosingKind = false
                     addingNote = true
                 },
             ) + PageTemplate.entries.map { template ->
-                DialogOption(label = "Handwritten, ${template.label.lowercase()}") {
+                DialogOption(label = "Handwritten, ${template.label.lowercase()}", icon = Lucide.Signature) {
                     choosingKind = false
                     addingInkNote = template
                 }
@@ -312,7 +311,7 @@ fun WritingScreen(
             onConfirm = { name ->
                 addingFolder = false
                 scope.launch {
-                    val made = withContext(Dispatchers.IO) { notes.createFolder(folder, name) }
+                    val made = withContext(AppDispatchers.io) { notes.createFolder(folder, name) }
                     if (!made) status = "The folder could not be made"
                     refresh++
                 }
@@ -329,7 +328,7 @@ fun WritingScreen(
             onConfirm = { name ->
                 renaming = null
                 scope.launch {
-                    withContext(Dispatchers.IO) { notes.rename(beingRenamed.path, name) }
+                    withContext(AppDispatchers.io) { notes.rename(beingRenamed.path, name) }
                     refresh++
                 }
             },
@@ -351,7 +350,7 @@ fun WritingScreen(
             onConfirm = {
                 deleting = null
                 scope.launch {
-                    val gone = withContext(Dispatchers.IO) { notes.delete(beingDeleted.path) }
+                    val gone = withContext(AppDispatchers.io) { notes.delete(beingDeleted.path) }
                     status = if (gone) "Deleted ${beingDeleted.name}" else "Could not delete it"
                     AppLog.i(TAG, "Delete of ${beingDeleted.path}: $gone")
                     if (marked?.path == beingDeleted.path) marked = null
@@ -375,7 +374,7 @@ private fun NoteRow(
 
     LaunchedEffect(entry.path) {
         if (!entry.isFolder && StorageLayout.isTypedNote(entry.name)) {
-            preview = withContext(Dispatchers.IO) { NoteText.preview(notes.read(entry.path)) }
+            preview = withContext(AppDispatchers.io) { NoteText.preview(notes.read(entry.path)) }
         }
     }
 
@@ -383,13 +382,22 @@ private fun NoteRow(
         val foreground = if (pressed) EinkColors.Paper else EinkColors.Ink
         val faded = if (pressed) EinkColors.Paper else EinkColors.Faded
 
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+        EinkIcon(
+            icon = when {
+                entry.isFolder -> Lucide.Folder
+                StorageLayout.isInkNote(entry.name) -> Lucide.Signature
+                else -> Lucide.FileText
+            },
+            color = foreground,
+        )
+        Column(modifier = Modifier.weight(1f)) {
             EinkText(
-                text = buildString {
-                    if (entry.isFolder) append("/ ")
-                    append(entry.title)
-                    if (marked) append("   (moving)")
-                },
+                text = if (marked) "${entry.title}   (moving)" else entry.title,
                 style = EinkType.rowTitle.copy(color = foreground),
                 maxLines = 1,
             )
@@ -404,6 +412,7 @@ private fun NoteRow(
                 style = EinkType.capsSmall.copy(color = faded),
                 maxLines = 1,
             )
+        }
         }
     }
     HairlineDivider(color = EinkColors.Faded)
