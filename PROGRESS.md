@@ -24,7 +24,7 @@ Date: 2026-09-20. Branch `in-app-updates`, on top of `dev-emulator`.
 
 ### What works
 
-Build, 435 unit tests in each flavour, and lint, all green. In the emulator,
+Build, 447 unit tests in each flavour, and lint, all green. In the emulator,
 on Android 13, by hand:
 
 - The whole update from 0.1.0 to 0.1.1: check, access token dialog, download
@@ -67,6 +67,36 @@ on Android 13, by hand:
    Every web view of the book engine has its network loads blocked. Checked in
    the emulator: the pages still show, and the log says "offline: true".
 10. A failed ink save was not tried again until the next pen stroke.
+11. **Two habits ticked one after the other could lose the first tick.** Each
+    tap read the whole log, changed it and wrote it back on its own thread.
+    The same for routine items. The changes take turns now. A test runs the
+    race 40 times, and fails without the fix.
+12. **A `habits.json` with a typo in it was wiped by the next "Add habit".**
+    It read as an empty list, and the new list went over it. A copy is kept
+    first, as `habits.unreadable.json`. The same for `routine.json`.
+13. **Deleting a book that would not delete still deleted its highlights and
+    handwriting.** The book goes first now, and the notes only after it.
+14. **A second book with the same file name was dropped**, with the message
+    "already in the library". A picker that gives no name calls every file
+    "book.epub". The size tells two books apart now, and the second one is
+    stored as "book 2.epub".
+15. **The Journal worked out "today" once.** A tablet left on the Journal
+    overnight put the first ticks of the new day onto yesterday. It works the
+    date out again each time the screen comes back. Today does the same for
+    the Next line.
+16. **After the last row of the last page was deleted, the first press of
+    Previous did nothing**, in every list of the app.
+17. **PDF: a turn back onto a page with more than one screen showed "part
+    -2147483648"** for the length of one render, which on this panel is long
+    enough to read.
+18. **Apps listed a home app with no name.** It is the blank screen inside
+    Android's own settings app, and every Android has it. It is left out now.
+    The way out to the stock launcher also asks with the HOME category, which
+    is what Android 13 wants.
+
+Bugs 11 to 17 came from two review passes by a second model. Each one was
+checked in the code before it was fixed, and the fix was run in the emulator
+where a screen was involved.
 
 ### What does not work, or is not known
 

@@ -59,3 +59,28 @@ class PaginationTest {
         Pagination.pageCount(itemCount = 3, pageSize = 0)
     }
 }
+
+class PagedListStateTest {
+
+    @Test
+    fun `after the list gets shorter, the first press of Previous moves`() {
+        // Eleven books, five a page: the third page holds one book.
+        val state = PagedListState()
+        state.goTo(2, itemCount = 11, pageSize = 5)
+        assertEquals(2, state.page)
+
+        // That book is deleted. Ten books are two pages, and the screen shows the second.
+        assertEquals(1, Pagination.clampPage(state.page, itemCount = 10, pageSize = 5))
+
+        state.previous(itemCount = 10, pageSize = 5)
+        assertEquals(0, state.page)
+    }
+
+    @Test
+    fun `Next at the end of a shorter list stays on the last page`() {
+        val state = PagedListState()
+        state.goTo(2, itemCount = 11, pageSize = 5)
+        state.next(itemCount = 10, pageSize = 5)
+        assertEquals(1, state.page)
+    }
+}

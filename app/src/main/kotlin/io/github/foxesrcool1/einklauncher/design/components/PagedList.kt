@@ -33,9 +33,16 @@ class PagedListState(initialPage: Int = 0) {
         this.page = Pagination.clampPage(page, itemCount, pageSize)
     }
 
-    fun next(itemCount: Int, pageSize: Int) = goTo(page + 1, itemCount, pageSize)
+    // Both step from the page that is showing, which is not always [page].
+    // When the list gets shorter, say the last book of the last page is
+    // deleted, [page] still holds the old number and the screen shows the
+    // clamped one. Stepping from the old number made the first press of
+    // Previous land on the page already showing, so it did nothing.
+    fun next(itemCount: Int, pageSize: Int) =
+        goTo(Pagination.clampPage(page, itemCount, pageSize) + 1, itemCount, pageSize)
 
-    fun previous(itemCount: Int, pageSize: Int) = goTo(page - 1, itemCount, pageSize)
+    fun previous(itemCount: Int, pageSize: Int) =
+        goTo(Pagination.clampPage(page, itemCount, pageSize) - 1, itemCount, pageSize)
 }
 
 @Composable

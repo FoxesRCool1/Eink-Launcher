@@ -78,18 +78,33 @@ fun JournalScreen(
     val routine = remember(data) { RoutineRepository(data) }
 
     var boundaryHour by remember { mutableIntStateOf(DayBoundary.DEFAULT_HOUR) }
+    var refresh by remember { mutableIntStateOf(0) }
+
+    // Worked out again each time the screen comes back and after each change.
+    // A tablet that is left on this screen overnight wakes up on it in the
+    // morning, and with a date worked out only once, the first ticks of the
+    // new day went onto yesterday.
     val today = fixedToday
-        ?: remember(boundaryHour) {
+        ?: remember(boundaryHour, refresh) {
             DayBoundary(boundaryHour).dateOf(Instant.now(), ZoneId.systemDefault())
         }
 
     var mode by remember { mutableStateOf(JournalMode.Day) }
-    var viewDate by remember(today) { mutableStateOf(today) }
-    var refresh by remember { mutableIntStateOf(0) }
+    var viewDate by remember { mutableStateOf(today) }
+    var shownToday by remember { mutableStateOf(today) }
 
     var entryText by remember { mutableStateOf("") }
     var savedText by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf(false) }
+
+    // A new day has started. The view follows it if it was on "today", and if
+    // nothing is being written: an open edit stays on the day it belongs to.
+    LaunchedEffect(today) {
+        if (today != shownToday) {
+            if (!editing && viewDate == shownToday) viewDate = today
+            shownToday = today
+        }
+    }
     var summaries by remember { mutableStateOf<List<HabitSummary>>(emptyList()) }
     var routineRows by remember { mutableStateOf<List<RoutineStatus>>(emptyList()) }
     var daysWithEntries by remember { mutableStateOf<Set<LocalDate>>(emptySet()) }

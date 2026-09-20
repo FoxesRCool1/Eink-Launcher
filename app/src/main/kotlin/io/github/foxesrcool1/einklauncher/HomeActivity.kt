@@ -174,8 +174,15 @@ private fun LauncherHost(
     }
 
     // The next routine item is read again every time Today comes back, so
-    // ticking something off in the Journal shows up here at once.
-    LaunchedEffect(route) {
+    // ticking something off in the Journal shows up here at once. It is also
+    // read again when the tablet wakes up on Today: a new day has a new list,
+    // and the home screen is where a tablet spends the night.
+    var wakeUps by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        wakeUps++
+        onPauseOrDispose { }
+    }
+    LaunchedEffect(route, wakeUps) {
         if (route != LauncherRoute.Today) return@LaunchedEffect
         next = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching {

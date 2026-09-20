@@ -220,6 +220,7 @@ class PdfReaderActivity : ComponentActivity() {
         val zoom = ui.zoom
         val crop = ui.cropMargins
         val wantedScreen = ui.screenIndex
+        val wantLast = wantLastScreen
         val width = view.width
         val height = view.height
         val mine = ++request
@@ -235,7 +236,7 @@ class PdfReaderActivity : ComponentActivity() {
             val screens = PdfViewport.screens(content, width, height, zoom)
             val screen = when {
                 keepPlace != null -> PdfViewport.screenNearest(screens, keepPlace)
-                wantedScreen == LAST_SCREEN -> screens.size - 1
+                wantLast -> screens.size - 1
                 else -> wantedScreen.coerceIn(0, screens.size - 1)
             }
             val part = screens[screen]
@@ -263,12 +264,16 @@ class PdfReaderActivity : ComponentActivity() {
                 shown?.takeIf { it !== picture }?.recycle()
                 shown = picture
                 currentPart = part
+                wantLastScreen = false
                 ui.screenIndex = screen
                 ui.screenCount = screens.size
                 savePositionSoon()
             }
         }
     }
+
+    /** True from a turn back onto the page before, until that page has been measured. */
+    private var wantLastScreen = false
 
     private fun step(direction: Int) {
         if (pages == null || ui.panel != PdfPanel.None) return
@@ -279,10 +284,20 @@ class PdfReaderActivity : ComponentActivity() {
             direction > 0 && ui.pageIndex < ui.pageCount - 1 -> {
                 ui.pageIndex++
                 ui.screenIndex = 0
+                ui.screenCount = 1
+                wantLastScreen = false
             }
             direction < 0 && ui.pageIndex > 0 -> {
+                // Going back lands on the last screen of the page before, and
+                // how many screens that page has is only known once it is
+                // measured. The wish is kept here, not in ui.screenIndex: the
+                // status line reads that, and for the length of one render it
+                // said "part -2147483648". One screen is claimed until then,
+                // which keeps the word "part" off the line.
                 ui.pageIndex--
-                ui.screenIndex = LAST_SCREEN
+                ui.screenIndex = 0
+                ui.screenCount = 1
+                wantLastScreen = true
             }
             else -> return
         }
@@ -375,6 +390,7 @@ class PdfReaderActivity : ComponentActivity() {
             val index = (pageNumber - 1).coerceIn(0, (ui.pageCount - 1).coerceAtLeast(0))
             ui.pageIndex = index
             ui.screenIndex = 0
+            wantLastScreen = false
             showScreen()
         }
 
@@ -527,7 +543,6 @@ class PdfReaderActivity : ComponentActivity() {
         const val EXTRA_BOOK_ID = "book_id"
         const val EXTRA_TITLE = "book_title"
 
-        private const val LAST_SCREEN = Int.MAX_VALUE
         private const val EXPORT_WIDTH = 1440f
 
         fun intent(context: Context, bookPath: String, bookId: String, title: String): Intent =
