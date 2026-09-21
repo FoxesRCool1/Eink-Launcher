@@ -9,9 +9,13 @@ import java.util.Locale
 object JournalStrings {
 
     private val DAY = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH)
+    private val SHORT_DAY = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
     private val MONTH = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
 
     fun dayTitle(date: LocalDate): String = DAY.format(date)
+
+    /** "19 Sep": the day in half of a split screen, where the long one ends in three dots. */
+    fun shortDayTitle(date: LocalDate): String = SHORT_DAY.format(date)
 
     fun monthTitle(date: LocalDate): String = MONTH.format(date)
 

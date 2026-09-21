@@ -2,12 +2,19 @@ package io.github.foxesrcool1.einklauncher.ui.reading.pdf
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
 import io.github.foxesrcool1.einklauncher.ui.ink.InkMode
+import io.github.foxesrcool1.einklauncher.ui.split.PaneHost
+import io.github.foxesrcool1.einklauncher.ui.split.PanePage
+import io.github.foxesrcool1.einklauncher.ui.split.SplitLayout
+import io.github.foxesrcool1.einklauncher.ui.split.SplitPane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitState
 
 /** The PDF reader screen with nothing behind it, so a test can show its layout. */
 object PdfReaderScreenshotSupport {
 
+    /** [split] opens the second half on the notes of the book, as the reader does. */
     @Composable
     fun Screen(split: Boolean) {
         val state = remember {
@@ -16,8 +23,10 @@ object PdfReaderScreenshotSupport {
                 title = "Walden"
                 pageIndex = 11
                 pageCount = 240
-                this.split = split
             }
+        }
+        val halves = remember {
+            SplitState(firstPage = { PanePage.BookNotes(state.title) }).apply { if (split) open() }
         }
         val actions = remember {
             object : PdfActions {
@@ -35,10 +44,19 @@ object PdfReaderScreenshotSupport {
                 override fun exportPage() = Unit
                 override fun exportNotes() = Unit
                 override fun toggleMouse() = Unit
-                override fun toggleSplit() { state.split = !state.split }
-                override fun noteCanvas(canvas: InkCanvasView?) = Unit
             }
         }
-        PdfReaderScreen(state, actions)
+        val host = remember {
+            object : PaneHost {
+                override val bookTitle: String get() = state.title
+                override fun openBook(book: LibraryBook) = Unit
+                override fun paneInk(canvas: InkCanvasView?) = Unit
+            }
+        }
+        SplitLayout(
+            split = halves,
+            main = { PdfReaderScreen(state, actions) },
+            pane = { SplitPane(halves, host) },
+        )
     }
 }

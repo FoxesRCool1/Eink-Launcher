@@ -12,6 +12,7 @@ class JournalStringsTest {
     @Test
     fun `a day reads as a weekday and a date`() {
         assertEquals("Saturday 19 September", JournalStrings.dayTitle(today))
+        assertEquals("19 Sep", JournalStrings.shortDayTitle(today))
     }
 
     @Test

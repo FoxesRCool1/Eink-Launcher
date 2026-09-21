@@ -61,7 +61,8 @@ private const val TAG = "NotePane"
  *
  * One icon at the top switches between typing and handwriting. The pane keeps
  * its tools to one or two rows, because in landscape it is only half a tablet
- * wide.
+ * wide. It stands in the second half of the split screen, and the controls of
+ * that half end its top line.
  *
  * [onInkCanvas] tells the screen around it which canvas is on show, or null
  * when there is none, so that screen can point the fast pen of the tablet at
@@ -70,12 +71,13 @@ private const val TAG = "NotePane"
 @Composable
 fun NotePane(
     bookTitle: String,
-    onClose: () -> Unit,
     onInkCanvas: (InkCanvasView?) -> Unit,
     modifier: Modifier = Modifier,
+    /** To the choice of pages for the second half. */
+    onBack: (() -> Unit)? = null,
 ) {
     var handwritten by rememberSaveable { mutableStateOf(false) }
-    val title = bookTitle.ifBlank { "Untitled book" }
+    val title = bookTitle.ifBlank { UNTITLED_BOOK }
 
     Column(
         modifier = modifier
@@ -86,8 +88,12 @@ fun NotePane(
         if (handwritten) {
             InkPane(
                 path = StorageLayout.readingNotePath(title, handwritten = true),
-                kindButtons = { KindButtons(handwritten = true, onPick = { handwritten = it }) },
-                onClose = onClose,
+                templateForNew = PageTemplate.Lined,
+                leading = {
+                    if (onBack != null) BackButton(onBack)
+                    KindButtons(handwritten = true, onPick = { handwritten = it })
+                },
+                leadingCount = if (onBack != null) 2 else 1,
                 onInkCanvas = onInkCanvas,
             )
         } else {
@@ -99,9 +105,10 @@ fun NotePane(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (onBack != null) BackButton(onBack)
                 KindButtons(handwritten = false, onPick = { handwritten = it })
                 Spacer(modifier = Modifier.weight(1f))
-                IconPressButton(icon = Lucide.X, label = "Close the split screen", onClick = onClose)
+                PaneControls()
             }
             HairlineDivider()
             NoteField(
@@ -126,15 +133,28 @@ private fun KindButtons(handwritten: Boolean, onPick: (Boolean) -> Unit) {
     }
 }
 
+/** Back to the page before, in the second half. */
+@Composable
+internal fun BackButton(onBack: () -> Unit) {
+    IconPressButton(icon = Lucide.ArrowLeft, label = "Back", onClick = onBack)
+}
+
 /** What the pane knows about the handwritten note once it has been read. */
 private class OpenInkNote(val controller: InkNoteController, val problem: String?)
 
+/**
+ * A handwritten note in the second half: a small line of tools and the page.
+ * [leading] is the first control of the line: the switch to the typed note of
+ * a book, or the way back to the page the note was opened from.
+ */
 @Composable
-private fun InkPane(
+internal fun InkPane(
     path: String,
-    kindButtons: @Composable () -> Unit,
-    onClose: () -> Unit,
+    templateForNew: PageTemplate,
+    leading: @Composable () -> Unit,
     onInkCanvas: (InkCanvasView?) -> Unit,
+    /** How many targets [leading] holds, for the sum of what fits one row. */
+    leadingCount: Int = 1,
 ) {
     val context = LocalContext.current
     var open by remember(path) { mutableStateOf<OpenInkNote?>(null) }
@@ -145,10 +165,12 @@ private fun InkPane(
 
     LaunchedEffect(path) {
         val repository = InkNotesRepository(DataRoot.repository(context))
+        val started = System.currentTimeMillis()
         val load = withContext(AppDispatchers.io) { repository.load(path) }
+        io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check("Opening the handwritten note", System.currentTimeMillis() - started, io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.OPEN_NOTE)
         val (note, problem) = when (load) {
             is InkNoteLoad.Loaded -> load.note to null
-            InkNoteLoad.Missing -> InkNote(template = PageTemplate.Lined) to null
+            InkNoteLoad.Missing -> InkNote(template = templateForNew) to null
             is InkNoteLoad.Damaged -> InkNote() to load.reason
         }
         if (problem != null) AppLog.e(TAG, "Could not read $path: $problem")
@@ -220,16 +242,17 @@ private fun InkPane(
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        // Seven targets of 56 dp. Upright the pane is as wide as the tablet
-        // and they fit one row. On its side they need two.
-        val oneRow = maxWidth >= 408.dp
+        // Targets of 56 dp: the first ones, five tools, and the two of the
+        // split screen. Upright the pane is as wide as the tablet and they
+        // mostly fit one row. On its side they need two.
+        val oneRow = maxWidth >= 56.dp * (leadingCount + 7) + 16.dp
         Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                kindButtons()
+                leading()
                 if (oneRow) noteTools()
                 Spacer(modifier = Modifier.weight(1f))
                 if (!oneRow) CapsLabel(text = "${pageIndex + 1} of $pageCount", style = EinkType.capsSmall)
-                IconPressButton(icon = Lucide.X, label = "Close the split screen", onClick = onClose)
+                PaneControls()
             }
             if (!oneRow) {
                 Row(

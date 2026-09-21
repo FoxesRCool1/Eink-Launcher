@@ -4,6 +4,116 @@ One section per step. Newest step at the top.
 
 ---
 
+## The owner's second list: the split screen for every page, speed guards, questions for ViWoods
+
+Date: 2026-09-22. Branch `Dev`. The owner asked three things: what to ask
+ViWoods for a smooth pen, a split screen that works with any app or page, and
+that the app stays as quick as it is. Decisions 0016 and 0017.
+
+### What was done
+
+1. **A split screen on every screen.** Home, every tab, the typed note, the
+   handwritten note and both readers have the split icon. The second half
+   starts on a choice of pages: Read, Write, Journal, Apps, Settings. In a
+   reader it opens on the notes of the book, as before. Any page works there,
+   with a way back. Two controls: swap the halves, close.
+2. **A book or a note chosen in the second half opens where it was tapped**,
+   and the page beside it comes along into the new screen.
+3. **Another app beside a page**, through Android's own split screen, where
+   the tablet allows it. Android never splits the home screen's own task, so
+   the page first opens again in a task of its own, `BesideActivity`.
+4. **One page is never open twice.** The second half refuses a page the other
+   half shows, and says so.
+5. **Speed guards.** Time budgets write a `Slow:` line to the log when a
+   start, a change of tab, or an open is over budget. StrictMode, in debug
+   builds, writes each slow main thread call to the log once. A new test,
+   `SpeedRulesTest`, fails the build on `runBlocking`, `Thread.sleep`,
+   scrolling lists, animations, Compose Material, and a book engine in the
+   files Home starts with. New rules in `CLAUDE.md`.
+6. **A letter for ViWoods**: `docs/viwoods-request.md`. What to ask for, most
+   important first, and what each answer would change in the app.
+
+### What works
+
+Build, all unit tests, the speed rules, and lint, green. New pictures of the
+split screen in both orientations: Home with the choice, the Journal beside
+Write, a note beside the library, the halves swapped, a handwritten note
+beside a typed one, and the PDF reader with the notes of the book.
+
+In the emulator, Android 13 at 320 dpi, with this app as the home app, by
+hand: the split on Home, a note opened and typed in the second half and saved
+to its file, a PDF opened from the second half landing where it was tapped
+with Write carried beside it, swap, a turn with the split open, the EPUB
+reader with the notes of the book, and the Clock app beside the Journal
+through Android's split screen.
+
+Home starts as fast as before: 692 ms before this change and 676 ms after,
+in the emulator, middle of five cold starts each.
+
+The speed log found a real slow spot on its first run: the EPUB reader looked
+up the data folder on the main thread each time a book opened. Fixed.
+
+### Bugs found and fixed on the way
+
+1. **A black half.** The first try at "an app beside a page" asked Android
+   from the home screen's task. Android split the screen and left our half
+   black. Fixed with `BesideActivity`.
+2. **Tools off the screen in half a screen.** The handwritten note and the
+   PDF reader picked their layout by the shape of the room, and in half a
+   screen neither the rail nor the row fit. They now pick the one that fits.
+3. **A false "Slow:" line** for the change to Home after a book or an app
+   took the page away. The timer now only measures a tap.
+
+A review in five parts, each finding checked by a second reader, found six
+more. All fixed:
+
+4. Each "app beside" left a task behind. Now there is only ever one.
+5. The fast pen could keep drawing over a canvas that the split screen had
+   just replaced, for a moment. It stops at once now.
+6. One tap could clean the whole screen twice, with "Clean the screen on
+   each change" on.
+7. A note half typed on a highlight in the EPUB reader was closed without a
+   save when the split screen changed.
+8. The speed test did not read the debug build's own code, and that code
+   had two slow calls. Both fixed, and the test reads it now.
+9. Titles now get smaller before they end in three dots, on every screen.
+
+### What does not work, or is not known
+
+- **Nothing here has run on the tablet.**
+- **Another app beside a page depends on the ViWoods firmware.** If it has
+  multi-window turned off, the app opens on its own screen and the log says
+  so. ViWoods' own blog says the AiPaper has no split screen of its own.
+- **Two books side by side** is not possible. A book needs a screen of its
+  own. A book beside the library, a note, the Journal or an app is.
+- **Half of a screen is small** when the tablet reports 480 dp. Some long
+  lines end in three dots. At 320 dpi, which the emulator script guesses the
+  tablet reports, each half has half again as much room.
+- **The fast pen** serves one handwritten canvas at a time: the one in the
+  second half, when there is one. Still off by default.
+
+### What the owner must test on the tablet
+
+1. Home: press the split icon in the bottom row. The lower half shows five
+   icons. Open Journal there. Swap the halves. Close.
+2. Open Write in the second half, open a note, type a line. Close the split.
+   Open the note from Write: the line is there.
+3. Open a PDF. Split: the notes of the book come up, as before. Press the
+   back arrow in that half: the choice of pages. Open Read there and pick
+   another book: it opens in that half.
+4. The big one. Split on Home, open Apps in the second half, pick any app.
+   Does the app open beside the page, or on its own screen? Say which.
+5. Turn the screen with the split open, upright and on its side.
+6. Send the log file. Look for lines that start with `Slow:` or `Leak:`, and
+   for `AdjacentApps` and `multi-window`: they say what the tablet did.
+
+### For ViWoods
+
+Send the letter in `docs/viwoods-request.md`. Choose the final package name
+first if it will change: ViWoods keeps its fast pen list by package name.
+
+---
+
 ## The owner's first list: icons, round shapes, landscape, split screen, folders, Settings
 
 Date: 2026-09-20. Branch `Dev`. The owner used the first build and sent eight

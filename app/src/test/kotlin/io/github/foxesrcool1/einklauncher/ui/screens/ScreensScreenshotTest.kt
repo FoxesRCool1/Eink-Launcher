@@ -46,6 +46,16 @@ import io.github.foxesrcool1.einklauncher.ui.settings.SettingsPage
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
 import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorScreen
 import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
+import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
+import io.github.foxesrcool1.einklauncher.ui.home.LauncherRoute
+import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
+import io.github.foxesrcool1.einklauncher.ui.split.DetachedPane
+import io.github.foxesrcool1.einklauncher.ui.split.PaneHost
+import io.github.foxesrcool1.einklauncher.ui.split.PanePage
+import io.github.foxesrcool1.einklauncher.ui.split.SplitLayout
+import io.github.foxesrcool1.einklauncher.ui.split.SplitPane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitState
+import androidx.compose.runtime.Composable
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Before
@@ -363,22 +373,102 @@ abstract class ScreensScreenshotBase(private val suffix: String) {
         capture("pdf_reader_split_ink")
     }
 
-    /** The note pane on a plain page, as the EPUB reader shows it. */
+    /** The second half on its own, as the EPUB reader shows it beside the book. */
     @Test
     fun notePaneAlone() {
+        val split = SplitState(firstPage = { PanePage.BookNotes("Walden") }).apply { open() }
         compose.setContent {
             EinkTheme(botanicalArt = false) {
                 Box(modifier = Modifier.fillMaxSize().background(EinkColors.Paper)) {
-                    io.github.foxesrcool1.einklauncher.ui.split.NotePane(
-                        bookTitle = "Walden",
-                        onClose = {},
-                        onInkCanvas = {},
-                    )
+                    DetachedPane(split, paneHost)
                 }
             }
         }
         waitForText("words")
         capture("note_pane")
+    }
+
+    // -- The split screen -----------------------------------------------------------------
+
+    private val paneHost = object : PaneHost {
+        override fun openBook(book: LibraryBook) = Unit
+        override fun paneInk(canvas: InkCanvasView?) = Unit
+    }
+
+    /** Any screen as the main half, with [page] in the second half. */
+    private fun split(
+        page: PanePage,
+        name: String,
+        swapped: Boolean = false,
+        mainPage: PanePage? = null,
+        waitFor: String? = null,
+        main: @Composable () -> Unit,
+    ) {
+        val split = SplitState(mainPage = { mainPage }).apply { open(page, swapped) }
+        compose.setContent {
+            EinkTheme {
+                SplitLayout(split = split, main = main, pane = { SplitPane(split, paneHost) })
+            }
+        }
+        waitFor?.let(::waitForText)
+        capture(name)
+    }
+
+    @Test
+    fun splitHomeAndTheChoice() = split(PanePage.Choose, "split_home_choice") {
+        HomeScreen(onOpenTab = {}, onOpenSettings = {}, now = fixedTime, battery = 72, wifi = true)
+    }
+
+    @Test
+    fun splitJournalBesideWriting() {
+        seedJournal()
+        val notes = NotesRepository(DataRoot.repository(context))
+        notes.createNote(notes.rootPath, "Garden plan")
+        split(PanePage.Tab(LauncherRoute.Writing), "split_journal_writing", waitFor = "Garden plan") {
+            JournalScreen(onBack = {}, fixedToday = today)
+        }
+    }
+
+    @Test
+    fun splitTypedNoteBesideTheLibrary() {
+        val notes = NotesRepository(DataRoot.repository(context))
+        val path = notes.createNote(notes.rootPath, "Reading list")!!
+        notes.write(path, "# Reading list\n\nWalden, then Middlemarch.")
+        split(
+            PanePage.Tab(LauncherRoute.Reading),
+            "split_note_library",
+            mainPage = PanePage.TypedNote(path),
+            waitFor = "Middlemarch",
+        ) { NoteEditorScreen(notePath = path, onClose = {}) }
+    }
+
+    @Test
+    fun splitSwappedAppsBesideSettings() = split(
+        PanePage.Tab(LauncherRoute.Apps),
+        "split_swapped_apps",
+        swapped = true,
+    ) { SettingsScreen(onBack = {}, onOpenLog = {}, onOpenDemo = {}) }
+
+    @Test
+    fun splitInkNoteBesideATypedNote() {
+        val data = DataRoot.repository(context)
+        val notes = NotesRepository(data)
+        val path = notes.createNote(notes.rootPath, "Draft")!!
+        notes.write(path, "# Draft\n\nThe first line of the letter.")
+        val note = InkNote(template = PageTemplate.Lined, pages = listOf(InkPageData(InkTestData.fullPage(120))))
+        val controller = InkNoteController(InkNotesRepository(data), "notes/sketch.inknote", note, mayWrite = true)
+        split(PanePage.TypedNote(path), "split_ink_typed", waitFor = "first line") {
+            InkNoteScreen(
+                title = "Sketch",
+                controller = controller,
+                problem = null,
+                onCanvas = { controller.attach(it) },
+                onDialog = {},
+                onWidth = {},
+                onExport = { "" },
+                onClose = {},
+            )
+        }
     }
 
     @Test

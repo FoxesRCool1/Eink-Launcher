@@ -43,11 +43,31 @@ object Lucide {
         ),
     )
 
+    val ArrowLeftRight = LucideIcon(
+        name = "arrow-left-right",
+        strokes = listOf(
+            "M8 3 L4 7 l4 4",
+            "M4 7 h16",
+            "m16 21 l4 -4 l-4 -4",
+            "M20 17 H4",
+        ),
+    )
+
     val ArrowUp = LucideIcon(
         name = "arrow-up",
         strokes = listOf(
             "m5 12 l7 -7 l7 7",
             "M12 19 V5",
+        ),
+    )
+
+    val ArrowUpDown = LucideIcon(
+        name = "arrow-up-down",
+        strokes = listOf(
+            "m21 16 l-4 4 l-4 -4",
+            "M17 20 V4",
+            "m3 8 l4 -4 l4 4",
+            "M7 4 v16",
         ),
     )
 
@@ -494,6 +514,18 @@ object Lucide {
             "M2 18 h4",
             "M6 2 h12 a2 2 0 0 1 2 2 v16 a2 2 0 0 1 -2 2 h-12 a2 2 0 0 1 -2 -2 v-16 a2 2 0 0 1 2 -2 Z",
             "M16 2 v20",
+        ),
+    )
+
+    val NotebookPen = LucideIcon(
+        name = "notebook-pen",
+        strokes = listOf(
+            "M13.4 2 H6 a2 2 0 0 0 -2 2 v16 a2 2 0 0 0 2 2 h12 a2 2 0 0 0 2 -2 v-7.4",
+            "M2 6 h4",
+            "M2 10 h4",
+            "M2 14 h4",
+            "M2 18 h4",
+            "M21.378 5.626 a1 1 0 1 0 -3.004 -3.004 l-5.01 5.012 a2 2 0 0 0 -0.506 0.854 l-0.837 2.87 a0.5 0.5 0 0 0 0.62 0.62 l2.87 -0.837 a2 2 0 0 0 0.854 -0.506 Z",
         ),
     )
 

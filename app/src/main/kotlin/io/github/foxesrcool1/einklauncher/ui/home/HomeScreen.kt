@@ -46,6 +46,7 @@ import io.github.foxesrcool1.einklauncher.design.einkClickable
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import io.github.foxesrcool1.einklauncher.ui.common.RotateButton
+import io.github.foxesrcool1.einklauncher.ui.split.SplitButton
 import java.time.LocalDateTime
 
 /** The icon that stands for a tab on Home. */
@@ -96,9 +97,10 @@ fun HomeScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val wide = maxWidth > maxHeight
 
-        PlantArt(
-            // Top corner. The bottom edge holds the controls, and a drawing
-            // under a control makes both harder to read.
+        // Top corner. The bottom edge holds the controls, and a drawing under
+        // a control makes both harder to read. A narrow half of the split
+        // screen has no corner to spare: the plant would sit on the date.
+        if (maxWidth >= 420.dp) PlantArt(
             plant = Plants.Home,
             size = if (wide) 96.dp else 120.dp,
             modifier = Modifier
@@ -215,6 +217,8 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f),
                 )
                 IconPressButton(icon = Lucide.SquarePen, label = "Quick note", onClick = onQuickNote)
+                Spacer(modifier = Modifier.width(4.dp))
+                SplitButton()
                 Spacer(modifier = Modifier.width(4.dp))
                 IconPressButton(icon = Lucide.Settings, label = "Settings", onClick = onOpenSettings)
             }

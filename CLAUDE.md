@@ -72,6 +72,33 @@ Read this file at the start of every session. It is the short form of
   both PNG files. A control that falls off the bottom of a home app is a trap.
 - Every reflection call into a vendor API is wrapped in `runCatching` and
   writes its result to `AppLog`. A vendor API must never crash the app.
+- Every page works in half of a screen. The split screen can put any page in
+  a half 480 dp wide or 320 dp wide. Add a split picture of a new page to
+  `ScreensScreenshotTest` and look at it. See decision 0016.
+- A page opens a note, a book or an app through `rememberPageOpener()`, never
+  with `startActivity` itself. In the second half of the split screen a note
+  opens in place, and an app opens beside the page.
+- A new activity that shows a page puts its content in `SplitLayout`, gives
+  the second half a `PaneHost`, calls `watchAndroidSplit`, and calls
+  `AdjacentApps.takeRequest(this)` in `onResume`. Look at
+  `NoteEditorActivity` for the smallest one.
+
+## Speed rules
+
+The owner finds the app quick and wants it to stay that way. Decision 0017.
+
+- Nothing slow on the main thread: no disk, no network, no binder call that
+  can wait. Use `AppDispatchers.io`. The few places that must do disk work
+  there are listed, with the reason, in `SpeedWatch.ON_PURPOSE`.
+- No `runBlocking`, no `Thread.sleep`. `SpeedRulesTest` fails the build.
+- Home starts without Readium, the PDF renderer or any other large library.
+  `SpeedRulesTest` checks the files Home is built from.
+- A moment the user waits for has a budget in `SpeedWatch.Budget` and a
+  `SpeedWatch.check` call. A new screen or a new wait gets one.
+- A new screen composes nothing it does not show. A part that is hidden,
+  like the second half of the split screen, is not composed until it opens.
+- Read the `Slow:` and `Leak:` lines in every log the owner sends. Fix the
+  cause, or raise the budget in 0017 with the reason.
 
 ## Storage rules
 
@@ -122,8 +149,9 @@ app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
   core/reading/  annotations, reading log and timer. No Readium.
   core/pdf/      screens of a page, margin search, ink sidecar files
   core/update/   the in-app update from GitHub Releases. The only network code.
+  core/speed/    time budgets and StrictMode, written to the log
   ui/ink/        the ink canvas, the handwriting screen, export
-  ui/split/      the note pane of the split screen
+  ui/split/      the split screen: the second half, its pages, other apps beside
   ui/reading/epub/  the Readium reader
   ui/reading/pdf/   the PDF reader
   design/        colours, type, sizes, shapes, theme

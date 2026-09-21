@@ -30,19 +30,36 @@ class FastPenSession(
     private val device: EinkDevice = EinkDevices.get(activity)
     private var running = false
 
+    /** Where on the screen the tablet draws, while it does. */
+    private var box: Rect? = null
+
     private val path: FastPenPath? = when (mode) {
         SettingsStore.FAST_PEN_WRITING -> FastPenPath.Writing
         SettingsStore.FAST_PEN_AUTODRAW -> FastPenPath.AutoDraw
         else -> null
     }
 
-    /** [keepOut] are views the tablet must not draw on: toolbars and buttons. */
+    /**
+     * [keepOut] are views the tablet must not draw on: toolbars and buttons.
+     *
+     * Call it again after the canvas moved or changed size, after a turn of
+     * the screen or when the split screen opens, closes or swaps. The tablet
+     * is then told the new box. Called again with nothing changed, it does
+     * nothing.
+     */
     fun start(keepOut: List<View> = emptyList()) {
         val wanted = path ?: return
-        if (running || canvas.width == 0 || !device.hasVendorControl) return
+        if (canvas.width == 0 || !device.hasVendorControl) return
+        val now = screenBox(canvas)
+        if (running) {
+            if (now == box) return
+            AppLog.i(TAG, "The canvas moved from $box to $now, starting the fast pen again there")
+            stop()
+        }
 
-        val result = device.startFastPen(activity, wanted, screenBox(canvas), keepOut.map(::screenBox))
+        val result = device.startFastPen(activity, wanted, now, keepOut.map(::screenBox))
         running = result.ok
+        box = if (result.ok) now else null
         canvas.deviceDrawsLive = result.ok
         canvas.redrawDelayMillis = redrawDelayMillis
         if (result.ok) {

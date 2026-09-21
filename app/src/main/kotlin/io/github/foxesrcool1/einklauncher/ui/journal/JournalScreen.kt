@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import io.github.foxesrcool1.einklauncher.ui.split.rememberPageOpener
 import io.github.foxesrcool1.einklauncher.design.components.EinkTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +77,7 @@ fun JournalScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val data = remember(context) { DataRoot.repository(context) }
+    val opener = rememberPageOpener()
     val habits = remember(data) { HabitsRepository(data) }
     val routine = remember(data) { RoutineRepository(data) }
 
@@ -203,16 +205,18 @@ fun JournalScreen(
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_STOP) {
         saveOnTheWayOut("the app went to the back")
     }
+    // The split screen can hand the Journal on to the next screen, which reads
+    // the entry as it starts, before this one stops. A pause comes first.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_PAUSE) {
+        saveOnTheWayOut("the screen paused")
+    }
 
     fun openHandwriting() {
         runCatching {
-            context.startActivity(
-                InkNoteActivity.intent(
-                    context,
-                    StorageLayout.journalPath(viewDate, handwritten = true),
-                    JournalStrings.dayTitle(viewDate),
-                    PageTemplate.Lined,
-                ),
+            opener.openInkNote(
+                StorageLayout.journalPath(viewDate, handwritten = true),
+                JournalStrings.dayTitle(viewDate),
+                PageTemplate.Lined,
             )
         }.onFailure { AppLog.e(TAG, "Could not open the handwritten entry", it) }
     }
@@ -228,6 +232,7 @@ fun JournalScreen(
             JournalMode.Month -> JournalStrings.monthTitle(viewDate)
             JournalMode.Routine -> "Routine"
         },
+        shortTitle = if (mode == JournalMode.Day) JournalStrings.shortDayTitle(viewDate) else null,
         overline = if (mode == JournalMode.Routine) "Journal" else JournalStrings.dayOverline(viewDate, today),
         plant = Plants.Journal,
         modifier = modifier,

@@ -35,7 +35,7 @@ import io.github.foxesrcool1.einklauncher.design.components.CapsLabel
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
 import io.github.foxesrcool1.einklauncher.design.components.EinkTextField
 import io.github.foxesrcool1.einklauncher.design.components.InvertPressButton
-import kotlinx.coroutines.Dispatchers
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -103,7 +103,7 @@ fun DevPanel(modifier: Modifier = Modifier) {
                     busy = true
                     status = "Downloading"
                     scope.launch {
-                        status = withContext(Dispatchers.IO) {
+                        status = withContext(AppDispatchers.io) {
                             download(context, url).mapCatching { file ->
                                 AppLog.i(TAG, "Downloaded ${file.length()} bytes to ${file.name}")
                                 ApkInstaller.install(context, file).getOrThrow()
@@ -146,7 +146,7 @@ fun DevPanel(modifier: Modifier = Modifier) {
                 busy = true
                 benchmark = "Running"
                 scope.launch {
-                    val result = withContext(Dispatchers.IO) {
+                    val result = withContext(AppDispatchers.io) {
                         runCatching { StorageBenchmark.run(DataRoot.repository(context).store) }
                     }
                     busy = false

@@ -37,7 +37,7 @@ import io.github.foxesrcool1.einklauncher.ui.common.RotateButton
 import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
 import io.github.foxesrcool1.einklauncher.ui.ink.InkModeButtons
 import io.github.foxesrcool1.einklauncher.ui.ink.VerticalRule
-import io.github.foxesrcool1.einklauncher.ui.split.NotePane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitButton
 import io.github.foxesrcool1.einklauncher.ui.ink.PenWidths
 
 /**
@@ -46,8 +46,9 @@ import io.github.foxesrcool1.einklauncher.ui.ink.PenWidths
  * Upright, the tools are a row above the page. On its side the tablet has no
  * height to give away, so the tools stand in a rail down the left edge.
  *
- * With the split screen on, the note pane takes the other half: beside the
- * page when the tablet is on its side, under the page when it is upright.
+ * In one half of the split screen the reader takes the shape that fits the
+ * half: a row where the half is wide enough for one, a rail where it is tall
+ * enough for one. The second half itself belongs to the activity around this.
  */
 @Composable
 fun PdfReaderScreen(state: PdfUiState, actions: PdfActions) {
@@ -57,7 +58,12 @@ fun PdfReaderScreen(state: PdfUiState, actions: PdfActions) {
             .background(EinkColors.Paper)
             .systemBarsPadding(),
     ) {
-        val wide = maxWidth > maxHeight
+        // Seven tools of 56 dp stand in a rail of 400 dp, or in a row of 464
+        // dp with the icon that turns the screen. Whichever the shape of the
+        // room asks for, unless it does not fit and the other one does.
+        val railFits = maxHeight >= 400.dp
+        val rowFits = maxWidth >= 464.dp
+        val rail = if (maxWidth > maxHeight) railFits || !rowFits else !rowFits && railFits
 
         val tools: @Composable () -> Unit = {
             IconPressButton(icon = Lucide.X, label = "Close the book", onClick = actions::close)
@@ -65,14 +71,6 @@ fun PdfReaderScreen(state: PdfUiState, actions: PdfActions) {
             IconPressButton(icon = Lucide.Undo2, label = "Undo", onClick = actions::undo)
             IconPressButton(icon = Lucide.ZoomIn, label = "Zoom: ${state.zoom.label}", onClick = actions::nextZoom)
             IconPressButton(icon = Lucide.Ellipsis, label = "More", onClick = { actions.show(PdfPanel.More) })
-        }
-        val splitButton: @Composable () -> Unit = {
-            IconPressButton(
-                icon = if (wide) Lucide.SquareSplitHorizontal else Lucide.SquareSplitVertical,
-                label = "Split screen: write beside the book",
-                selected = state.split,
-                onClick = actions::toggleSplit,
-            )
         }
         val status: @Composable (Modifier) -> Unit = { statusModifier ->
             CapsLabel(
@@ -99,41 +97,27 @@ fun PdfReaderScreen(state: PdfUiState, actions: PdfActions) {
                 )
             }
         }
-        val notePane: @Composable (Modifier) -> Unit = { paneModifier ->
-            NotePane(
-                bookTitle = state.title,
-                onClose = actions::toggleSplit,
-                onInkCanvas = actions::noteCanvas,
-                modifier = paneModifier,
-            )
-        }
 
-        if (wide) {
+        if (rail) {
             Row(modifier = Modifier.fillMaxSize()) {
-                // Seven tools of 56 dp are 392 dp, which fits the height of the
-                // tablet on its side with the status bar on show as well. The
-                // split button is on the top line, which is 56 dp tall anyway
-                // because of the button that turns the screen.
                 Column(
                     modifier = Modifier.fillMaxHeight().padding(4.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) { tools() }
                 VerticalRule()
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    // The split button is on the top line, which is 56 dp
+                    // tall anyway because of the button that turns the screen.
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         status(Modifier.weight(1f))
-                        splitButton()
+                        SplitButton()
                         RotateButton()
                     }
                     HairlineDivider()
                     page(Modifier.fillMaxWidth().weight(1f))
-                }
-                if (state.split) {
-                    VerticalRule()
-                    notePane(Modifier.weight(1f).fillMaxHeight())
                 }
             }
         } else {
@@ -154,11 +138,7 @@ fun PdfReaderScreen(state: PdfUiState, actions: PdfActions) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     status(Modifier.weight(1f))
-                    splitButton()
-                }
-                if (state.split) {
-                    HairlineDivider(thickness = EinkDimens.rule)
-                    notePane(Modifier.fillMaxWidth().weight(1f))
+                    SplitButton()
                 }
             }
         }

@@ -52,6 +52,15 @@ import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
 import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.ui.common.RotateButton
+import io.github.foxesrcool1.einklauncher.ui.split.PaneHost
+import io.github.foxesrcool1.einklauncher.ui.split.PanePage
+import io.github.foxesrcool1.einklauncher.ui.split.SplitButton
+import io.github.foxesrcool1.einklauncher.ui.split.SplitLayout
+import io.github.foxesrcool1.einklauncher.ui.split.SplitPane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitState
+import io.github.foxesrcool1.einklauncher.ui.split.openBookBeside
+import io.github.foxesrcool1.einklauncher.ui.split.splitCarry
+import io.github.foxesrcool1.einklauncher.ui.split.watchAndroidSplit
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -74,8 +83,13 @@ class InkNoteActivity : ComponentActivity() {
     private var controller: InkNoteController? = null
     private var session: FastPenSession? = null
     private var canvasView: InkCanvasView? = null
+
+    /** The handwriting canvas of the second half of the split screen, while it shows one. */
+    private var paneCanvas: InkCanvasView? = null
     private var fastPenMode = SettingsStore.FAST_PEN_OFF
     private var redrawDelay = SettingsStore.DEFAULT_INK_DELAY_MILLIS
+    private var mainPage: PanePage? = null
+    private val split = SplitState(mainPage = { mainPage })
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,6 +104,29 @@ class InkNoteActivity : ComponentActivity() {
         val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val newTemplate = PageTemplate.fromId(intent.getStringExtra(EXTRA_TEMPLATE))
         AppLog.i(TAG, "Opening $path")
+        mainPage = PanePage.InkNote(path, title, newTemplate)
+        watchAndroidSplit(split)
+        intent.splitCarry()?.let { split.open(it.page, it.swapped) }
+
+        val paneHost = object : PaneHost {
+            override fun openBook(book: io.github.foxesrcool1.einklauncher.core.books.LibraryBook) =
+                openBookBeside(this@InkNoteActivity, split, book, this)
+
+            override fun keeper(): Intent = io.github.foxesrcool1.einklauncher.ui.split.BesideActivity.then(
+                this@InkNoteActivity,
+                InkNoteActivity.intent(this@InkNoteActivity, path, title, newTemplate),
+            )
+
+            override fun leave() = finish()
+
+            override fun paneInk(canvas: InkCanvasView?) {
+                paneCanvas = canvas
+                // A swap or a turn moves the note. The fast pen has to follow it.
+                canvas?.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> startFastPen() }
+                // The canvas has no size yet when it is brand new.
+                (canvas ?: canvasView)?.post { startFastPen() }
+            }
+        }
 
         lifecycleScope.launch {
             val settings = SettingsStore(this@InkNoteActivity)
@@ -104,43 +141,65 @@ class InkNoteActivity : ComponentActivity() {
                 InkNoteLoad.Missing -> InkNote(template = newTemplate) to null
                 is InkNoteLoad.Damaged -> InkNote() to load.reason
             }
+            val took = System.currentTimeMillis() - started
             AppLog.i(
                 TAG,
-                "Read $path in ${System.currentTimeMillis() - started} ms: " +
+                "Read $path in $took ms: " +
                     "${note.pages.size} pages, ${note.pages.sumOf { it.strokes.size }} strokes",
             )
+            io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check("Opening the handwritten note", took, io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.OPEN_NOTE)
 
             val made = InkNoteController(repository, path, note, mayWrite = problem == null)
             controller = made
             setContent {
                 EinkTheme {
-                    InkNoteScreen(
-                        title = title,
-                        controller = made,
-                        problem = problem,
-                        onCanvas = { view ->
-                            // A new canvas after a turn of the screen. The
-                            // fast pen was tied to the old one.
-                            if (canvasView !== view) {
-                                session?.stop()
-                                session = null
-                            }
-                            canvasView = view
-                            made.attach(view)
-                            view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> startFastPen() }
+                    SplitLayout(
+                        split = split,
+                        main = {
+                            InkNoteScreen(
+                                title = title,
+                                controller = made,
+                                problem = problem,
+                                onCanvas = { view ->
+                                    // A new canvas: the split screen or a turn
+                                    // made the page change its layout. The
+                                    // tablet must stop drawing over the old one
+                                    // at once, not at the next layout.
+                                    if (canvasView != null && canvasView !== view && session?.canvas === canvasView) {
+                                        session?.stop()
+                                        session = null
+                                    }
+                                    canvasView = view
+                                    made.attach(view)
+                                    // A turn of the screen, or the split
+                                    // screen, moves the canvas. The fast pen
+                                    // has to follow it.
+                                    view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> startFastPen() }
+                                },
+                                onDialog = { open -> if (open) session?.stop() else startFastPen() },
+                                onWidth = { session?.applyWidth(it) },
+                                onExport = { asPdf -> export(made, repository, title.ifBlank { "note" }, asPdf) },
+                                onClose = { finish() },
+                            )
                         },
-                        onDialog = { open -> if (open) session?.stop() else startFastPen() },
-                        onWidth = { session?.applyWidth(it) },
-                        onExport = { asPdf -> export(made, repository, title.ifBlank { "note" }, asPdf) },
-                        onClose = { finish() },
+                        pane = { SplitPane(split, paneHost) },
                     )
                 }
             }
         }
     }
 
+    /**
+     * The tablet draws its fast line in one place at a time. With a
+     * handwritten note in the second half, that place is the second half, as
+     * beside a book. The page of this screen is then drawn by this app.
+     */
     private fun startFastPen() {
-        val view = canvasView ?: return
+        val view = paneCanvas ?: canvasView ?: return
+        if (session?.canvas !== view) {
+            session?.stop()
+            session = null
+        }
         if (fastPenMode == SettingsStore.FAST_PEN_OFF || view.width == 0) return
         val current = session ?: FastPenSession(this, view, fastPenMode, redrawDelay).also { session = it }
         current.start()
@@ -170,6 +229,7 @@ class InkNoteActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         startFastPen()
+        io.github.foxesrcool1.einklauncher.ui.split.AdjacentApps.takeRequest(this)
     }
 
     override fun onPause() {
@@ -309,7 +369,14 @@ internal fun InkNoteScreen(
             .background(EinkColors.Paper)
             .systemBarsPadding(),
     ) {
-        if (maxWidth > maxHeight) {
+        // Seven tools of 56 dp need a rail of 400 dp or a row of 408 dp. The
+        // shape of the room says which, unless that one does not fit and the
+        // other does: half of a split screen is wide and short upright, and
+        // narrow and tall on its side.
+        val railFits = maxHeight >= 400.dp
+        val rowFits = maxWidth >= 408.dp
+        val rails = if (maxWidth > maxHeight) railFits || !rowFits else !rowFits && railFits
+        if (rails) {
             // On its side the tablet has width to spare and no height, so the
             // tools stand in a rail down each edge and the page keeps the
             // whole height.
@@ -331,6 +398,7 @@ internal fun InkNoteScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     RotateButton()
+                    SplitButton()
                     pageTools()
                     Spacer(modifier = Modifier.weight(1f))
                     CapsLabel(text = pageLabel, style = EinkType.capsSmall)
@@ -353,6 +421,7 @@ internal fun InkNoteScreen(
                         style = EinkType.capsSmall,
                         modifier = Modifier.weight(1f).padding(start = 8.dp),
                     )
+                    SplitButton()
                     RotateButton()
                 }
                 notice?.let {

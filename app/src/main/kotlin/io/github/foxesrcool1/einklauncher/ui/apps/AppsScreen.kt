@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.foxesrcool1.einklauncher.ui.split.rememberPageOpener
 import io.github.foxesrcool1.einklauncher.core.apps.AppFolder
 import io.github.foxesrcool1.einklauncher.core.apps.AppFolders
 import io.github.foxesrcool1.einklauncher.core.apps.AppFoldersRepository
@@ -88,6 +89,9 @@ fun AppsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember(context) { AppsRepository(context) }
+    // An app chosen in the second half of the split screen asks to open
+    // beside this screen. Anywhere else it opens the usual way.
+    val opener = rememberPageOpener()
     val settings = remember(context) { SettingsStore(context) }
     val folderStore = remember(context) { AppFoldersRepository(DataRoot.repository(context)) }
 
@@ -185,7 +189,7 @@ fun AppsScreen(
             ) { _, entry ->
                 AppRow(
                     label = entry.label,
-                    onOpen = { repository.launch(entry) },
+                    onOpen = { opener.openApp(entry) },
                     onLongPress = { menuFor = entry },
                 )
             }
@@ -200,7 +204,7 @@ fun AppsScreen(
                 when (row) {
                     is FirstPageRow.Pinned -> AppRow(
                         label = row.entry.label,
-                        onOpen = { repository.launch(row.entry) },
+                        onOpen = { opener.openApp(row.entry) },
                         onLongPress = { menuFor = row.entry },
                     )
 
@@ -241,7 +245,7 @@ fun AppsScreen(
                 AppRow(
                     label = entry.label,
                     mark = if (pinnedKeys.contains(entry.key)) Lucide.Pin else null,
-                    onOpen = { repository.launch(entry) },
+                    onOpen = { opener.openApp(entry) },
                     onLongPress = { menuFor = entry },
                 )
             }

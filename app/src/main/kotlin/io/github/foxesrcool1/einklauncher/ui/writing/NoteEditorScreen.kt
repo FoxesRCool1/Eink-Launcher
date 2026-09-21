@@ -92,7 +92,9 @@ fun rememberNoteEditor(
     }
 
     LaunchedEffect(notePath) {
+        val started = System.currentTimeMillis()
         val loadedText = withContext(AppDispatchers.io) { notes.readOrNull(notePath) }
+        io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check("Opening the note", System.currentTimeMillis() - started, io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.OPEN_NOTE)
         if (loadedText == null) {
             // The field stays off. Typing into an empty page here would end
             // with that page saved over a note that is still on the disk.
@@ -144,6 +146,12 @@ fun rememberNoteEditor(
     // covers the Home key. The one above never runs for it.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
         saveOnTheWayOut("the editor went to the back")
+    }
+    // A pause comes before the next screen starts, and a stop only after it
+    // is up. The split screen hands a note on to the next screen, which reads
+    // it from the disk as it starts, so the note has to be there by then.
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+        saveOnTheWayOut("the screen paused")
     }
 
     return NoteEditor(text = text, loaded = loaded, status = status, onText = { text = it })

@@ -105,12 +105,32 @@ session must know:
   new screen there and look at both pictures.
 - **`PagedList` wants a `rowHeight`.** See trap 8.
 - **`ScreenWindow.attach(this)`** is the first line of every user activity.
-- **The split screen is inside the readers**: `ui/split/NotePane.kt`. It is
-  not Android's multi-window.
+- **The split screen is on every screen now.** See 2d.
 - The emulator runs with no window too, which is how this session used it:
   `emulator -avd eink_tablet -no-window`, then `adb exec-out screencap -p`.
   A book can be pushed straight into the data folder with `adb push`, which
   skips the file picker.
+
+### 2d. The owner's second list: split screen everywhere, speed, ViWoods
+
+On 2026-09-22 the owner asked for a split screen with any app or page, for
+the app to stay quick, and for what to ask ViWoods. `PROGRESS.md`, top
+section, and decisions 0016 and 0017. What a new session must know:
+
+- **`ui/split/` is the split screen.** `SplitState` is the state,
+  `SplitLayout` places the halves, `SplitPane` shows a page in the second
+  half. A page opens things through `rememberPageOpener()`. A page going to
+  a new activity travels as intent extras, `PanePageCodec`.
+- **Android never splits the home screen's task.** An app beside a page goes
+  through `BesideActivity` in a task of its own. Proven in the emulator, not
+  on the tablet. Without that step the emulator showed a black half.
+- **One page is never open twice.** `PanePage.clashesWith`. Keep that true
+  for a new page: two editors of one file lose words.
+- **Speed is guarded.** `core/speed/SpeedWatch`, `SpeedRulesTest`, and the
+  speed rules in `CLAUDE.md`. Read the `Slow:` lines in every log.
+- **The letter for ViWoods** is `docs/viwoods-request.md`. The owner sends it.
+  ViWoods keeps its fast pen list by package name, so the final package
+  name matters before it goes.
 
 ---
 
@@ -153,9 +173,8 @@ Still open from step 4. Settings, Help, "Design demo", Dev, "Time 500 files".
 6. `TextPromptDialog` does not take the focus when it opens, so every prompt
    costs one extra tap before the keyboard comes. Small, and it touches every
    prompt in the app, so it wants a look on the tablet first.
-7. The split screen opens the note of the book and no other. Choosing any
-   note, and opening a book from a note, were left out on purpose. Ask the
-   owner whether he misses them before building them.
+7. Done on 2026-09-22: any page in the second half, and a book opened from
+   it. See 2d.
 8. With a handwritten note beside a PDF, the fast pen serves the note only.
    Once the fast pen works on the tablet, check how that feels.
 

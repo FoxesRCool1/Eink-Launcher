@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.core.eink.EinkDevices
 import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
@@ -45,6 +46,14 @@ import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
 import io.github.foxesrcool1.einklauncher.ui.ink.InkExport
 import io.github.foxesrcool1.einklauncher.ui.ink.InkMode
 import io.github.foxesrcool1.einklauncher.ui.ink.PenWidths
+import io.github.foxesrcool1.einklauncher.ui.split.PaneHost
+import io.github.foxesrcool1.einklauncher.ui.split.PanePage
+import io.github.foxesrcool1.einklauncher.ui.split.SplitLayout
+import io.github.foxesrcool1.einklauncher.ui.split.SplitPane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitState
+import io.github.foxesrcool1.einklauncher.ui.split.openBookBeside
+import io.github.foxesrcool1.einklauncher.ui.split.splitCarry
+import io.github.foxesrcool1.einklauncher.ui.split.watchAndroidSplit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
@@ -77,9 +86,6 @@ class PdfUiState {
 
     /** Emulator only: whether the mouse draws, or taps and swipes like a finger. */
     var mouseDraws by mutableStateOf(false)
-
-    /** The split screen: a note beside the page. */
-    var split by mutableStateOf(false)
 }
 
 /** What the Compose layer can ask for. */
@@ -100,12 +106,6 @@ interface PdfActions {
 
     /** Emulator only. */
     fun toggleMouse()
-
-    /** Opens or closes the note beside the page. */
-    fun toggleSplit()
-
-    /** The handwriting canvas of the note pane, or null when it shows none. */
-    fun noteCanvas(canvas: InkCanvasView?)
 }
 
 /**
@@ -133,8 +133,33 @@ class PdfReaderActivity : ComponentActivity() {
     private var pages: PdfPages? = null
     private var canvas: InkCanvasView? = null
 
-    /** The handwriting canvas of the split screen, while it is on show. */
+    /** The handwriting canvas of the second half of the split screen, while it is on show. */
     private var noteCanvas: InkCanvasView? = null
+
+    /** The split screen. It opens on the notes of this book. */
+    private val split = SplitState(firstPage = { PanePage.BookNotes(ui.title) })
+
+    private val paneHost = object : PaneHost {
+        override val bookTitle: String get() = ui.title
+
+        override fun openBook(book: LibraryBook) = openBookBeside(this@PdfReaderActivity, split, book, this)
+
+        override fun keeper(): Intent =
+            io.github.foxesrcool1.einklauncher.ui.split.BesideActivity.then(this@PdfReaderActivity, intent)
+
+        override fun leave() = finish()
+
+        override fun paneInk(canvas: InkCanvasView?) {
+            noteCanvas = canvas
+            session?.stop()
+            session = null
+            // A swap or a turn moves the note. The fast pen has to follow it.
+            canvas?.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> startFastPen() }
+            val target = canvas ?: this@PdfReaderActivity.canvas ?: return
+            // The canvas has no size yet when it is brand new.
+            target.post { startFastPen() }
+        }
+    }
     private var session: FastPenSession? = null
     private var fastPenMode = SettingsStore.FAST_PEN_OFF
     private var redrawDelay = SettingsStore.DEFAULT_INK_DELAY_MILLIS
@@ -169,8 +194,16 @@ class PdfReaderActivity : ComponentActivity() {
         reading = ReadingRepository(data)
         ink = PdfInkRepository(data, bookId)
 
+        watchAndroidSplit(split)
+        intent.splitCarry()?.let { split.open(it.page, it.swapped) }
         setContent {
-            EinkTheme(botanicalArt = false) { PdfReaderScreen(ui, actions) }
+            EinkTheme(botanicalArt = false) {
+                SplitLayout(
+                    split = split,
+                    main = { PdfReaderScreen(ui, actions) },
+                    pane = { SplitPane(split, paneHost) },
+                )
+            }
         }
 
         lifecycleScope.launch {
@@ -213,7 +246,9 @@ class PdfReaderActivity : ComponentActivity() {
             ui.cropMargins = position.cropMargins
             ui.loading = false
             timer.resume(nowSeconds())
-            AppLog.i(TAG, "Opened $bookPath: ${opened.pageCount} pages, ${System.currentTimeMillis() - started} ms")
+            val took = System.currentTimeMillis() - started
+            AppLog.i(TAG, "Opened $bookPath: ${opened.pageCount} pages, $took ms")
+            io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check("Opening the PDF", took, io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.OPEN_BOOK)
             showScreen()
         }
     }
@@ -386,6 +421,11 @@ class PdfReaderActivity : ComponentActivity() {
             if (this@PdfReaderActivity.canvas !== canvas) {
                 saveInk()
                 inkPage = -1
+                // The tablet must stop drawing over the old canvas at once.
+                if (session?.canvas === this@PdfReaderActivity.canvas) {
+                    session?.stop()
+                    session = null
+                }
             }
             this@PdfReaderActivity.canvas = canvas
             // On the emulator the mouse starts as a finger here, so a click
@@ -503,20 +543,6 @@ class PdfReaderActivity : ComponentActivity() {
             canvas?.fingerDraws = ui.mouseDraws
         }
 
-        override fun toggleSplit() {
-            ui.split = !ui.split
-            AppLog.i(TAG, "Split screen: ${ui.split}")
-        }
-
-        override fun noteCanvas(canvas: InkCanvasView?) {
-            noteCanvas = canvas
-            session?.stop()
-            session = null
-            val target = canvas ?: this@PdfReaderActivity.canvas ?: return
-            // The canvas has no size yet when it is brand new.
-            target.post { startFastPen() }
-        }
-
         override fun exportNotes() {
             saveInk()
             val title = ui.title
@@ -554,6 +580,7 @@ class PdfReaderActivity : ComponentActivity() {
         super.onResume()
         if (pages != null) timer.resume(nowSeconds())
         startFastPen()
+        io.github.foxesrcool1.einklauncher.ui.split.AdjacentApps.takeRequest(this)
     }
 
     override fun onPause() {

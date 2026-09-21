@@ -1,6 +1,7 @@
 package io.github.foxesrcool1.einklauncher.design.components
 
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -22,6 +23,8 @@ fun EinkText(
     maxLines: Int = Int.MAX_VALUE,
     softWrap: Boolean = true,
     overflow: TextOverflow = TextOverflow.Ellipsis,
+    /** Smaller type, down to a floor, where the text would not fit. Worked out once per layout, never moving. */
+    autoSize: TextAutoSize? = null,
 ) {
     BasicText(
         text = text,
@@ -30,5 +33,6 @@ fun EinkText(
         maxLines = maxLines,
         softWrap = softWrap,
         overflow = overflow,
+        autoSize = autoSize,
     )
 }

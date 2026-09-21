@@ -6,8 +6,21 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
+import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
+import io.github.foxesrcool1.einklauncher.ui.split.BesideActivity
+import io.github.foxesrcool1.einklauncher.ui.split.PaneHost
+import io.github.foxesrcool1.einklauncher.ui.split.PaneInk
+import io.github.foxesrcool1.einklauncher.ui.split.PanePage
+import io.github.foxesrcool1.einklauncher.ui.split.SplitLayout
+import io.github.foxesrcool1.einklauncher.ui.split.SplitPane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitState
+import io.github.foxesrcool1.einklauncher.ui.split.openBookBeside
+import io.github.foxesrcool1.einklauncher.ui.split.splitCarry
+import io.github.foxesrcool1.einklauncher.ui.split.watchAndroidSplit
 
 private const val TAG = "NoteEditorActivity"
 
@@ -24,6 +37,9 @@ private const val TAG = "NoteEditorActivity"
 class NoteEditorActivity : ComponentActivity() {
 
     private val saveRequests = androidx.compose.runtime.mutableIntStateOf(0)
+    private var notePath = ""
+    private val split = SplitState(mainPage = { PanePage.TypedNote(notePath) })
+    private lateinit var paneInk: PaneInk
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,15 +53,47 @@ class NoteEditorActivity : ComponentActivity() {
         }
 
         AppLog.i(TAG, "Editing $path")
+        notePath = path
+        paneInk = PaneInk(this, lifecycleScope)
+        watchAndroidSplit(split)
+        intent.splitCarry()?.let { split.open(it.page, it.swapped) }
+
+        val paneHost = object : PaneHost {
+            override fun openBook(book: LibraryBook) = openBookBeside(this@NoteEditorActivity, split, book, this)
+
+            override fun paneInk(canvas: InkCanvasView?) = paneInk.serve(canvas)
+
+            override fun keeper(): Intent = BesideActivity.then(this@NoteEditorActivity, NoteEditorActivity.intent(this@NoteEditorActivity, path))
+
+            override fun leave() = finish()
+        }
+
         setContent {
             EinkTheme {
-                NoteEditorScreen(
-                    notePath = path,
-                    onClose = { finish() },
-                    saveRequests = saveRequests.intValue,
+                SplitLayout(
+                    split = split,
+                    main = {
+                        NoteEditorScreen(
+                            notePath = path,
+                            onClose = { finish() },
+                            saveRequests = saveRequests.intValue,
+                        )
+                    },
+                    pane = { SplitPane(split, paneHost) },
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::paneInk.isInitialized) paneInk.resume()
+        io.github.foxesrcool1.einklauncher.ui.split.AdjacentApps.takeRequest(this)
+    }
+
+    override fun onPause() {
+        if (::paneInk.isInitialized) paneInk.pause()
+        super.onPause()
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {

@@ -48,6 +48,10 @@ Wi-Fi. Settings can bring the bar back.
 
 ## The split screen
 
+Replaced on 2026-09-22 by decision 0016: every screen has a split screen now,
+any page can stand in the second half, and another app can be asked to open
+beside a page. What follows is the first version, kept for the reasoning.
+
 - **It is inside the readers, not the Android split screen.** Android's needs
   the firmware to support multi-window, and this firmware hides even its
   settings app. One icon in the EPUB menu and in the PDF toolbar opens a note

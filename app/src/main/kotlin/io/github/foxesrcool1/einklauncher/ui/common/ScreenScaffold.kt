@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
 import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
 import io.github.foxesrcool1.einklauncher.core.window.findActivity
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
@@ -32,6 +33,10 @@ import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.components.PlantArt
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
+import io.github.foxesrcool1.einklauncher.ui.split.LocalPane
+import io.github.foxesrcool1.einklauncher.ui.split.LocalSplit
+import io.github.foxesrcool1.einklauncher.ui.split.PaneControls
+import io.github.foxesrcool1.einklauncher.ui.split.SplitButton
 
 /**
  * True when the space a screen has is wider than it is tall: the tablet on
@@ -50,6 +55,11 @@ val LocalWideScreen = staticCompositionLocalOf { false }
  * [actions] are the controls of the screen. Upright, they get a line of their
  * own under the rule. On its side the tablet has width to spare and no height,
  * so they move up beside the title.
+ *
+ * In the second half of the split screen the same screen has less room. Its
+ * margins shrink, the plant goes, the way back leads to the choice of pages,
+ * and the controls of the split screen take the place of the icons that turn
+ * and split the screen.
  */
 @Composable
 fun ScreenScaffold(
@@ -62,11 +72,20 @@ fun ScreenScaffold(
     backLabel: String = "Home",
     /** False on the device test, which is locked upright so a turn cannot wipe its results. */
     showRotate: Boolean = true,
+    /** A shorter title for half a screen, where [title] would end in three dots. */
+    shortTitle: String? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val inPane = LocalPane.current != null
+    val halfScreen = inPane || LocalSplit.current?.isOpen == true
+
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val wide = maxWidth > maxHeight
+        val roomForPlant = maxWidth >= 440.dp
+        // A narrow half takes the short title, where there is one. A wide
+        // half keeps the long one, made smaller if it has to be.
+        val shownTitle = if (halfScreen && shortTitle != null && maxWidth < 600.dp) shortTitle else title
 
         CompositionLocalProvider(LocalWideScreen provides wide) {
             Column(
@@ -74,8 +93,12 @@ fun ScreenScaffold(
                     .fillMaxSize()
                     .systemBarsPadding()
                     .padding(
-                        horizontal = EinkDimens.screenMargin,
-                        vertical = if (wide) 16.dp else EinkDimens.screenMargin,
+                        horizontal = if (inPane) 12.dp else EinkDimens.screenMargin,
+                        vertical = when {
+                            inPane -> 8.dp
+                            wide -> 16.dp
+                            else -> EinkDimens.screenMargin
+                        },
                     ),
             ) {
                 Row(
@@ -83,23 +106,39 @@ fun ScreenScaffold(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (onBack != null) {
-                        IconPressButton(icon = backIcon, label = backLabel, onClick = onBack)
+                        // Home is no place to go back to from a half of the
+                        // screen. The same button leads to the choice of pages.
+                        if (inPane && backIcon == Lucide.House) {
+                            IconPressButton(icon = Lucide.ArrowLeft, label = "Back", onClick = onBack)
+                        } else {
+                            IconPressButton(icon = backIcon, label = backLabel, onClick = onBack)
+                        }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     // A long title, like a date in the Journal, gets the smaller
                     // size and the room of the plant. A title that ends in three
                     // dots tells the user nothing.
-                    val longTitle = title.length > LONG_TITLE
+                    val longTitle = shownTitle.length > LONG_TITLE
                     Column(modifier = Modifier.weight(1f)) {
                         if (overline != null) CapsLabel(text = overline, style = EinkType.capsSmall)
+                        val titleStyle = if (wide || longTitle) {
+                            EinkType.title.copy(fontSize = 26.sp, lineHeight = 36.sp)
+                        } else {
+                            EinkType.title
+                        }
                         EinkText(
-                            text = title,
-                            style = if (wide || longTitle) {
-                                EinkType.title.copy(fontSize = 26.sp, lineHeight = 36.sp)
-                            } else {
-                                EinkType.title
-                            },
+                            text = shownTitle,
+                            style = titleStyle,
                             maxLines = 1,
+                            // The top line holds more controls than it did,
+                            // and half a screen has less room again. The type
+                            // gets smaller before the title gets dots. A title
+                            // that fits keeps its full size.
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 16.sp,
+                                maxFontSize = titleStyle.fontSize,
+                                stepSize = 2.sp,
+                            ),
                         )
                     }
                     if (wide && actions != null) {
@@ -109,8 +148,17 @@ fun ScreenScaffold(
                             content = actions,
                         )
                     }
-                    if (!wide && !longTitle && plant != null) PlantArt(plant = plant, size = 52.dp)
-                    if (showRotate) RotateButton()
+                    // A narrow half has no room for the plant beside the title.
+                    if (!wide && !longTitle && plant != null && !inPane && roomForPlant) {
+                        PlantArt(plant = plant, size = 52.dp)
+                    }
+                    when {
+                        inPane -> PaneControls()
+                        showRotate -> {
+                            SplitButton()
+                            RotateButton()
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(if (wide) 6.dp else EinkDimens.targetGap))

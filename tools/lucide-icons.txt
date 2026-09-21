@@ -77,6 +77,11 @@ message-square-plus
 square-split-horizontal
 square-split-vertical
 
+# The split screen
+arrow-left-right
+arrow-up-down
+notebook-pen
+
 # Journal
 calendar-days
 calendar

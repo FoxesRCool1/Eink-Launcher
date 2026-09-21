@@ -53,7 +53,13 @@ object ScreenWindow {
             AppLog.w(TAG, "Could not read the window settings, using the defaults", it)
             WindowSettings()
         }
-        AppLog.i(TAG, "Read the window settings in ${System.currentTimeMillis() - started} ms: $loaded")
+        val took = System.currentTimeMillis() - started
+        AppLog.i(TAG, "Read the window settings in $took ms: $loaded")
+        io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check(
+            "Reading the window settings",
+            took,
+            io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.WINDOW_SETTINGS,
+        )
         cached = loaded
         return loaded
     }

@@ -11,6 +11,8 @@ class EinkLauncherApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppLog.init(this)
+        // Tells on disk or network work on the main thread, in a debug build.
+        io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.watchMainThread(BuildConfig.DEBUG)
         CrashHandler.install(this)
         AppLog.i(
             "App",

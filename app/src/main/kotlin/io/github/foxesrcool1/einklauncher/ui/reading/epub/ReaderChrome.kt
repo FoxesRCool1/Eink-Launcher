@@ -83,8 +83,12 @@ private fun MenuBar(state: ReaderUiState, actions: ReaderActions, modifier: Modi
             IconPressButton(icon = Lucide.MessageSquareText, label = "Notes and highlights", onClick = { actions.show(ReaderPanel.Notes) })
             IconPressButton(icon = Lucide.Type, label = "Text and reading settings", onClick = { actions.show(ReaderPanel.Text) })
             IconPressButton(
-                icon = Lucide.SquareSplitHorizontal,
-                label = "Split screen: write beside the book",
+                icon = if (io.github.foxesrcool1.einklauncher.ui.split.halvesSideBySide()) {
+                    Lucide.SquareSplitHorizontal
+                } else {
+                    Lucide.SquareSplitVertical
+                },
+                label = if (state.split) "Close the split screen" else "Split screen",
                 selected = state.split,
                 onClick = actions::toggleSplit,
             )

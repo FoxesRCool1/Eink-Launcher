@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -16,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
 import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
@@ -31,10 +34,22 @@ import io.github.foxesrcool1.einklauncher.ui.home.LauncherRoute
 import io.github.foxesrcool1.einklauncher.ui.home.HomeScreen
 import io.github.foxesrcool1.einklauncher.ui.journal.JournalScreen
 import io.github.foxesrcool1.einklauncher.ui.reading.ReadingScreen
-import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorActivity
+import io.github.foxesrcool1.einklauncher.ui.ink.InkCanvasView
 import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
 import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
+import io.github.foxesrcool1.einklauncher.ui.split.BesideActivity
+import io.github.foxesrcool1.einklauncher.ui.split.LocalPageOpener
+import io.github.foxesrcool1.einklauncher.ui.split.PageOpener
+import io.github.foxesrcool1.einklauncher.ui.split.PaneHost
+import io.github.foxesrcool1.einklauncher.ui.split.PaneInk
+import io.github.foxesrcool1.einklauncher.ui.split.PanePage
+import io.github.foxesrcool1.einklauncher.ui.split.ScreenPageOpener
+import io.github.foxesrcool1.einklauncher.ui.split.SplitLayout
+import io.github.foxesrcool1.einklauncher.ui.split.SplitPane
+import io.github.foxesrcool1.einklauncher.ui.split.SplitState
+import io.github.foxesrcool1.einklauncher.ui.split.openBookBeside
+import io.github.foxesrcool1.einklauncher.ui.split.watchAndroidSplit
 import io.github.foxesrcool1.einklauncher.ui.update.UpdateScreen
 import kotlinx.coroutines.launch
 
@@ -63,11 +78,48 @@ class HomeActivity : ComponentActivity() {
 
     private var startLogged = false
 
+    /** When the last change of tab was asked for, for its time budget. */
+    private var routeChangedAt = 0L
+
+    /**
+     * The split screen. The main half is whatever tab is open, and it cannot
+     * show the same page as the second half.
+     */
+    private val split = SplitState(
+        mainPage = { route.value.takeIf { it != LauncherRoute.Home }?.let(PanePage::Tab) },
+    )
+
+    /**
+     * Opens notes and books from the tabs. With the split screen open, the new
+     * screen takes the second half with it, and Home lets go of its own copy:
+     * one page must not be open in two places.
+     */
+    private val opener: PageOpener by lazy {
+        ScreenPageOpener(this, carry = { split.carry() }, afterCarry = { resetToHome() })
+    }
+
+    private lateinit var paneInk: PaneInk
+
+    private val paneHost = object : PaneHost {
+        override fun openBook(book: LibraryBook) = openBookBeside(this@HomeActivity, split, book, this)
+
+        override fun paneInk(canvas: InkCanvasView?) = paneInk.serve(canvas)
+
+        override fun keeper(): Intent = BesideActivity.intent(
+            this@HomeActivity,
+            route.value.takeIf { it != LauncherRoute.Home }?.let(PanePage::Tab) ?: PanePage.Choose,
+        )
+
+        override fun leave() = resetToHome()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppLog.i(TAG, "onCreate")
         ScreenWindow.attach(this)
         logStartTime()
+        paneInk = PaneInk(this, lifecycleScope)
+        watchAndroidSplit(split)
 
         setContent {
             val context = LocalContext.current
@@ -75,16 +127,51 @@ class HomeActivity : ComponentActivity() {
             val artOn by settings.botanicalArt.collectAsStateWithLifecycle(initialValue = true)
 
             EinkTheme(botanicalArt = artOn) {
-                LauncherHost(
-                    route = route.value,
-                    onRoute = { route.value = it },
-                    onOpenDemo = { openDemo() },
-                    onOpenNote = { path -> openNote(path) },
-                    onQuickNote = { quickNote() },
-                    newNoteRequests = newNoteRequests.intValue,
+                SplitLayout(
+                    split = split,
+                    main = {
+                        CompositionLocalProvider(LocalPageOpener provides opener) {
+                            LauncherHost(
+                                route = route.value,
+                                onRoute = { next ->
+                                    routeChangedAt = android.os.SystemClock.uptimeMillis()
+                                    route.value = next
+                                    split.mainChanged()
+                                },
+                                onOpenDemo = { openDemo() },
+                                onOpenNote = opener::openTypedNote,
+                                onOpenInkNote = { path, title -> opener.openInkNote(path, title) },
+                                onQuickNote = { quickNote() },
+                                onBackAtHome = split::close,
+                                newNoteRequests = newNoteRequests.intValue,
+                                takeRouteChangedAt = {
+                                    routeChangedAt.also { routeChangedAt = 0L }
+                                },
+                            )
+                        }
+                    },
+                    pane = { SplitPane(split, paneHost) },
                 )
             }
         }
+    }
+
+    /** Home, with no second half. After a page left for a screen of its own. */
+    private fun resetToHome() {
+        routeChangedAt = 0L
+        route.value = LauncherRoute.Home
+        split.close()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        paneInk.resume()
+    }
+
+    override fun onPause() {
+        // The tablet must stop drawing on the glass before another screen shows.
+        paneInk.pause()
+        super.onPause()
     }
 
     /**
@@ -99,14 +186,15 @@ class HomeActivity : ComponentActivity() {
             val sinceProcessStart = android.os.SystemClock.elapsedRealtime() -
                 android.os.Process.getStartElapsedRealtime()
             AppLog.i(TAG, "Home screen up $sinceProcessStart ms after the process started")
+            io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.coldStart(sinceProcessStart)
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // The Home key sends us this. Always land on Home.
+        // The Home key sends us this. Always land on Home, whole.
         AppLog.i(TAG, "onNewIntent: back to Home")
-        route.value = LauncherRoute.Home
+        resetToHome()
     }
 
     /**
@@ -117,16 +205,11 @@ class HomeActivity : ComponentActivity() {
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_N && event?.isCtrlPressed == true) {
             route.value = LauncherRoute.Writing
+            split.mainChanged()
             newNoteRequests.intValue++
             return true
         }
         return super.onKeyUp(keyCode, event)
-    }
-
-    private fun openNote(notePath: String) {
-        runCatching {
-            startActivity(NoteEditorActivity.intent(this, notePath))
-        }.onFailure { AppLog.e(TAG, "Could not open the note $notePath", it) }
     }
 
     /**
@@ -145,7 +228,7 @@ class HomeActivity : ComponentActivity() {
             val path = runCatching { notes.createNote(folder, stamp) }.getOrNull()
             runOnUiThread {
                 if (path != null) {
-                    openNote(path)
+                    opener.openTypedNote(path)
                 } else {
                     AppLog.e(TAG, "Could not make a quick note")
                 }
@@ -166,8 +249,13 @@ private fun LauncherHost(
     onRoute: (LauncherRoute) -> Unit,
     onOpenDemo: () -> Unit,
     onOpenNote: (String) -> Unit,
+    onOpenInkNote: (path: String, title: String) -> Unit,
     onQuickNote: () -> Unit,
+    /** Back on Home itself. Home has nothing behind it, so this only closes the split screen. */
+    onBackAtHome: () -> Unit,
     newNoteRequests: Int,
+    /** When the user asked for the tab on show, once, and then 0. 0 when the app changed it, not the user. */
+    takeRouteChangedAt: () -> Long = { 0L },
 ) {
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -206,16 +294,29 @@ private fun LauncherHost(
     // has turned it on. A change of tab is the big change of this activity.
     val fullRefreshOn by remember(context) { SettingsStore(context).fullRefreshOnBigChange }
         .collectAsStateWithLifecycle(initialValue = false)
+    // How long a change of tab took to show, from the tap to the frame after
+    // it. A launcher that feels quick is one where this stays short.
+    LaunchedEffect(route) {
+        val asked = takeRouteChangedAt()
+        if (asked == 0L) return@LaunchedEffect
+        androidx.compose.runtime.withFrameNanos { }
+        io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check(
+            "The change to ${route.title}",
+            android.os.SystemClock.uptimeMillis() - asked,
+            io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.SCREEN_CHANGE,
+        )
+    }
+
     LaunchedEffect(route, fullRefreshOn) {
         if (fullRefreshOn) {
             io.github.foxesrcool1.einklauncher.core.eink.EinkDevices.get(context).fullRefresh()
         }
     }
 
-    // Back goes to Home. On Home it does nothing at all, because a home
-    // screen has nowhere behind it.
+    // Back goes to Home. On Home it closes the split screen, and does nothing
+    // else, because a home screen has nowhere behind it.
     BackHandler(enabled = true) {
-        if (route != LauncherRoute.Home) onRoute(LauncherRoute.Home)
+        if (route != LauncherRoute.Home) onRoute(LauncherRoute.Home) else onBackAtHome()
     }
 
     when (route) {
@@ -265,13 +366,7 @@ private fun LauncherHost(
             onBack = { onRoute(LauncherRoute.Home) },
             onOpenNote = onOpenNote,
             newNoteRequests = newNoteRequests,
-            onOpenInkNote = { path, title ->
-                runCatching {
-                    context.startActivity(
-                        io.github.foxesrcool1.einklauncher.ui.ink.InkNoteActivity.intent(context, path, title),
-                    )
-                }.onFailure { AppLog.e(TAG, "Could not open the ink note $path", it) }
-            },
+            onOpenInkNote = onOpenInkNote,
         )
 
         LauncherRoute.Journal -> JournalScreen(

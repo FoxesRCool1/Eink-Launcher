@@ -21,6 +21,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import io.github.foxesrcool1.einklauncher.ui.split.PageOpener
+import io.github.foxesrcool1.einklauncher.ui.split.rememberPageOpener
 import io.github.foxesrcool1.einklauncher.core.books.BooksRepository
 import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
@@ -79,6 +81,7 @@ fun ReadingScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val books = remember(context) { BooksRepository(DataRoot.repository(context)) }
+    val opener = rememberPageOpener()
 
     var rows by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
     var sort by remember { mutableStateOf(LibrarySort.Recent) }
@@ -195,7 +198,7 @@ fun ReadingScreen(
             BookRow(
                 book = book,
                 progress = progress[book.bookId] ?: 0.0,
-                onOpen = { openBook(context, book) { status = it } },
+                onOpen = { openBook(opener, book) { status = it } },
                 onOptions = { optionsFor = book },
             )
         }
@@ -274,18 +277,9 @@ private fun BookRow(
     HairlineDivider(color = EinkColors.Faded)
 }
 
-private fun openBook(context: Context, book: LibraryBook, say: (String) -> Unit) {
-    runCatching {
-        if (book.isPdf) {
-            context.startActivity(
-                PdfReaderActivity.intent(context, book.path, book.bookId, book.metadata.title),
-            )
-        } else {
-            context.startActivity(
-                EpubReaderActivity.intent(context, book.path, book.bookId, book.metadata.title),
-            )
-        }
-    }.onFailure {
+/** A screen of its own for the book, and the split screen, if one is open, goes along. See [PageOpener]. */
+private fun openBook(opener: PageOpener, book: LibraryBook, say: (String) -> Unit) {
+    runCatching { opener.openBook(book) }.onFailure {
         AppLog.e(TAG, "Could not open ${book.path}", it)
         say("The book could not be opened")
     }

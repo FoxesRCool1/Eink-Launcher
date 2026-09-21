@@ -169,7 +169,7 @@ Home
 - Optional "Next" line: the next routine item for the day (for example Journal) with a Start control.
 - Quick note: one tap from Home opens a new note.
 - Landscape: a small icon on every screen turns the screen. Added by the owner on 2026-09-20.
-- Split screen: a note beside the book, in both readers. Added by the owner on 2026-09-20.
+- Split screen: a note beside the book, in both readers. Added by the owner on 2026-09-20. Widened by the owner on 2026-09-22: any page of the launcher beside any screen, and another app beside a page where the tablet allows Android's split screen. Decision 0016.
 
 Reading
 - Import EPUB and PDF with the system file picker. The app copies the file into `books/`.
