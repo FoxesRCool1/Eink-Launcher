@@ -28,6 +28,7 @@ import io.github.foxesrcool1.einklauncher.core.routine.RoutineStatus
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.storage.DataRoot
 import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
+import io.github.foxesrcool1.einklauncher.core.window.findActivity
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import io.github.foxesrcool1.einklauncher.ui.apps.AppsScreen
 import io.github.foxesrcool1.einklauncher.ui.home.LauncherRoute
@@ -307,10 +308,16 @@ private fun LauncherHost(
         )
     }
 
-    LaunchedEffect(route, fullRefreshOn) {
-        if (fullRefreshOn) {
-            io.github.foxesrcool1.einklauncher.core.eink.EinkDevices.get(context).fullRefresh()
-        }
+    // Only a real change of tab counts. The first screen after a start, and
+    // the setting being turned on, are not one. The refresh waits for the
+    // frame of the new tab, so the black is taken away from the new screen.
+    var refreshedFor by remember { mutableStateOf(route) }
+    LaunchedEffect(route) {
+        if (route == refreshedFor) return@LaunchedEffect
+        refreshedFor = route
+        if (!fullRefreshOn) return@LaunchedEffect
+        androidx.compose.runtime.withFrameNanos { }
+        context.findActivity()?.let(io.github.foxesrcool1.einklauncher.core.eink.ScreenRefresh::run)
     }
 
     // Back goes to Home. On Home it closes the split screen, and does nothing

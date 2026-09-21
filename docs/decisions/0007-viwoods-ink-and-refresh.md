@@ -103,6 +103,10 @@ no double line.
 700 ms. Nobody has written down whether mode 17 is one repaint or a mode
 that stays. Putting the old mode back by hand is right in both cases.
 
+Changed on 2026-09-22, see decision 0018: on the tablet this did nothing,
+because a mode alone paints nothing. The refresh the user asks for is now a
+black flash over the whole window, in mode 17 where the mode can be read.
+
 ### 7. The fallback
 
 If no fast path works, handwriting uses the app's own painting in picture

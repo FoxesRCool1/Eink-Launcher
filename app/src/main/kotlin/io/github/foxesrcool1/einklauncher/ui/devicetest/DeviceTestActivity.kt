@@ -27,6 +27,7 @@ import io.github.foxesrcool1.einklauncher.core.eink.RefreshMode
 import io.github.foxesrcool1.einklauncher.core.eink.ViwoodsEinkDevice
 import io.github.foxesrcool1.einklauncher.core.launcher.DefaultLauncher
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
+import io.github.foxesrcool1.einklauncher.core.window.findActivity
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.EinkTheme
 import io.github.foxesrcool1.einklauncher.design.EinkType
@@ -158,7 +159,12 @@ private fun buildTests(): List<DeviceTest> {
         }
     }
 
-    tests += DeviceTest("4. Full refresh now") { _, device -> device.fullRefresh().toString() }
+    tests += DeviceTest("4. Full refresh now, vendor mode only") { _, device -> device.fullRefresh().toString() }
+    tests += DeviceTest("4b. Force refresh, black flash") { context, _ ->
+        val activity = context.findActivity() ?: return@DeviceTest "No activity"
+        io.github.foxesrcool1.einklauncher.core.eink.ScreenRefresh.run(activity)
+        "The screen went black once. Were the grey marks gone after?"
+    }
 
     tests += DeviceTest("5. Pen canvas: this app draws (baseline)") { context, _ ->
         context.startActivity(PenTestActivity.intent(context, PenTestActivity.MODE_APP))
@@ -168,11 +174,11 @@ private fun buildTests(): List<DeviceTest> {
         context.startActivity(PenTestActivity.intent(context, PenTestActivity.MODE_JETPACK))
         "Opened. Debug builds only."
     }
-    tests += DeviceTest("6. Pen canvas: fast pen path A (initWriting)") { context, _ ->
+    tests += DeviceTest("6. Pen canvas: Fast 1 (path A, initWriting)") { context, _ ->
         context.startActivity(PenTestActivity.intent(context, PenTestActivity.MODE_WRITING))
         "Opened. If the app closed by itself, open this screen again and run test 8."
     }
-    tests += DeviceTest("7. Pen canvas: fast pen path B (AutoDraw)") { context, _ ->
+    tests += DeviceTest("7. Pen canvas: Fast 2 (path B, AutoDraw)") { context, _ ->
         context.startActivity(PenTestActivity.intent(context, PenTestActivity.MODE_AUTODRAW))
         "Opened"
     }

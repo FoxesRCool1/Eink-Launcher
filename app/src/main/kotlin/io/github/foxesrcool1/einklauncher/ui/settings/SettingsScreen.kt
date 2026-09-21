@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -20,11 +21,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.foxesrcool1.einklauncher.BuildConfig
+import io.github.foxesrcool1.einklauncher.core.eink.EinkDevice
 import io.github.foxesrcool1.einklauncher.core.eink.EinkDevices
+import io.github.foxesrcool1.einklauncher.core.eink.FastPenPath
+import io.github.foxesrcool1.einklauncher.core.eink.ScreenRefresh
 import io.github.foxesrcool1.einklauncher.core.launcher.DefaultLauncher
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
 import io.github.foxesrcool1.einklauncher.core.settings.WindowSettings
+import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.window.ScreenWindow
 import io.github.foxesrcool1.einklauncher.core.window.findActivity
 import io.github.foxesrcool1.einklauncher.design.EinkColors
@@ -38,7 +43,10 @@ import io.github.foxesrcool1.einklauncher.design.components.Plants
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
+import io.github.foxesrcool1.einklauncher.ui.devicetest.PenTestActivity
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "SettingsScreen"
 
@@ -49,8 +57,8 @@ private const val TAG = "SettingsScreen"
 enum class SettingsPage(val title: String, val summary: String, val icon: LucideIcon) {
     Menu("Settings", "", Lucide.Settings),
     HomeApp("Home app", "Make this the home screen.", Lucide.House),
-    Look("Look and screen", "Plants, names, status bar, landscape.", Lucide.Eye),
-    Pen("Pen", "How fast the pen line shows.", Lucide.PenLine),
+    Look("Look and screen", "Plants, status bar, landscape, refresh.", Lucide.Eye),
+    Pen("Pen", "Normal or fast pen, and a page to try it.", Lucide.PenLine),
     Backup("Backup and files", "Save a copy, or bring one back.", Lucide.Archive),
     Updates("Updates", "Look for a newer version.", Lucide.Download),
     Help("Help", "The log, the tests, the credits.", Lucide.LifeBuoy),
@@ -77,11 +85,12 @@ fun SettingsScreen(
     onOpenUpdates: () -> Unit = {},
     /** Which page to open on, as an index into [SettingsPage]. The screenshot tests use it. */
     initialPage: Int = 0,
+    /** The panel. The screenshot tests hand in one with vendor control, to draw the Pen page. */
+    device: EinkDevice = EinkDevices.get(LocalContext.current),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings = remember(context) { SettingsStore(context) }
-    val device = remember(context) { EinkDevices.get(context) }
 
     var page by rememberSaveable {
         mutableStateOf(SettingsPage.entries[initialPage.coerceIn(0, SettingsPage.entries.size - 1)])
@@ -95,6 +104,17 @@ fun SettingsScreen(
     val fullRefresh by settings.fullRefreshOnBigChange.collectAsStateWithLifecycle(initialValue = false)
     val fastPen by settings.fastPenMode.collectAsStateWithLifecycle(initialValue = SettingsStore.FAST_PEN_OFF)
     val inkDelay by settings.inkRedrawDelayMillis.collectAsStateWithLifecycle(initialValue = SettingsStore.DEFAULT_INK_DELAY_MILLIS)
+
+    // Which fast pen modes closed the app. Read from a small file each time
+    // the Pen page opens, off the main thread.
+    val penGuard = remember(context) { EinkDevices.guard(context) }
+    var crashedPens by remember { mutableStateOf(emptySet<FastPenPath>()) }
+    LaunchedEffect(page) {
+        if (page != SettingsPage.Pen) return@LaunchedEffect
+        crashedPens = withContext(AppDispatchers.io) {
+            FastPenPath.entries.filterNot(penGuard::mayTry).toSet()
+        }
+    }
 
     var isDefault by remember { mutableStateOf(DefaultLauncher.isDefault(context)) }
     var showManualSteps by remember { mutableStateOf(false) }
@@ -167,97 +187,126 @@ fun SettingsScreen(
                 onChange = { scope.launch { settings.setBotanicalArt(it) } },
             ),
             Setting.switch(
-                title = "Names under the icons",
-                help = "Show the words Read, Write, Journal and Apps on Home.",
+                title = "Icon Names",
+                help = "Show the words Read, Write, Journal and Apps under the icons on Home.",
                 icon = Lucide.Type,
                 on = homeLabels,
                 onChange = { scope.launch { settings.setHomeLabels(it) } },
             ),
             Setting.switch(
-                title = "Android status bar",
-                help = "The top bar with the clock. When it is off, swipe down from the top to see it.",
+                title = "Status Bar",
+                help = "The Android bar with the clock. When off, swipe down to see it.",
                 icon = Lucide.BatteryMedium,
                 on = !window.statusBarHidden,
                 onChange = { show -> changeWindow { it.copy(statusBarHidden = !show) } },
             ),
             Setting.switch(
-                title = "Screen on its side",
-                help = "Landscape. The small grey icon at the top of each screen does the same.",
+                title = "Landscape Mode",
+                help = "Turn the screen sideways. The icon at the top does it too.",
                 icon = Lucide.RotateCwSquare,
                 on = window.landscape,
                 onChange = { on -> changeWindow { it.copy(landscape = on) } },
             ),
             Setting.switch(
-                title = "Turn it the other way",
-                help = "For landscape. Use it if the tablet keys end up under your hand.",
+                title = "Flip Landscape",
+                help = "Use it if the tablet keys end up under your hand.",
                 icon = Lucide.RefreshCw,
                 on = window.landscapeFlipped,
                 enabled = window.landscape,
                 onChange = { on -> changeWindow { it.copy(landscapeFlipped = on) } },
             ),
             Setting.switch(
-                title = "Clean the screen on each change",
-                help = if (device.hasVendorControl) {
-                    "A full refresh when you open another screen. It removes grey marks."
-                } else {
-                    "This device has no screen refresh that the app can control."
-                },
+                title = "Auto Refresh",
+                help = "A full refresh each time you open another screen.",
                 icon = Lucide.Monitor,
                 on = fullRefresh,
-                enabled = device.hasVendorControl,
                 onChange = { scope.launch { settings.setFullRefreshOnBigChange(it) } },
             ),
             Setting(
-                title = "Clean the screen now",
-                help = "One full refresh, now.",
+                title = "Force Refresh",
+                help = "The screen goes black for a moment and comes back clean.",
                 icon = Lucide.RefreshCw,
-                enabled = device.hasVendorControl,
                 trailing = null,
-                onClick = { device.fullRefresh() },
+                onClick = { context.findActivity()?.let(ScreenRefresh::run) },
             ),
         )
 
         SettingsPage.Pen -> if (!device.hasVendorControl) {
             listOf(
                 Setting(
-                    title = "Pen line",
-                    help = "This device has no fast pen that the app knows. The app draws the line itself.",
+                    title = "Pen Mode",
+                    help = "This tablet has no fast pen that the app knows. The app draws the line.",
                     icon = Lucide.PenLine,
+                    value = penModeLabel(SettingsStore.FAST_PEN_OFF),
                     enabled = false,
                     trailing = null,
                     onClick = {},
                 ),
             )
         } else {
+            val closedApp = penModePath(fastPen)?.takeIf { it in crashedPens }
             listOf(
                 Setting(
-                    title = "Who draws the pen line",
-                    help = "The tablet can draw faster than the app. Run the device test in Help first.",
+                    title = "Pen Mode",
+                    help = if (closedApp != null) {
+                        "${penModeLabel(fastPen)} closed the app once. The app draws the line now."
+                    } else {
+                        "Normal is safe. Fast is quicker, but it is a test."
+                    },
                     icon = Lucide.PenLine,
-                    value = fastPenLabel(fastPen),
+                    value = penModeLabel(fastPen),
                     onClick = {
                         choice = Choice(
-                            title = "Who draws the pen line",
-                            options = listOf(
-                                SettingsStore.FAST_PEN_OFF,
-                                SettingsStore.FAST_PEN_WRITING,
-                                SettingsStore.FAST_PEN_AUTODRAW,
-                            ).map { mode -> fastPenLabel(mode) to { scope.launch { settings.setFastPenMode(mode) } } },
+                            title = "Pen Mode",
+                            message = PEN_MODE_STEPS,
+                            options = PEN_MODES.map { mode ->
+                                val path = penModePath(mode)
+                                val label = penModeLabel(mode) + if (path in crashedPens) ", closed the app once" else ""
+                                label to {
+                                    scope.launch {
+                                        // Both or neither: leaving Settings at once must not
+                                        // clear the guard and lose the choice.
+                                        withContext(NonCancellable) {
+                                            settings.setFastPenMode(mode)
+                                            // Picking a mode that crashed is the owner asking for one more try.
+                                            if (path != null) withContext(AppDispatchers.io) { penGuard.reset(path) }
+                                        }
+                                        crashedPens = crashedPens - setOfNotNull(path)
+                                    }
+                                    Unit
+                                }
+                            },
+                            current = PEN_MODES.indexOf(fastPen),
                         )
                     },
                 ),
                 Setting(
-                    title = "Wait before the final line",
-                    help = "After the pen lifts, the app draws the line again. Longer is safer.",
+                    title = "Try the Pen",
+                    help = "Write a few words with the mode you picked. Nothing is saved.",
+                    icon = Lucide.Pencil,
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                PenTestActivity.intent(context, penTestMode(fastPen))
+                                    .putExtra(PenTestActivity.EXTRA_DELAY, inkDelay),
+                            )
+                        }.onFailure { AppLog.e(TAG, "Could not open the pen page", it) }
+                    },
+                ),
+                Setting(
+                    title = "Redraw Delay",
+                    help = "Fast modes only. Longer if a line blinks or shows twice.",
                     icon = Lucide.History,
                     value = "$inkDelay ms",
                     enabled = fastPen != SettingsStore.FAST_PEN_OFF,
                     onClick = {
                         choice = Choice(
-                            title = "Wait before the final line",
-                            options = listOf(600L, 900L, 1200L, 1600L).map { millis ->
-                                "$millis ms" to { scope.launch { settings.setInkRedrawDelayMillis(millis) } }
+                            title = "Redraw Delay",
+                            message = REDRAW_DELAY_HELP,
+                            options = REDRAW_DELAYS.map { millis ->
+                                "$millis ms" to { scope.launch { settings.setInkRedrawDelayMillis(millis) }; Unit }
                             },
+                            current = REDRAW_DELAYS.indexOf(inkDelay),
                         )
                     },
                 ),
@@ -391,9 +440,10 @@ fun SettingsScreen(
     if (asking != null) {
         OptionsDialog(
             title = asking.title,
+            message = asking.message,
             onDismiss = { choice = null },
-            options = asking.options.map { (label, pick) ->
-                DialogOption(label = label) {
+            options = asking.options.mapIndexed { index, (label, pick) ->
+                DialogOption(label = label, icon = if (index == asking.current) Lucide.Check else Lucide.Minus) {
                     pick()
                     choice = null
                 }
@@ -414,13 +464,56 @@ fun SettingsScreen(
     }
 }
 
-/** A setting with a short list of values to choose from. */
-private class Choice(val title: String, val options: List<Pair<String, () -> Unit>>)
+/**
+ * A setting with a short list of values to choose from. [current] is the
+ * index of the value it has now, which gets a tick, or -1.
+ */
+private class Choice(
+    val title: String,
+    val options: List<Pair<String, () -> Unit>>,
+    val message: String? = null,
+    val current: Int = -1,
+)
 
-private fun fastPenLabel(mode: String): String = when (mode) {
-    SettingsStore.FAST_PEN_WRITING -> "Tablet, way A"
-    SettingsStore.FAST_PEN_AUTODRAW -> "Tablet, way B"
-    else -> "This app"
+/**
+ * The pen modes, in the order the dialog shows them. The stored names stay
+ * the old ones, so a tablet keeps its choice through the update.
+ */
+internal val PEN_MODES = listOf(
+    SettingsStore.FAST_PEN_OFF,
+    SettingsStore.FAST_PEN_WRITING,
+    SettingsStore.FAST_PEN_AUTODRAW,
+)
+
+/**
+ * What the pen modes are and what to do, above the choice. Short: the dialog
+ * does not scroll, and in landscape a long text pushed the last choice off.
+ */
+internal const val PEN_MODE_STEPS =
+    "Normal: the app draws the line. Safe.\n" +
+        "Fast: the tablet draws it. Quicker, but a test.\n" +
+        "Try Fast 1, then Fast 2. Keep the best one."
+
+internal val REDRAW_DELAYS = listOf(600L, 900L, 1200L, 1600L)
+
+internal const val REDRAW_DELAY_HELP = "The wait after you lift the pen. Longer is safer."
+
+internal fun penModeLabel(mode: String): String = when (mode) {
+    SettingsStore.FAST_PEN_WRITING -> "Fast 1"
+    SettingsStore.FAST_PEN_AUTODRAW -> "Fast 2"
+    else -> "Normal"
+}
+
+private fun penModePath(mode: String): FastPenPath? = when (mode) {
+    SettingsStore.FAST_PEN_WRITING -> FastPenPath.Writing
+    SettingsStore.FAST_PEN_AUTODRAW -> FastPenPath.AutoDraw
+    else -> null
+}
+
+private fun penTestMode(mode: String): String = when (mode) {
+    SettingsStore.FAST_PEN_WRITING -> PenTestActivity.MODE_WRITING
+    SettingsStore.FAST_PEN_AUTODRAW -> PenTestActivity.MODE_AUTODRAW
+    else -> PenTestActivity.MODE_APP
 }
 
 /**

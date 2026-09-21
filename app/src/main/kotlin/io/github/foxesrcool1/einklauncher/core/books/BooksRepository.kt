@@ -40,21 +40,38 @@ data class LibraryBook(
  */
 class BooksRepository(private val data: DataRepository) {
 
-    fun list(): List<LibraryBook> =
-        data.listBooks().map { stored ->
-            val metadata = if (EpubMetadata.looksLikeEpub(stored.name)) {
-                EpubMetadata.read { data.store.openInput(stored.relativePath) }
-                    ?: BookMetadata.fromFileName(stored.name)
-            } else {
-                BookMetadata.fromFileName(stored.name)
-            }
-
+    fun list(): List<LibraryBook> {
+        val found = data.listBooks()
+        // A book that is gone is forgotten, so the memory stays the size of the library.
+        val paths = found.mapTo(HashSet()) { it.relativePath }
+        synchronized(read) { read[data.store]?.keys?.retainAll(paths) }
+        return found.map { stored ->
             LibraryBook(
                 stored = stored,
-                metadata = metadata,
+                metadata = metadataOf(stored),
                 bookId = StorageLayout.bookIdFor(stored.name, stored.sizeBytes),
             )
         }
+    }
+
+    /**
+     * The title and the author. For an EPUB that means opening the zip and
+     * parsing its XML, and the library is read again every time it comes back
+     * on screen, which is every time a book closes. So what was read is kept,
+     * for as long as the file keeps its size and its date. A file changed by
+     * hand is read again. Battery matters more than the few bytes this holds.
+     */
+    private fun metadataOf(stored: StoredEntry): BookMetadata {
+        if (!EpubMetadata.looksLikeEpub(stored.name)) return BookMetadata.fromFileName(stored.name)
+        val stamp = stored.sizeBytes to stored.lastModified
+        val known = synchronized(read) { read.getOrPut(data.store) { HashMap() }[stored.relativePath] }
+        if (known != null && known.first == stamp) return known.second
+
+        val metadata = EpubMetadata.read { data.store.openInput(stored.relativePath) }
+            ?: BookMetadata.fromFileName(stored.name)
+        synchronized(read) { read.getOrPut(data.store) { HashMap() }[stored.relativePath] = stamp to metadata }
+        return metadata
+    }
 
     fun byTitle(): List<LibraryBook> =
         list().sortedBy { it.metadata.title.lowercase(Locale.ROOT) }
@@ -79,5 +96,14 @@ class BooksRepository(private val data: DataRepository) {
         data.store.delete(StorageLayout.annotationsPath(book.bookId))
         data.store.delete("${StorageLayout.ANNOTATIONS}/${book.bookId}")
         return true
+    }
+
+    private companion object {
+        /**
+         * What [metadataOf] read, per data folder and then per relative path,
+         * with the size and the date it was read at. Shared by every
+         * repository in the process, because each screen makes its own.
+         */
+        val read = java.util.WeakHashMap<Any, HashMap<String, Pair<Pair<Long, Long>, BookMetadata>>>()
     }
 }

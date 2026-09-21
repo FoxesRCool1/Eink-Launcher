@@ -16,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import io.github.foxesrcool1.einklauncher.core.books.LibraryBook
-import io.github.foxesrcool1.einklauncher.core.eink.EinkDevices
+import io.github.foxesrcool1.einklauncher.core.eink.ScreenRefresh
 import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
 import io.github.foxesrcool1.einklauncher.core.ink.InkNote
@@ -351,7 +351,7 @@ class PdfReaderActivity : ComponentActivity() {
             else -> return
         }
         turns++
-        if (refreshEvery > 0 && turns % refreshEvery == 0) EinkDevices.get(this).fullRefresh()
+        if (refreshEvery > 0 && turns % refreshEvery == 0) ScreenRefresh.run(this)
         showScreen()
     }
 

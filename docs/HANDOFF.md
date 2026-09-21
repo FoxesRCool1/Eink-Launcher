@@ -3,7 +3,8 @@
 For the next session, wherever it runs. Rewritten 2026-09-20 by the session
 that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9. Section 2b was
 added the same day by the session that built the in-app update, and section
-2c by the session that did the owner's first list of changes.
+2c by the session that did the owner's first list of changes. Sections 2d and
+2e came with the second and third lists, on 2026-09-22.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
@@ -131,6 +132,26 @@ section, and decisions 0016 and 0017. What a new session must know:
 - **The letter for ViWoods** is `docs/viwoods-request.md`. The owner sends it.
   ViWoods keeps its fast pen list by package name, so the final package
   name matters before it goes.
+
+### 2e. The owner's third list: refresh, names, pen page, battery
+
+On 2026-09-22, after using 0.2.0 on the tablet. Release 0.3.0. `PROGRESS.md`,
+top section, and decisions 0018 and 0019. What a new session must know:
+
+- **The vendor picture mode alone paints nothing.** The owner pressed the old
+  refresh button and nothing happened. A full refresh is now
+  `ScreenRefresh.run(activity)`: a black cover over the window for 450 ms, in
+  mode 17 where the mode can be read. Use it for any new refresh.
+- **The owner wants plain names**: "Force Refresh", "Landscape Mode". Name a
+  new setting the way a phone would, in title case, not a phrase.
+- **Pen modes are called Normal, Fast 1 and Fast 2** in the app. In the code
+  they are still `FAST_PEN_OFF`, `FAST_PEN_WRITING` (path A) and
+  `FAST_PEN_AUTODRAW` (path B). The stored values did not change.
+- **The updater keeps the token.** The owner asked about updates with no
+  token, then chose to type a token himself, because the app must stay
+  secure to sell. Do not bring up a public place for the APK again.
+- **Battery was checked.** Decision 0019 lists what is fine and what was left
+  on purpose. The library keeps book titles in memory, keyed by size and date.
 
 ---
 

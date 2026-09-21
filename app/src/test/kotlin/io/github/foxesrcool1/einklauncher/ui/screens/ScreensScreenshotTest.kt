@@ -42,7 +42,21 @@ import io.github.foxesrcool1.einklauncher.ui.journal.JournalScreen
 import io.github.foxesrcool1.einklauncher.ui.log.LogViewerScreen
 import io.github.foxesrcool1.einklauncher.ui.reading.ReadingScreen
 import io.github.foxesrcool1.einklauncher.ui.reading.pdf.PdfReaderScreenshotSupport
+import io.github.foxesrcool1.einklauncher.ui.settings.PEN_MODES
+import io.github.foxesrcool1.einklauncher.ui.settings.PEN_MODE_STEPS
+import io.github.foxesrcool1.einklauncher.ui.settings.REDRAW_DELAYS
+import io.github.foxesrcool1.einklauncher.ui.settings.REDRAW_DELAY_HELP
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsPage
+import io.github.foxesrcool1.einklauncher.ui.settings.penModeLabel
+import io.github.foxesrcool1.einklauncher.design.components.DialogOption
+import io.github.foxesrcool1.einklauncher.design.components.OptionsDialogContent
+import io.github.foxesrcool1.einklauncher.design.icons.Lucide
+import io.github.foxesrcool1.einklauncher.core.eink.EinkCallResult
+import io.github.foxesrcool1.einklauncher.core.eink.EinkDevice
+import io.github.foxesrcool1.einklauncher.core.eink.FastPenPath
+import io.github.foxesrcool1.einklauncher.core.eink.PenTool
+import io.github.foxesrcool1.einklauncher.core.eink.RefreshMode
+import androidx.compose.foundation.layout.widthIn
 import io.github.foxesrcool1.einklauncher.ui.settings.SettingsScreen
 import io.github.foxesrcool1.einklauncher.ui.writing.NoteEditorScreen
 import io.github.foxesrcool1.einklauncher.ui.writing.WritingScreen
@@ -284,6 +298,67 @@ abstract class ScreensScreenshotBase(private val suffix: String) {
     @Test
     fun settingsPen() = settings(SettingsPage.Pen, "settings_pen")
 
+    /** The Pen page as the tablet shows it: with vendor control, so the fast modes are there. */
+    @Test
+    fun settingsPenOnTheTablet() {
+        compose.setContent {
+            EinkTheme {
+                SettingsScreen(
+                    onBack = {},
+                    onOpenLog = {},
+                    onOpenDemo = {},
+                    initialPage = SettingsPage.Pen.ordinal,
+                    device = VendorLikeDevice,
+                )
+            }
+        }
+        capture("settings_pen_tablet")
+    }
+
+    /** The choice of pen mode, with its steps. The longest dialog text in the app. */
+    @Test
+    fun settingsPenModeDialog() {
+        compose.setContent {
+            EinkTheme {
+                Box(modifier = Modifier.fillMaxSize().background(EinkColors.Paper).padding(16.dp)) {
+                    OptionsDialogContent(
+                        title = "Pen Mode",
+                        message = PEN_MODE_STEPS,
+                        options = PEN_MODES.mapIndexed { index, mode ->
+                            DialogOption(
+                                label = penModeLabel(mode) + if (index == 1) ", closed the app once" else "",
+                                icon = if (index == 0) Lucide.Check else Lucide.Minus,
+                            ) {}
+                        },
+                        onDismiss = {},
+                        modifier = Modifier.widthIn(max = 440.dp),
+                    )
+                }
+            }
+        }
+        capture("settings_pen_dialog")
+    }
+
+    @Test
+    fun settingsRedrawDelayDialog() {
+        compose.setContent {
+            EinkTheme {
+                Box(modifier = Modifier.fillMaxSize().background(EinkColors.Paper).padding(16.dp)) {
+                    OptionsDialogContent(
+                        title = "Redraw Delay",
+                        message = REDRAW_DELAY_HELP,
+                        options = REDRAW_DELAYS.mapIndexed { index, millis ->
+                            DialogOption(label = "$millis ms", icon = if (index == 1) Lucide.Check else Lucide.Minus) {}
+                        },
+                        onDismiss = {},
+                        modifier = Modifier.widthIn(max = 440.dp),
+                    )
+                }
+            }
+        }
+        capture("settings_redraw_dialog")
+    }
+
     @Test
     fun settingsBackup() = settings(SettingsPage.Backup, "settings_backup")
 
@@ -494,3 +569,20 @@ class ScreensPortraitScreenshotTest : ScreensScreenshotBase("")
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "sw480dp-w640dp-h480dp-land-xxhdpi")
 class ScreensLandscapeScreenshotTest : ScreensScreenshotBase("_land")
+
+/** A panel with vendor control that does nothing, so Settings draws what the tablet shows. */
+private object VendorLikeDevice : EinkDevice {
+    private fun done(call: String) = EinkCallResult(call, true, "")
+    override val name = "Vendor like"
+    override val hasVendorControl = true
+    override val activeFastPen: FastPenPath? = null
+    override fun deviceInfo(): List<Pair<String, String>> = emptyList()
+    override fun refreshMode(): RefreshMode = RefreshMode.Reading
+    override fun setRefreshMode(mode: RefreshMode) = done("setRefreshMode")
+    override fun fullRefresh() = done("fullRefresh")
+    override fun startFastPen(context: Context, path: FastPenPath, drawRegion: android.graphics.Rect, excluded: List<android.graphics.Rect>) =
+        done("startFastPen")
+    override fun stopFastPen() = done("stopFastPen")
+    override fun setPenTool(tool: PenTool) = done("setPenTool")
+    override fun setPenWidthRange(min: Int, max: Int) = done("setPenWidthRange")
+}

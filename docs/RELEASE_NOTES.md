@@ -1,5 +1,12 @@
 # Release notes
 
+## 0.3.0
+
+- Force Refresh works: the screen goes black for a moment and comes back clean
+- Plain names in Settings: Force Refresh, Auto Refresh, Landscape Mode
+- The Pen page explains itself: Normal, Fast 1, Fast 2, and a page to try the pen
+- Less battery: the library no longer opens every book when a book closes, and the clock rests while the tablet sleeps
+
 ## 0.2.0
 
 - Icons, round shapes, landscape, split screen, app folders, new Settings

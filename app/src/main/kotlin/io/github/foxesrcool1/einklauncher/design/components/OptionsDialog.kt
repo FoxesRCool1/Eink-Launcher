@@ -30,12 +30,17 @@ data class DialogOption(
 /** The widest a dialog gets. In landscape 86 % of the screen is far too wide to read. */
 internal val DialogMaxWidth = 440.dp
 
-/** A short list of actions, shown after a long press. */
+/**
+ * A short list of actions, shown after a long press, or the values of a
+ * setting. [message] is a few plain lines above the list, for a choice that
+ * needs them.
+ */
 @Composable
 fun OptionsDialog(
     title: String,
     options: List<DialogOption>,
     onDismiss: () -> Unit,
+    message: String? = null,
 ) {
     EinkDialog(
         onDismissRequest = onDismiss,
@@ -45,6 +50,7 @@ fun OptionsDialog(
             title = title,
             options = options,
             onDismiss = onDismiss,
+            message = message,
             modifier = Modifier.widthIn(max = DialogMaxWidth).fillMaxWidth(0.86f),
         )
     }
@@ -56,6 +62,7 @@ fun OptionsDialogContent(
     options: List<DialogOption>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    message: String? = null,
 ) {
     Column(
         modifier = modifier
@@ -67,6 +74,10 @@ fun OptionsDialogContent(
             IconPressButton(icon = Lucide.X, label = "Close", onClick = onDismiss)
         }
         Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+        if (message != null) {
+            EinkText(text = message, style = EinkType.body)
+            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+        }
 
         options.forEach { option ->
             EinkRow(onClick = { if (option.enabled) option.onSelect() }) { pressed ->

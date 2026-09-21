@@ -19,8 +19,9 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Constraints
-import io.github.foxesrcool1.einklauncher.core.eink.EinkDevices
+import io.github.foxesrcool1.einklauncher.core.eink.ScreenRefresh
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
+import io.github.foxesrcool1.einklauncher.core.window.findActivity
 import io.github.foxesrcool1.einklauncher.design.EinkColors
 import io.github.foxesrcool1.einklauncher.design.EinkDimens
 import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
@@ -204,6 +205,8 @@ internal fun RefreshOnSplitChange(split: SplitState) {
             SpeedWatch.check("A change of the split screen", SystemClock.uptimeMillis() - asked, SpeedWatch.Budget.SCREEN_CHANGE)
         }
         if (split.changedByMain) return@LaunchedEffect
-        if (SettingsStore(context).fullRefreshOnBigChange.first()) EinkDevices.get(context).fullRefresh()
+        if (!SettingsStore(context).fullRefreshOnBigChange.first()) return@LaunchedEffect
+        withFrameNanos { }
+        context.findActivity()?.let(ScreenRefresh::run)
     }
 }

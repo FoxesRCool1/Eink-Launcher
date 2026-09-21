@@ -6,12 +6,12 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleStartEffect
 import java.time.LocalDateTime
 
 /**
@@ -21,13 +21,17 @@ import java.time.LocalDateTime
  * minute only. `ACTION_TIME_TICK` fires on the minute, so there is no timer and
  * no polling. The broadcast only reaches a receiver registered in code, never
  * one declared in the manifest.
+ *
+ * It listens only while the screen is on show. With the tablet asleep, or a
+ * book in front of Home, nothing listens, so Android has no reason to wake
+ * the app each minute. The time is read again the moment Home comes back.
  */
 @Composable
 fun rememberMinuteClock(): State<LocalDateTime> {
     val context = LocalContext.current
     val time = remember { mutableStateOf(LocalDateTime.now()) }
 
-    DisposableEffect(context) {
+    LifecycleStartEffect(context) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(received: Context?, intent: Intent?) {
                 time.value = LocalDateTime.now()
@@ -45,7 +49,7 @@ fun rememberMinuteClock(): State<LocalDateTime> {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         time.value = LocalDateTime.now()
-        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+        onStopOrDispose { runCatching { context.unregisterReceiver(receiver) } }
     }
 
     return time

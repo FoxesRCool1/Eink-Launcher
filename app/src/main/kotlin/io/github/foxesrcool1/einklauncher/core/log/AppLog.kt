@@ -28,6 +28,10 @@ object AppLog {
 
     private val memory = ArrayDeque<LogLine>(MEMORY_LINES)
 
+    /** Lines on their way to the file. See [drain]. */
+    private val pending = java.util.concurrent.ConcurrentLinkedQueue<LogLine>()
+    private val draining = java.util.concurrent.atomic.AtomicBoolean(false)
+
     @Volatile
     private var logDir: File? = null
 
@@ -72,11 +76,22 @@ object AppLog {
         }
 
         val dir = logDir ?: return
-        writer.execute {
-            runCatching {
-                File(dir, LogFormat.fileNameFor(line.timeMillis))
-                    .appendText(line.format() + "\n")
-            }
+        pending.add(line)
+        if (draining.compareAndSet(false, true)) writer.execute { drain(dir) }
+    }
+
+    /**
+     * Writes every line that is waiting, with one open of the file for all of
+     * them. A burst, such as the vendor method list, used to open and close
+     * the file once per line, and each of those is a write to the flash.
+     * A line that comes in after [draining] is cleared starts the next drain,
+     * so none is left behind.
+     */
+    private fun drain(dir: File) {
+        draining.set(false)
+        val batch = generateSequence { pending.poll() }.toList()
+        batch.groupBy { LogFormat.fileNameFor(it.timeMillis) }.forEach { (name, lines) ->
+            runCatching { File(dir, name).appendText(lines.joinToString("") { it.format() + "\n" }) }
         }
     }
 

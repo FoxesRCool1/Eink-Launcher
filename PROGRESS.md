@@ -4,6 +4,64 @@ One section per step. Newest step at the top.
 
 ---
 
+## The owner's third list: Force Refresh, plain names, the Pen page, battery
+
+Date: 2026-09-22. Branch `Dev`. Release 0.3.0. The owner used 0.2.0 on the
+tablet and said: "Clean the screen now" does not refresh; call it "Force
+Refresh" and "Landscape Mode"; the Pen page makes no sense; and make the
+launcher easy on the battery. He also asked for updates with no access token.
+He then chose to keep the token for now, because the app must stay secure to
+sell. So nothing changed there. Decisions 0018 and 0019.
+
+### What was done
+
+1. **Force Refresh works another way.** The old button only set the vendor
+   picture mode, which paints nothing by itself. Now the whole window goes
+   black for 450 ms and comes back, in the vendor full mode where the mode
+   can be read. This works on any e-ink panel. Auto Refresh (on each change
+   of screen) and the readers' "every N pages" use the same flash.
+2. **Plain names** on Look and screen: Force Refresh, Auto Refresh,
+   Landscape Mode, Flip Landscape, Icon Names, Status Bar. Shorter help
+   lines, so none ends in three dots.
+3. **The Pen page explains itself.** Pen Mode is Normal, Fast 1 or Fast 2.
+   The choice has three lines of help and a tick on the one in use. "Try
+   the Pen" opens a blank page with that mode. Redraw Delay says what it is.
+   A fast mode that closed the app says so, and picking it again allows one
+   more try.
+4. **Battery.** The Read tab no longer opens every book file each time a
+   book closes. The Home clock stops listening while the tablet sleeps. The
+   log writes a burst of lines with one open of the file.
+
+### What works
+
+Build, all unit tests, lint, green. New tests: the black flash and the mode
+put back, the book title cache, the log under four threads at once. New
+pictures: the Pen page as the tablet shows it, and both new dialogs, upright
+and on the side. Everything fits.
+
+### What does not work, or is not known
+
+- **Nothing here has run on the tablet.** The flash length, 450 ms, is a
+  guess. If the tablet shows no black, or only a grey flicker, it is too
+  short. See decision 0018.
+- Fast 1 and Fast 2 are still the untested vendor paths of step 2.
+
+### What the owner must test on the tablet
+
+1. Settings, Look and screen, page 2: press Force Refresh. The screen goes
+   black for a moment, then comes back clean. Say if it did not go black.
+2. Turn on Auto Refresh. Change tabs. Each change flashes once. Turn it off.
+3. Settings, Pen: press Pen Mode. Read the three lines. Pick Fast 1. Press
+   Try the Pen and write. Then Fast 2. Keep the one that looks best, or
+   Normal.
+4. Read tab: open a book, close it. The library comes back as before.
+5. Leave the tablet asleep on Home for a night. Note the battery before and
+   after, and compare with 0.2.0 if you know that number.
+6. Send the log. Look for `ScreenRefresh` lines: they say if the vendor
+   full mode was used.
+
+---
+
 ## The owner's second list: the split screen for every page, speed guards, questions for ViWoods
 
 Date: 2026-09-22. Branch `Dev`. The owner asked three things: what to ask

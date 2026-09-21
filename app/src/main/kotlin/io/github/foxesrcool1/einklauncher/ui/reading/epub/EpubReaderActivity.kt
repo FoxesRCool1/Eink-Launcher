@@ -19,7 +19,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.lifecycleScope
-import io.github.foxesrcool1.einklauncher.core.eink.EinkDevices
+import io.github.foxesrcool1.einklauncher.core.eink.ScreenRefresh
 import io.github.foxesrcool1.einklauncher.core.habits.DayBoundary
 import io.github.foxesrcool1.einklauncher.core.habits.HabitsRepository
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
@@ -387,7 +387,7 @@ class EpubReaderActivity : FragmentActivity() {
 
         pageTurns++
         val every = ui.settings.refreshEveryPages
-        if (every > 0 && pageTurns % every == 0) EinkDevices.get(this).fullRefresh()
+        if (every > 0 && pageTurns % every == 0) ScreenRefresh.run(this)
     }
 
     private val tapListener = object : InputListener {

@@ -140,7 +140,7 @@ EinkLauncher/
 5. Pressed state = instant colour invert. No shadows. No elevation. No gradients. Lines are 1 dp or 2 dp.
 6. Touch targets are 56 dp or more. Keep space between targets for finger and pen.
 7. Change as few pixels as possible per update. Update the clock once per minute only.
-8. Ask for a full refresh (GC mode) through `EinkDevice` after a big screen change, if Step 2 proves that it works. Make it a setting.
+8. Ask for a full refresh (GC mode) through `EinkDevice` after a big screen change, if Step 2 proves that it works. Make it a setting. Changed 2026-09-22 after the tablet test: the mode alone painted nothing, so a full refresh is a black flash over the window through `ScreenRefresh`, in GC mode where the mode can be read. Decision 0018.
 9. Dark theme is optional and comes later. Large black areas ghost more.
 
 ### Look

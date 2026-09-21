@@ -36,8 +36,9 @@ Read this file at the start of every session. It is the short form of
    for that. Shapes come from `EinkShapes`.
 6. Touch targets are 56 dp or more, with space between them for finger and pen.
 7. Change as few pixels as possible per update. The clock updates once a minute.
-8. Ask for a full refresh through `EinkDevice` after a big screen change, once
-   Step 2 proves that it works. It is a setting.
+8. A full refresh goes through `ScreenRefresh.run(activity)`: a black flash
+   over the window, in the vendor full mode where there is one. After a big
+   screen change only when the user turned on "Auto Refresh". Decision 0018.
 9. Dark theme is optional and comes later.
 
 ## Code rules that follow from the above
