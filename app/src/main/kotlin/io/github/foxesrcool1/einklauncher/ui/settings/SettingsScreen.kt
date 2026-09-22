@@ -43,6 +43,7 @@ import io.github.foxesrcool1.einklauncher.design.components.Plants
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.design.icons.LucideIcon
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
+import io.github.foxesrcool1.einklauncher.ui.common.WebLinks
 import io.github.foxesrcool1.einklauncher.ui.devicetest.PenTestActivity
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -116,13 +117,20 @@ fun SettingsScreen(
         }
     }
 
-    var isDefault by remember { mutableStateOf(DefaultLauncher.isDefault(context)) }
+    // Asking the package manager is a binder call, so it runs off the main
+    // thread: once when the screen opens, and again when the role request
+    // comes back.
+    var isDefault by remember { mutableStateOf(false) }
+    var isDefaultChecks by remember { mutableStateOf(0) }
+    LaunchedEffect(isDefaultChecks) {
+        isDefault = withContext(AppDispatchers.io) { DefaultLauncher.isDefault(context) }
+        if (isDefaultChecks > 0) AppLog.i(TAG, "Home role request came back. Default now: $isDefault")
+    }
     var showManualSteps by remember { mutableStateOf(false) }
     val roleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) {
-        isDefault = DefaultLauncher.isDefault(context)
-        AppLog.i(TAG, "Home role request came back. Default now: $isDefault")
+        isDefaultChecks++
     }
 
     val storage = rememberStorageActions(onStatus = { status = it })
@@ -387,6 +395,20 @@ fun SettingsScreen(
                 help = SettingsPage.About.summary,
                 icon = Lucide.Info,
                 onClick = { open(SettingsPage.About) },
+            ),
+            Setting(
+                title = "Support this app",
+                help = "It is free and stays free. If it helps you, you can buy me a coffee.",
+                icon = Lucide.Coffee,
+                trailing = null,
+                onClick = { WebLinks.open(context, WebLinks.KO_FI) },
+            ),
+            Setting(
+                title = "Source code",
+                help = "Open source, Apache-2.0, on GitHub. Bug reports and changes are welcome.",
+                icon = Lucide.FileText,
+                trailing = null,
+                onClick = { WebLinks.open(context, WebLinks.SOURCE) },
             ),
         )
 

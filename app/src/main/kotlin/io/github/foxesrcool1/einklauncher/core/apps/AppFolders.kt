@@ -21,9 +21,24 @@ data class AppFolder(
  * uninstalled stays in the file. It comes back into its folders when it is
  * installed again, which is what happens on a restore to a new tablet.
  *
+ * The hidden apps live here too, in the same file: an app the user does not
+ * want on the A to Z page. It is still installed, still in its folders and
+ * still pinned if it was pinned. Hiding is for the twenty preinstalled apps
+ * nobody opens, not for a secret.
+ *
  * Nothing here touches Android, so plain unit tests check every rule.
  */
-data class AppFolders(val folders: List<AppFolder> = emptyList()) {
+data class AppFolders(
+    val folders: List<AppFolder> = emptyList(),
+    /** The keys of the apps kept off the A to Z page, in the order they were hidden. */
+    val hidden: List<String> = emptyList(),
+) {
+
+    fun isHidden(appKey: String): Boolean = appKey in hidden
+
+    /** Hides the app when it is shown, and shows it when it is hidden. */
+    fun hiddenToggled(appKey: String): AppFolders =
+        copy(hidden = if (appKey in hidden) hidden - appKey else hidden + appKey)
 
     fun folder(name: String): AppFolder? = folders.firstOrNull { it.name.sameNameAs(name) }
 
@@ -96,6 +111,7 @@ object AppFoldersFile {
                     )
                 },
             ),
+            "hidden" to jsonArrayOf(folders.hidden.map(::jsonOf)),
         ),
     )
 
@@ -118,6 +134,9 @@ object AppFoldersFile {
             ?.distinctBy { it.name.lowercase(Locale.ROOT) }
             ?: emptyList()
 
-        return AppFolders(folders)
+        // A file from before hiding existed has no "hidden" list. That is fine.
+        val hidden = root.array("hidden")?.strings().orEmpty().filter { it.isNotBlank() }.distinct()
+
+        return AppFolders(folders, hidden)
     }
 }

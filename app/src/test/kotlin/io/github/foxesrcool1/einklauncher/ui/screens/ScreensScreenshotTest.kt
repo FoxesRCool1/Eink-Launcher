@@ -277,6 +277,39 @@ abstract class ScreensScreenshotBase(private val suffix: String) {
         capture("apps_pinned_empty")
     }
 
+    @Test
+    fun appsSearch() {
+        compose.setContent {
+            EinkTheme {
+                AppsScreen(onBack = {}, previewApps = someApps, previewFolders = someFolders, initialPage = 2, initialSearch = "k")
+            }
+        }
+        capture("apps_search")
+    }
+
+    // A short list, so the last line, the one that shows or puts away the
+    // hidden apps, is on the first page of the picture.
+    private val fewApps = someApps.take(5)
+    private val hidingTwo = someFolders.hiddenToggled(fewApps[0].key).hiddenToggled(fewApps[3].key)
+
+    @Test
+    fun appsWithHiddenAway() {
+        compose.setContent {
+            EinkTheme { AppsScreen(onBack = {}, previewApps = fewApps, previewFolders = hidingTwo, initialPage = 2) }
+        }
+        capture("apps_hidden_away")
+    }
+
+    @Test
+    fun appsWithHiddenShown() {
+        compose.setContent {
+            EinkTheme {
+                AppsScreen(onBack = {}, previewApps = fewApps, previewFolders = hidingTwo, initialPage = 2, initialShowHidden = true)
+            }
+        }
+        capture("apps_hidden_shown")
+    }
+
     // -- Settings ------------------------------------------------------------------------
 
     private fun settings(page: SettingsPage, name: String) {

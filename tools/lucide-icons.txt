@@ -91,6 +91,7 @@ flame
 
 # Settings
 eye
+eye-off
 monitor
 hard-drive
 archive
@@ -102,6 +103,7 @@ toggle-left
 toggle-right
 wrench
 mouse-pointer
+coffee
 
 # Plants: the corner drawings and the app icon
 sprout

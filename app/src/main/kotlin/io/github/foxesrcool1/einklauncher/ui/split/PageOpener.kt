@@ -2,6 +2,7 @@ package io.github.foxesrcool1.einklauncher.ui.split
 
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -74,11 +75,28 @@ class ScreenPageOpener(
     override fun openApp(entry: LauncherEntry): Boolean = AppsRepository(context).launch(entry)
 
     private fun start(what: String, make: () -> Intent) {
+        // A second tap on the same row, before the first screen is up, would
+        // open the note twice, and the two copies would save over each other.
+        // E-ink gives no sign that the first tap landed, so this happens.
+        val now = SystemClock.uptimeMillis()
+        if (what == lastOpened && now - lastOpenedAt < DOUBLE_TAP_MILLIS) {
+            AppLog.i(TAG, "Ignored a second tap on $what")
+            return
+        }
+        lastOpened = what
+        lastOpenedAt = now
+
         val taken = carry()
         runCatching {
             context.startActivity(make().withSplit(taken))
             if (taken != null) afterCarry()
         }.onFailure { AppLog.e(TAG, "Could not open $what", it) }
+    }
+
+    private companion object {
+        const val DOUBLE_TAP_MILLIS = 1500L
+        var lastOpened: String? = null
+        var lastOpenedAt = 0L
     }
 }
 

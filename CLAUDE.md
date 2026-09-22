@@ -116,13 +116,23 @@ The owner finds the app quick and wants it to stay that way. Decision 0017.
 - New kinds of file get a path builder in `StorageLayout`, not a string
   somewhere in a screen.
 
-## The source is private
+## The source is public and the app is free
 
-The owner may sell this app one day. The repository is private and stays
-private. Do not suggest making it public. Do not put source code, APK files
-or build output anywhere other people can reach, and that includes public
-gists, paste sites and third party services, without asking first. Code
-shrinking is off, so an APK reads almost like the source.
+The owner decided on 2026-09-22: the app is free, open source under
+Apache-2.0, and the repository is public. There is no paid version and no
+plan for one. People who want to help pay for it can, at
+https://ko-fi.com/foxesrcool. That link lives in three places: the README,
+`.github/FUNDING.yml`, and Settings, Help, "Support this app". Decision 0020.
+
+- Nothing that identifies the owner beyond the GitHub name goes in the
+  repository: no email address, no home path, no token.
+- Secrets never enter the repository: no access token, no release key, no
+  `local.properties`. The debug keystore is checked in on purpose, so debug
+  builds from any machine install over one another.
+- Anyone may build the app, so the docs are written for them too. A step
+  that only the owner can do says so.
+- The updater needs no token now. The token screen stays, hidden until a
+  check fails, for a fork that is private.
 
 ## Network rules
 

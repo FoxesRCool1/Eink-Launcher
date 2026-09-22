@@ -72,6 +72,8 @@ class NotesRepository(private val data: DataRepository) {
 
     fun write(path: String, text: String): Boolean = data.store.writeText(path, text)
 
+    fun exists(path: String): Boolean = data.store.exists(path)
+
     /** Makes a new empty note and returns its path, or null. */
     fun createNote(folderPath: String, title: String): String? {
         val safe = StorageLayout.safeName(title)

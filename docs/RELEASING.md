@@ -51,30 +51,19 @@ only, and no release key is needed.
 Do not change the file names without changing `UpdateAssets` in
 `core/update/ReleaseInfo.kt`. The app picks its file by the end of the name.
 
-## The repository is private, so the app needs a token
+## A token is only for a private fork
 
-Decided by the owner on 2026-09-20: the repository stays private, because the
-app may be sold one day and the source must not leak. GitHub answers "not
-found" for the releases of a private repository, so the app on the tablet
-needs an access token, once.
+The repository is public since 2026-09-22, so the app on the tablet needs no
+token: GitHub shows the releases to everyone. The token screen is still in
+the app, for anyone who runs the updater against a private fork. It shows
+only after a check fails with "not found".
 
-1. On GitHub: your picture, Settings, Developer settings, Personal access
-   tokens, Fine-grained tokens, "Generate new token".
-2. Expiration: pick a date. 90 days is a fair choice. When it runs out, the
-   update screen says "GitHub refused the access token", and you make a new
-   one.
-3. Repository access: "Only select repositories", then this repository and
-   no other.
-4. Permissions: Repository permissions, Contents, "Read-only". Nothing else.
-5. On the tablet: Settings, Help, "Check for updates", "Access token". Type or
-   paste it, then Save.
-
-**That token can read the source code.** GitHub has no permission for
-releases alone: the files of a release come under "Contents", and so does the
-code. So treat it as a key to the source. It is kept in the private storage
-of the app, outside every backup, it is never written to the log, and it is
-only ever sent to `api.github.com`. **If the tablet is lost, delete the token
-on GitHub**, on the same page where it was made. That ends it at once.
+If you need it: on GitHub make a fine-grained personal access token for that
+one repository with "Contents" set to "Read-only", then on the tablet,
+Settings, Help, "Check for updates", "Enter access token". Such a token can
+read the source of that repository, so give it an expiry date. It is kept in
+the private storage of the app, outside every backup, it is never written to
+the log, and it is only ever sent to `api.github.com`.
 
 ## One time, before the first public release: the release key
 
@@ -103,7 +92,7 @@ Actions, then "New repository secret". Make these four.
 | `EINK_RELEASE_KEY_ALIAS` | `einklauncher` |
 | `EINK_RELEASE_KEY_PASSWORD` | The key password. `keytool` uses the keystore password unless told otherwise. |
 
-Do not make a public release before the device tests in `PROGRESS.md` have
+Do not make a signed release before the device tests in `PROGRESS.md` have
 passed on the tablet. A launcher that fails is a tablet that is hard to use.
 
 ## A signed build on the dev machine

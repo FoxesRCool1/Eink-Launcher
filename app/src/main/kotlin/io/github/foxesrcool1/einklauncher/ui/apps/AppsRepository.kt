@@ -39,16 +39,24 @@ class AppsRepository(context: Context) {
 
     /** Every app with a launcher entry, sorted A to Z by label. */
     fun loadAll(): List<LauncherEntry> {
+        // One app with broken resources throws from its label. It is skipped,
+        // and the other apps stay: a guard around the whole list would turn
+        // one bad app into "No apps found".
         val fromLauncherApps = runCatching {
             launcherApps
                 ?.getActivityList(null, Process.myUserHandle())
-                ?.map { info ->
-                    LauncherEntry(
-                        packageName = info.componentName.packageName,
-                        className = info.componentName.className,
-                        label = info.label?.toString().orEmpty()
-                            .ifBlank { info.componentName.packageName },
-                    )
+                ?.mapNotNull { info ->
+                    runCatching {
+                        LauncherEntry(
+                            packageName = info.componentName.packageName,
+                            className = info.componentName.className,
+                            label = info.label?.toString().orEmpty()
+                                .ifBlank { info.componentName.packageName },
+                        )
+                    }.getOrElse {
+                        AppLog.w(TAG, "Skipped an app whose label could not be read", it)
+                        null
+                    }
                 }
                 .orEmpty()
         }.getOrElse {
@@ -66,12 +74,18 @@ class AppsRepository(context: Context) {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         appContext.packageManager
             .queryIntentActivities(intent, 0)
-            .map { resolved ->
-                LauncherEntry(
-                    packageName = resolved.activityInfo.packageName,
-                    className = resolved.activityInfo.name,
-                    label = resolved.loadLabel(appContext.packageManager).toString(),
-                )
+            .mapNotNull { resolved ->
+                runCatching {
+                    LauncherEntry(
+                        packageName = resolved.activityInfo.packageName,
+                        className = resolved.activityInfo.name,
+                        label = resolved.loadLabel(appContext.packageManager).toString()
+                            .ifBlank { resolved.activityInfo.packageName },
+                    )
+                }.getOrElse {
+                    AppLog.w(TAG, "Skipped an app whose label could not be read", it)
+                    null
+                }
             }
     }.getOrElse {
         AppLog.e(TAG, "The package manager fallback failed too", it)
@@ -99,9 +113,12 @@ class AppsRepository(context: Context) {
                 // the tablet is unlocked, not a launcher anybody can use.
                 .filter { it.priority >= 0 }
                 .forEach { resolved ->
+                    // The way back to the stock launcher must survive one
+                    // home app with a broken label.
+                    val label = runCatching { resolved.loadLabel(appContext.packageManager).toString() }
+                        .getOrDefault("")
                     result += EscapeEntry(
-                        label = resolved.loadLabel(appContext.packageManager).toString()
-                            .ifBlank { resolved.activityInfo.packageName },
+                        label = label.ifBlank { resolved.activityInfo.packageName },
                         hint = "Other home app",
                         kind = EscapeKind.OtherHome,
                         packageName = resolved.activityInfo.packageName,

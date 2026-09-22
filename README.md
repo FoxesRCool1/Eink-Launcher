@@ -44,7 +44,8 @@ domain.
 - **Journal.** One entry a day, typed or handwritten. A month view. Habits
   with streaks. A routine for the day.
 - **Apps.** Up to eight pinned apps as plain text, your own folders of apps,
-  and every app from A to Z.
+  and every app from A to Z. Type to find an app. Hide the ones you never
+  open.
 - **Landscape.** A small grey icon at the top of every screen turns the
   screen on its side, and back.
 
@@ -109,9 +110,8 @@ and asks "update this app?" each time. Your notes, books and settings stay.
 Right after an update, Android may show the stock launcher. Press the Home
 key and Eink Launcher is back.
 
-If the repository is private, GitHub hides its releases. The update screen
-then asks for an access token: a fine-grained token, for this one repository,
-with read access to "Contents". A public repository needs none.
+No account and no token is needed. If you run your own private fork, the
+update screen can take a fine-grained access token after a check fails.
 
 ### Make it the home screen
 
@@ -203,6 +203,14 @@ the state of the work, `docs/decisions/` one short file per decision,
 `PROGRESS.md` what works and what the owner still has to test, and
 `docs/RELEASING.md` how a release is made.
 
+## Support the project
+
+The app is free, and it stays free. If it helps you and you want to help
+pay for the work, there is a Ko-fi page: https://ko-fi.com/foxesrcool. The
+app never asks. The same link is under Settings, Help, "Support this app".
+
+Bug reports and changes are welcome. `CONTRIBUTING.md` says how.
+
 ## Credits
 
 - The idea came from ["Prose: The distraction-free, e-ink laptop that should
@@ -225,4 +233,4 @@ the state of the work, `docs/decisions/` one short file per decision,
 
 ## Licence
 
-Apache-2.0. See `LICENSE`.
+Apache-2.0. See `LICENSE`. Free to use, change and share.

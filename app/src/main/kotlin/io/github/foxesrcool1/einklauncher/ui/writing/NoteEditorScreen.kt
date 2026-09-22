@@ -32,6 +32,7 @@ import io.github.foxesrcool1.einklauncher.design.components.einkFieldBorder
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
 import io.github.foxesrcool1.einklauncher.ui.common.ScreenScaffold
 import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.withContext
 
 private const val TAG = "NoteEditorScreen"
@@ -74,9 +75,26 @@ fun rememberNoteEditor(
     var loaded by remember(notePath) { mutableStateOf(false) }
     var status by remember(notePath) { mutableStateOf("Opening") }
 
+    // True once the file is known to be on the disk: it was there when it
+    // was read, or this editor has written it since. A note that was there
+    // and is gone was deleted or renamed from the Writing tab beside this
+    // editor, and a write now would bring the old file back.
+    val onDisk = remember(notePath) { AtomicBoolean(false) }
+    val gone = remember(notePath) { AtomicBoolean(false) }
+
     // Every write of this note goes through here, so the autosave and the
     // save on the way out cannot cross. See NoteSaver.
-    val saver = remember(notePath) { NoteSaver { notes.write(notePath, it) } }
+    val saver = remember(notePath) {
+        NoteSaver { content ->
+            if (onDisk.get() && !notes.exists(notePath)) {
+                gone.set(true)
+                AppLog.w(TAG, "$notePath was moved or deleted beside this editor. Not writing it back.")
+                false
+            } else {
+                notes.write(notePath, content).also { if (it) onDisk.set(true) }
+            }
+        }
+    }
 
     suspend fun save(reason: String) {
         if (text == savedText) return
@@ -86,14 +104,16 @@ fun rememberNoteEditor(
             status = "Saved"
             AppLog.i(TAG, "Saved $notePath ($reason)")
         } else {
-            status = "Could not save"
+            status = if (gone.get()) "This note was moved or deleted" else "Could not save"
             AppLog.e(TAG, "Could not save $notePath ($reason)")
         }
     }
 
     LaunchedEffect(notePath) {
         val started = System.currentTimeMillis()
-        val loadedText = withContext(AppDispatchers.io) { notes.readOrNull(notePath) }
+        val loadedText = withContext(AppDispatchers.io) {
+            notes.readOrNull(notePath).also { onDisk.set(notes.exists(notePath)) }
+        }
         io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.check("Opening the note", System.currentTimeMillis() - started, io.github.foxesrcool1.einklauncher.core.speed.SpeedWatch.Budget.OPEN_NOTE)
         if (loadedText == null) {
             // The field stays off. Typing into an empty page here would end

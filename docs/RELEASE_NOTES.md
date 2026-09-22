@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.4.0
+
+- Free and open source. The source is public, and Settings, Help has a "Support this app" row for people who want to help pay for it
+- Apps: type to find an app, and hide the apps you never open
+- The updater needs no token now that the source is public
+- A text prompt takes the keyboard at once, with no extra tap
+- Fixes: one app with a broken name no longer empties the app list; a journal entry saved just before leaving is kept; a note deleted or renamed beside its open editor is not written back; a double tap no longer opens a note twice
+
 ## 0.3.0
 
 - Force Refresh works: the screen goes black for a moment and comes back clean

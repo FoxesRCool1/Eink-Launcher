@@ -4,7 +4,8 @@ For the next session, wherever it runs. Rewritten 2026-09-20 by the session
 that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9. Section 2b was
 added the same day by the session that built the in-app update, and section
 2c by the session that did the owner's first list of changes. Sections 2d and
-2e came with the second and third lists, on 2026-09-22.
+2e came with the second and third lists, on 2026-09-22, and 2f with the open
+source pass the same day.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
@@ -68,17 +69,11 @@ changed"` makes a release with one command. Decision 0012 and
 - In the session that built this, the permission system stopped the session
   from pushing. The owner runs `tools/release.sh` himself. Do the work,
   commit, and hand him the command.
-- **The repository is private and stays private.** The owner decided that on
-  2026-09-20: the app may be sold one day, and the source must not leak. Do
-  not suggest making it public, and do not put source or APK files anywhere
-  other people can reach without asking first. GitHub hides the releases of
-  a private repository, so the app takes a read-only access token, once.
-  `docs/RELEASING.md` has the steps. That token can read the source, so it
-  has an expiry date, and it is deleted on GitHub if the tablet is lost.
-- The plan still names F-Droid, and `LICENSE`, the README and the About page
-  still say Apache-2.0 and "the source is on GitHub". None of that fits a
-  plan to sell. The licence was an open question before, and it is the
-  owner's to answer. Do not change it without being asked.
+- **The repository is public since 2026-09-22.** The owner decided the app
+  is free and open source, Apache-2.0, with a Ko-fi link for people who want
+  to help. See section 2f and decision 0020. The updater needs no token on a
+  public repository. The token screen stays, hidden until a check fails, for
+  a private fork.
 - The tablet runs the **debug** build while the app is tested. The updater
   in a debug build only takes `-debug.apk` files, and the workflow builds
   those with no release key. Moving to the release build later means an
@@ -147,11 +142,36 @@ top section, and decisions 0018 and 0019. What a new session must know:
 - **Pen modes are called Normal, Fast 1 and Fast 2** in the app. In the code
   they are still `FAST_PEN_OFF`, `FAST_PEN_WRITING` (path A) and
   `FAST_PEN_AUTODRAW` (path B). The stored values did not change.
-- **The updater keeps the token.** The owner asked about updates with no
-  token, then chose to type a token himself, because the app must stay
-  secure to sell. Do not bring up a public place for the APK again.
+- **The updater kept the token in 0.3.0.** Overtaken the same day: the
+  repository is public now, so no token is needed. See 2f.
 - **Battery was checked.** Decision 0019 lists what is fine and what was left
   on purpose. The library keeps book titles in memory, keyed by size and date.
+
+### 2f. The open source pass: public, free, Ko-fi, wanted features
+
+On 2026-09-22 the owner decided against selling the app, made the repository
+public, and asked for a pass over everything. `PROGRESS.md`, top section, and
+decision 0020. What a new session must know:
+
+- **The repository is public.** No secrets, no personal paths, no email in a
+  committed file. `CLAUDE.md`, "The source is public", has the rules. Anyone
+  may read every doc here, so write them for a stranger too.
+- **Ko-fi is in three places** and nowhere else: README, `.github/FUNDING.yml`,
+  Settings, Help, "Support this app" (`ui/common/WebLinks.kt`). The app
+  never asks for money. Do not add a reminder, a counter or a nag.
+- **The updater needs no token.** The token code stays for a private fork.
+  The button is hidden until a check fails with "not found".
+- **Hidden apps and app search** are on the A to Z page. Hidden apps live in
+  `apps/folders.json` under `"hidden"`, through `AppFolders`. The search
+  rules are in `core/apps/AppSearch.kt`. The hidden toggle is the last line
+  of the list, not a fifth icon: a narrow half has room for four.
+- **`ScreenPageOpener` ignores a second tap** on the same thing within 1.5 s.
+  If a page ever needs to open the same thing twice at once, that is where
+  to look.
+- **The web research** (GitHub issues of Olauncher, KISS, inkOS, mLauncher,
+  E-Ink-Launcher, MobileRead threads, F-Droid) is summed up in the PROGRESS
+  section. What is left on that list either needs root, is vendor locked, or
+  is against the design. Gestures on Home were the one open idea.
 
 ---
 
@@ -187,13 +207,15 @@ Still open from step 4. Settings, Help, "Design demo", Dev, "Time 500 files".
    temporary path. See decision 0011.
 3. A read-ahead for PDF screens, only if the log says the render is slow.
 4. Cover pictures in the library. The plan calls them optional.
-5. The first public release. `docs/RELEASING.md` has the steps, and the
+5. The first signed release. `docs/RELEASING.md` has the steps, and the
    release key is the one thing still to make. Pick the final name first:
-   the plan says the working name must go before a public release. Test
+   the plan says the working name must go before a wide release. Test
    releases for the tablet need neither.
-6. `TextPromptDialog` does not take the focus when it opens, so every prompt
-   costs one extra tap before the keyboard comes. Small, and it touches every
-   prompt in the app, so it wants a look on the tablet first.
+5b. F-Droid, now that the source is public. It needs a build F-Droid can
+   repeat, and the `generic` flavour is the one to offer, since the
+   `viwoods` flavour targets SDK 30. Not started.
+6. Done on 2026-09-22: `TextPromptDialog` takes the focus when it opens.
+   Whether the ViWoods keyboard then comes by itself is for the tablet to say.
 7. Done on 2026-09-22: any page in the second half, and a book opened from
    it. See 2d.
 8. With a handwritten note beside a PDF, the fast pen serves the note only.

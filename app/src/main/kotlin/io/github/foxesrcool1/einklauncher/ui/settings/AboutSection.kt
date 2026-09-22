@@ -26,7 +26,7 @@ data class Credit(val name: String, val detail: String)
  */
 object Credits {
     val all: List<Credit> = listOf(
-        Credit("Eink Launcher", "Apache License 2.0. The source is on GitHub, FoxesRCool1/Eink-Launcher."),
+        Credit("Eink Launcher", "Free and open source, Apache License 2.0. The source is on GitHub, FoxesRCool1/Eink-Launcher. Help pay for it at ko-fi.com/foxesrcool."),
         Credit("The idea", "\"Prose: The distraction-free, e-ink laptop that should exist\" by Micah Daigle, CC BY-SA 4.0. No image and no layout from it is used here."),
         Credit("ViWoods display and pen facts", "The public notes in jdkruzr/ViwoodsAppDev. Used as a reference only. No code was copied."),
         Credit("Readium Kotlin Toolkit", "The EPUB reader engine. BSD 3-Clause. Copyright Readium Foundation."),

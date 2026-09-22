@@ -177,29 +177,32 @@ fun UpdateContent(
             }
         }
 
-        HairlineDivider(color = EinkColors.Faded)
-        Spacer(modifier = Modifier.height(10.dp))
-        if (!installAllowed) {
-            EinkText(
-                text = "Android must allow this app to install its updates. Press the button, " +
-                    "turn the switch on, then come back.",
-                style = EinkType.body,
-            )
+        // The footer shows only when it has something to say. The repository
+        // is public, so a token is only ever for a private fork, and the way
+        // to enter one is the button that comes with the "not found" failure.
+        if (!installAllowed || hasToken) {
+            HairlineDivider(color = EinkColors.Faded)
             Spacer(modifier = Modifier.height(10.dp))
+            if (!installAllowed) {
+                EinkText(
+                    text = "Android must allow this app to install its updates. Press the button, " +
+                        "turn the switch on, then come back.",
+                    style = EinkType.body,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
+                if (!installAllowed) InvertPressButton(text = "Allow installs", onClick = onAllowInstalls)
+                if (hasToken) InvertPressButton(text = "Change token", onClick = onToken)
+            }
+            if (hasToken) {
+                Spacer(modifier = Modifier.height(10.dp))
+                CapsLabel(
+                    text = "An access token is saved",
+                    style = EinkType.capsSmall.copy(color = EinkColors.Faded),
+                )
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {
-            if (!installAllowed) InvertPressButton(text = "Allow installs", onClick = onAllowInstalls)
-            InvertPressButton(text = if (hasToken) "Change token" else "Access token", onClick = onToken)
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        CapsLabel(
-            text = if (hasToken) {
-                "An access token is saved"
-            } else {
-                "Only a private repository needs an access token"
-            },
-            style = EinkType.capsSmall.copy(color = EinkColors.Faded),
-        )
     }
 }
 

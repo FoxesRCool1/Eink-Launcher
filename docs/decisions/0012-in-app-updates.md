@@ -154,3 +154,12 @@ that day. It is written here so that day does not start with a rejection.
   runs by itself and the log says so.
 
 Both are on the device test list in `PROGRESS.md`.
+
+## 2026-09-22: the repository is public
+
+The owner made the repository public and decided the app is free and open
+source. See decision 0020. What that changes here: no token is needed, the
+"not found" answer from GitHub no longer means "private", and the token
+button is hidden until a check fails with that answer, so a normal user
+never sees it. The token code stays for a private fork, and its tests stay
+with it. The paragraphs above that say "stays private" are history.

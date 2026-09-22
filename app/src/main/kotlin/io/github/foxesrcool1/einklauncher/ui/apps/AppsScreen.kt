@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,6 +27,7 @@ import io.github.foxesrcool1.einklauncher.ui.split.rememberPageOpener
 import io.github.foxesrcool1.einklauncher.core.apps.AppFolder
 import io.github.foxesrcool1.einklauncher.core.apps.AppFolders
 import io.github.foxesrcool1.einklauncher.core.apps.AppFoldersRepository
+import io.github.foxesrcool1.einklauncher.core.apps.AppSearch
 import io.github.foxesrcool1.einklauncher.core.log.AppLog
 import io.github.foxesrcool1.einklauncher.core.threads.AppDispatchers
 import io.github.foxesrcool1.einklauncher.core.settings.SettingsStore
@@ -39,12 +43,14 @@ import io.github.foxesrcool1.einklauncher.design.components.EinkDialog
 import io.github.foxesrcool1.einklauncher.design.components.EinkIcon
 import io.github.foxesrcool1.einklauncher.design.components.EinkRow
 import io.github.foxesrcool1.einklauncher.design.components.EinkText
+import io.github.foxesrcool1.einklauncher.design.components.EinkTextField
 import io.github.foxesrcool1.einklauncher.design.components.HairlineDivider
 import io.github.foxesrcool1.einklauncher.design.components.IconPressButton
 import io.github.foxesrcool1.einklauncher.design.components.OptionsDialog
 import io.github.foxesrcool1.einklauncher.design.components.PagedList
 import io.github.foxesrcool1.einklauncher.design.components.Plants
 import io.github.foxesrcool1.einklauncher.design.components.TextPromptDialog
+import io.github.foxesrcool1.einklauncher.design.components.einkFieldBorder
 import io.github.foxesrcool1.einklauncher.design.components.einkPanel
 import io.github.foxesrcool1.einklauncher.design.components.rememberPagedListState
 import io.github.foxesrcool1.einklauncher.design.icons.Lucide
@@ -64,12 +70,22 @@ private sealed interface FirstPageRow {
     data class WayOut(val escape: EscapeEntry) : FirstPageRow
 }
 
+/** One line on the A to Z page: an app, or the last line that shows or puts away the hidden apps. */
+private sealed interface AllPageRow {
+    data class App(val entry: LauncherEntry) : AllPageRow
+    data class HiddenToggle(val count: Int, val showing: Boolean) : AllPageRow
+}
+
 /**
  * The Apps tab.
  *
  * Three pages, picked with three icons: the pinned apps, the folders, and
  * every app from A to Z. The pinned page also holds the ways out of this
  * launcher, which plan section 3.2 says must always be there.
+ *
+ * The A to Z page can be searched by typing, and an app can be hidden from
+ * it. Both came from what people ask of a launcher on an e-ink tablet: a
+ * long list of preinstalled apps, and no way to find one quickly.
  *
  * Every list works out its own page size from the room it has. The first
  * version of this screen asked for eight rows where six fit, and the last two
@@ -85,6 +101,10 @@ fun AppsScreen(
     previewApps: List<LauncherEntry>? = null,
     previewFolders: AppFolders? = null,
     initialPage: Int = 0,
+    /** Opens the A to Z page with the search field showing this text. */
+    initialSearch: String? = null,
+    /** Opens the A to Z page with the hidden apps showing. */
+    initialShowHidden: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,6 +120,10 @@ fun AppsScreen(
     var escapes by remember { mutableStateOf<List<EscapeEntry>>(emptyList()) }
     var folders by remember { mutableStateOf(previewFolders ?: AppFolders()) }
     var openFolder by remember { mutableStateOf<String?>(null) }
+    // Null when the search field is closed. The empty string is an open field.
+    var search by remember { mutableStateOf(initialSearch) }
+    var showHidden by remember { mutableStateOf(initialShowHidden) }
+    val searchFocus = remember { FocusRequester() }
 
     var menuFor by remember { mutableStateOf<LauncherEntry?>(null) }
     var foldersFor by remember { mutableStateOf<LauncherEntry?>(null) }
@@ -137,10 +161,29 @@ fun AppsScreen(
     val inFolder = openFolder?.let(folders::folder)
     val folderApps = remember(inFolder, byKey) { inFolder?.apps?.mapNotNull { byKey[it] }.orEmpty() }
 
+    // The A to Z page: without the hidden apps unless asked, and then only
+    // the ones the typed text finds.
+    val hiddenCount = remember(apps, folders.hidden) { apps.count { folders.isHidden(it.key) } }
+    val listed: List<AllPageRow> = remember(apps, folders.hidden, showHidden, search) {
+        val rows = apps
+            .filter { showHidden || !folders.isHidden(it.key) }
+            .filter { search == null || AppSearch.matches(it.label, search.orEmpty()) }
+            .map(AllPageRow::App)
+        // The last line of the list shows the hidden apps, or puts them away.
+        // It is a line and not a fifth icon at the top, because a narrow half
+        // of the split screen has room for four icons.
+        if (hiddenCount > 0 && search == null) rows + AllPageRow.HiddenToggle(hiddenCount, showHidden) else rows
+    }
+    // A new search starts on the first page, or the user could be looking at
+    // an empty page three of a list that is now one page long.
+    LaunchedEffect(search, showHidden) { listState.page = 0 }
+    LaunchedEffect(search != null) { if (search != null) searchFocus.requestFocus() }
+
     ScreenScaffold(
         title = inFolder?.name ?: "Apps",
         overline = when {
             inFolder != null -> "Folder"
+            hiddenCount > 0 && !showHidden -> "${apps.size - hiddenCount} apps, $hiddenCount hidden"
             else -> "${apps.size} apps"
         },
         plant = Plants.Apps,
@@ -176,9 +219,34 @@ fun AppsScreen(
                         onClick = { addingFolder = true },
                     )
                 }
+                if (page == AppsPage.All) {
+                    IconPressButton(
+                        icon = Lucide.Search,
+                        label = if (search == null) "Search the apps" else "Close the search",
+                        selected = search != null,
+                        bordered = true,
+                        onClick = { search = if (search == null) "" else null },
+                    )
+                }
             }
         },
     ) {
+        val typed = search
+        if (inFolder == null && page == AppsPage.All && typed != null) {
+            EinkTextField(
+                value = typed,
+                onValueChange = { search = it },
+                textStyle = EinkType.body,
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(searchFocus)
+                    .defaultMinSize(minHeight = EinkDimens.touchTarget)
+                    .einkFieldBorder()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            )
+            Spacer(modifier = Modifier.height(EinkDimens.targetGap))
+        }
         when {
             inFolder != null -> PagedList(
                 items = folderApps,
@@ -235,19 +303,32 @@ fun AppsScreen(
             }
 
             else -> PagedList(
-                items = apps,
+                items = listed,
                 pageSize = PAGE_SIZE,
                 rowHeight = EinkDimens.rowOneLine,
                 state = listState,
-                emptyText = "No apps found",
+                emptyText = if (!typed.isNullOrBlank()) "No app is called that." else "No apps found",
                 modifier = Modifier.weight(1f),
-            ) { _, entry ->
-                AppRow(
-                    label = entry.label,
-                    mark = if (pinnedKeys.contains(entry.key)) Lucide.Pin else null,
-                    onOpen = { opener.openApp(entry) },
-                    onLongPress = { menuFor = entry },
-                )
+            ) { _, row ->
+                when (row) {
+                    is AllPageRow.App -> AppRow(
+                        label = row.entry.label,
+                        hint = if (folders.isHidden(row.entry.key)) "Hidden" else null,
+                        mark = if (pinnedKeys.contains(row.entry.key)) Lucide.Pin else null,
+                        onOpen = { opener.openApp(row.entry) },
+                        onLongPress = { menuFor = row.entry },
+                    )
+
+                    is AllPageRow.HiddenToggle -> AppRow(
+                        label = when {
+                            row.showing -> "Put the hidden apps away"
+                            row.count == 1 -> "1 hidden app"
+                            else -> "${row.count} hidden apps"
+                        },
+                        icon = if (row.showing) Lucide.EyeOff else Lucide.Eye,
+                        onOpen = { showHidden = !row.showing },
+                    )
+                }
             }
         }
     }
@@ -279,6 +360,15 @@ fun AppsScreen(
                     icon = Lucide.Folder,
                     onSelect = {
                         foldersFor = selected
+                        menuFor = null
+                    },
+                ),
+                DialogOption(
+                    label = if (folders.isHidden(selected.key)) "Show on the A to Z page" else "Hide from the A to Z page",
+                    icon = if (folders.isHidden(selected.key)) Lucide.Eye else Lucide.EyeOff,
+                    onSelect = {
+                        changeFolders { it.hiddenToggled(selected.key) }
+                        AppLog.i(TAG, "Toggled hidden for ${selected.key}")
                         menuFor = null
                     },
                 ),

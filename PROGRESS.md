@@ -4,6 +4,97 @@ One section per step. Newest step at the top.
 
 ---
 
+## The open source pass: free, public, Ko-fi, wanted features, bug check
+
+Date: 2026-09-22. Branch `Dev`. Not released yet: the notes for 0.4.0 are
+written in `docs/RELEASE_NOTES.md`. The owner decided against selling the
+app, made the repository public, and asked for a pass over everything: a
+link to Ko-fi, the features people ask of an e-ink launcher, a bug check,
+and a clean, professional repository. Decision 0020.
+
+### What was done
+
+1. **The repository is public and the app is free.** The tree and the whole
+   git history were searched for tokens, keys, passwords, home paths and
+   email addresses. None were found. `CLAUDE.md`, `docs/HANDOFF.md`,
+   `docs/RELEASING.md` and decision 0012 no longer say the source is
+   private. New: `CONTRIBUTING.md`, `.github/FUNDING.yml` (the Sponsor
+   button), a bug report template, and a description and topics on GitHub.
+2. **Ko-fi in three places**: the README, the GitHub Sponsor button, and
+   Settings, Help, "Support this app", which hands the address to the
+   browser. A "Source code" row beside it. The app never asks.
+3. **The updater needs no token.** The footer of the update screen is empty
+   for a normal user. The token button shows only after a check fails with
+   "not found", for a private fork, or when a token is already saved.
+4. **What people ask of an e-ink launcher** was researched on the web (GitHub
+   issues of Olauncher, KISS, inkOS, mLauncher, E-Ink-Launcher; MobileRead;
+   F-Droid). The two most wanted things this app lacked are now in:
+   - **Hide an app.** Hold an app on the A to Z page, "Hide from the A to Z
+     page". The last line of the list says "2 hidden apps" and shows them;
+     press it again to put them away. Hidden apps stay pinned and stay in
+     their folders. They live in `apps/folders.json` under `"hidden"`, so a
+     backup keeps them.
+   - **Type to find an app.** The search icon on the A to Z page opens a
+     field. One or two letters match the start of a word, three or more match
+     anywhere. "ca" finds Calculator and Google Calendar, not Scan.
+   Everything else on the list was already there (no animations, pure black
+   and white, a manual and an automatic full refresh, no tracking, plain
+   clock and battery), needs root (system refresh modes, front light), or
+   goes against the design (widgets, wallpapers).
+5. **Bugs found by a code review and fixed:**
+   - One app with a broken label emptied the whole app list, and could take
+     the way back to the stock launcher with it. Each app is guarded alone.
+   - A journal entry saved with Save and then left at once could be lost:
+     Save cleared the editing flag before its write ran, and the save on the
+     way out looked at that flag. Journal writes now take turns and always
+     write the newest text.
+   - A note open in one half of the split screen, deleted or renamed from
+     the Writing tab in the other half, was written back by the next
+     autosave. The editor now refuses to write a note that has gone from the
+     disk, and says "This note was moved or deleted".
+   - A double tap on a note opened it twice, and the two copies saved over
+     each other. A second tap on the same thing within 1.5 seconds is ignored.
+   - The home role check ran a binder call on the main thread when Settings
+     opened. It runs on the background thread now.
+   - A text prompt did not take the focus, so every prompt cost one extra
+     tap. Known gap 6 in the handoff. It takes the focus now.
+
+### What works
+
+Build, 568 unit tests, lint: green. New tests: hidden apps in the model and
+the file, the search rules, and pictures of the search and of the hidden
+apps, upright and on the side. The Help page and the update screen were
+looked at in both shapes.
+
+### What does not work, or is not known
+
+- Nothing here has run on the tablet.
+- The Ko-fi row needs a browser on the tablet. If none opens, the log says
+  "No browser could open".
+- The keyboard on the search field and on a prompt: the focus is requested,
+  and whether the ViWoods keyboard comes up by itself is for the tablet to
+  say.
+- The saveAndWait of a handwritten note still blocks the main thread for up
+  to 4 seconds in onPause, on purpose, so ink is not lost. Left as it is.
+  See decision 0017.
+
+### What the owner must test on the tablet
+
+1. Apps, A to Z: press the search icon. The keyboard should come by itself.
+   Type "k". Only apps with a word starting with k show. Close the search.
+2. Hold an app, "Hide from the A to Z page". Go to the last page: a line
+   "1 hidden app". Press it: the app is back with HIDDEN beside it. Hold it,
+   "Show on the A to Z page".
+3. Settings, Help, page 2: "Support this app" opens Ko-fi in the browser.
+   "Source code" opens GitHub.
+4. Settings, Help, "Check for updates": the screen has no token button. A
+   check finds the release, since the repository is public.
+5. Write: hold a note, Rename. The keyboard comes with no extra tap.
+6. Journal: type an entry, press Save, press Home at once. Come back. The
+   entry is there.
+
+---
+
 ## The owner's third list: Force Refresh, plain names, the Pen page, battery
 
 Date: 2026-09-22. Branch `Dev`. Release 0.3.0. The owner used 0.2.0 on the

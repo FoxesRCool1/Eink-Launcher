@@ -7,7 +7,7 @@ would change in the app.
 Before you send it: the fast pen list at ViWoods is kept by package name. The
 package name in the letter is `io.github.foxesrcool1.einklauncher`, which is
 still the suggestion from step 1. If the app will get another name or package
-before it is sold, choose it first. An entry on ViWoods' list for the old name
+before many people use it, choose it first. An entry on ViWoods' list for the old name
 would be of no use.
 
 ---

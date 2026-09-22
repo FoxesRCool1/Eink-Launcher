@@ -119,4 +119,25 @@ class AppFoldersTest {
     fun `the app folders are part of a backup`() {
         assertTrue(StorageLayout.APPS in StorageLayout.backedUpFolders)
     }
+
+    @Test
+    fun `hiding an app is a toggle, and it stays in its folders`() {
+        val folders = AppFolders().withFolder("Reading").toggled("Reading", kindle)
+        val hidden = folders.hiddenToggled(kindle)
+        assertTrue(hidden.isHidden(kindle))
+        assertEquals(listOf("Reading"), hidden.foldersOf(kindle))
+        assertEquals(folders, hidden.hiddenToggled(kindle))
+    }
+
+    @Test
+    fun `the hidden apps survive the file, and a file from before hiding reads as none hidden`() {
+        val folders = AppFolders().withFolder("Tools").hiddenToggled(kindle).hiddenToggled(libby)
+        assertEquals(folders, AppFoldersFile.parse(AppFoldersFile.serialise(folders)))
+
+        val old = """{"version": 1, "folders": [{"name": "Tools", "apps": []}]}"""
+        assertEquals(AppFolders().withFolder("Tools"), AppFoldersFile.parse(old))
+
+        val messy = """{"version": 1, "folders": [], "hidden": ["$kindle", "", "$kindle"]}"""
+        assertEquals(listOf(kindle), AppFoldersFile.parse(messy)?.hidden)
+    }
 }

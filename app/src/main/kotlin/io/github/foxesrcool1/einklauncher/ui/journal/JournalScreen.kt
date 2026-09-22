@@ -155,13 +155,23 @@ fun JournalScreen(
         routineRows = loaded.routine
     }
 
+    // Two saves of one day can cross on the background threads, and the
+    // older text must not land last. So each save notes the newest text of
+    // its day here, and the writes take turns and write that. See NoteSaver.
+    val newestText = remember { mutableMapOf<String, String>() }
+    val writeLock = remember { Any() }
+    fun writeNewest(date: java.time.LocalDate, text: String): Boolean = synchronized(writeLock) {
+        data.writeJournalEntry(date, newestText[date.toString()] ?: text)
+    }
+
     fun saveEntry() {
         // Both taken now. The day on show can change before the write runs,
         // and the text belongs to the day it was written for.
         val text = entryText
         val date = viewDate
+        newestText[date.toString()] = text
         scope.launch {
-            val written = withContext(AppDispatchers.io) { data.writeJournalEntry(date, text) }
+            val written = withContext(AppDispatchers.io) { writeNewest(date, text) }
             if (written) {
                 if (date == viewDate) savedText = text
                 AppLog.i(TAG, "Saved the entry for $date")
@@ -187,11 +197,16 @@ fun JournalScreen(
     // The Home key, Back and "Today" all take this screen away with no
     // warning, and an entry that was being written must not go with it. The
     // coroutine scope is already gone by then, so this write is a plain one.
+    //
+    // It does not look at the editing flag: Save sets that flag off before
+    // its write has run, and if the screen goes away in between, this is the
+    // write that keeps the words.
     fun saveOnTheWayOut(reason: String) {
-        if (!editing || entryText == savedText) return
+        if (entryText == savedText) return
         val date = viewDate
         val text = entryText
-        runCatching { data.writeJournalEntry(date, text) }
+        newestText[date.toString()] = text
+        runCatching { writeNewest(date, text) }
             .onSuccess { written ->
                 if (written) savedText = text
                 AppLog.i(TAG, "Saved the entry for $date ($reason): $written")
