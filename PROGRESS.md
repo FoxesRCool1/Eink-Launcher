@@ -59,6 +59,13 @@ and a clean, professional repository. Decision 0020.
    - A text prompt did not take the focus, so every prompt cost one extra
      tap. Known gap 6 in the handoff. It takes the focus now.
 
+6. **The app is called Margin.** Decision 0021. Eighteen names were checked
+   against the app stores, GitHub and trademark listings. The package is
+   `io.github.foxesrcool1.margin`, the data folder is `Margin/`, the release
+   files are `margin-<tag>-<flavour>.apk`, and the repository is
+   `FoxesRCool1/Margin-Eink-Launcher`. The old name stays in the older parts
+   of this file and in the older decisions, as history.
+
 ### What works
 
 Build, 568 unit tests, lint: green. New tests: hidden apps in the model and
@@ -80,6 +87,11 @@ looked at in both shapes.
 
 ### What the owner must test on the tablet
 
+0. **First: back up, uninstall, install.** Margin is a new package, so the
+   0.3.0 app cannot update into it. In the old app: Settings, Storage,
+   "Back up". Copy the backup file off the tablet. Uninstall the old app.
+   Install `margin-v0.4.0-viwoods-debug.apk`. Settings, Storage, "Restore".
+   Then set Margin as the home app again.
 1. Apps, A to Z: press the search icon. The keyboard should come by itself.
    Type "k". Only apps with a word starting with k show. Close the search.
 2. Hold an app, "Hide from the A to Z page". Go to the last page: a line

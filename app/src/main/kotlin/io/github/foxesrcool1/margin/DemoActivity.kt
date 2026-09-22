@@ -1,0 +1,101 @@
+package io.github.foxesrcool1.margin
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import io.github.foxesrcool1.margin.core.log.AppLog
+import io.github.foxesrcool1.margin.design.EinkDimens
+import io.github.foxesrcool1.margin.design.EinkTheme
+import io.github.foxesrcool1.margin.design.components.InvertPressButton
+import io.github.foxesrcool1.margin.ui.common.ScreenScaffold
+import io.github.foxesrcool1.margin.ui.demo.DesignDemoScreen
+import io.github.foxesrcool1.margin.ui.dev.DEV_PANEL_AVAILABLE
+import io.github.foxesrcool1.margin.ui.dev.DevPanel
+import io.github.foxesrcool1.margin.ui.log.LogViewerScreen
+
+private enum class DemoTab { Design, Log, Dev }
+
+/**
+ * The design system demo and the dev tools.
+ *
+ * Its own activity, so the launcher task stays clean and the Home key still
+ * lands on Home. Settings opens it.
+ */
+class DemoActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        io.github.foxesrcool1.margin.core.window.ScreenWindow.attach(this)
+        AppLog.i("DemoActivity", "onCreate")
+        setContent {
+            EinkTheme {
+                DemoHost()
+            }
+        }
+    }
+}
+
+@Composable
+private fun DemoHost() {
+    var tab by remember { mutableStateOf(DemoTab.Design) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        when (tab) {
+            DemoTab.Design -> DesignDemoScreen(modifier = Modifier.weight(1f))
+            DemoTab.Log -> LogViewerScreen(modifier = Modifier.weight(1f))
+            DemoTab.Dev -> DevHost(modifier = Modifier.weight(1f))
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = EinkDimens.screenMargin,
+                    end = EinkDimens.screenMargin,
+                    bottom = EinkDimens.screenMargin,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap),
+        ) {
+            InvertPressButton(
+                text = "Design",
+                selected = tab == DemoTab.Design,
+                onClick = { tab = DemoTab.Design },
+            )
+            InvertPressButton(
+                text = "Log",
+                selected = tab == DemoTab.Log,
+                onClick = { tab = DemoTab.Log },
+            )
+            if (DEV_PANEL_AVAILABLE) {
+                InvertPressButton(
+                    text = "Dev",
+                    selected = tab == DemoTab.Dev,
+                    onClick = { tab = DemoTab.Dev },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevHost(modifier: Modifier = Modifier) {
+    ScreenScaffold(title = "Dev", overline = "Debug build only", modifier = modifier) {
+        Spacer(modifier = Modifier.height(4.dp))
+        DevPanel()
+    }
+}

@@ -31,7 +31,7 @@ refuses a tag that does not match `appVersionName`.
 
 | Release key in the GitHub secrets | Files |
 | --- | --- |
-| No | `eink-launcher-v0.1.1-viwoods-debug.apk`, `...-generic-debug.apk` |
+| No | `margin-v0.1.1-viwoods-debug.apk`, `...-generic-debug.apk` |
 | Yes | The two above, plus `...-viwoods.apk` and `...-generic.apk` |
 
 Plus `SHA256SUMS.txt` every time. Every release is a normal release, so the
@@ -75,7 +75,7 @@ On the dev machine:
 
 ```
 keytool -genkeypair -v \
-  -keystore ~/eink-launcher-release.keystore \
+  -keystore ~/margin-release.keystore \
   -alias einklauncher \
   -keyalg RSA -keysize 4096 -validity 10000
 ```
@@ -87,7 +87,7 @@ Actions, then "New repository secret". Make these four.
 
 | Secret | Value |
 | --- | --- |
-| `EINK_RELEASE_KEYSTORE_BASE64` | The output of `base64 -w0 ~/eink-launcher-release.keystore` |
+| `EINK_RELEASE_KEYSTORE_BASE64` | The output of `base64 -w0 ~/margin-release.keystore` |
 | `EINK_RELEASE_STORE_PASSWORD` | The keystore password |
 | `EINK_RELEASE_KEY_ALIAS` | `einklauncher` |
 | `EINK_RELEASE_KEY_PASSWORD` | The key password. `keytool` uses the keystore password unless told otherwise. |
@@ -98,7 +98,7 @@ passed on the tablet. A launcher that fails is a tablet that is hard to use.
 ## A signed build on the dev machine
 
 ```
-export EINK_RELEASE_STORE_FILE=~/eink-launcher-release.keystore
+export EINK_RELEASE_STORE_FILE=~/margin-release.keystore
 export EINK_RELEASE_STORE_PASSWORD=...
 export EINK_RELEASE_KEY_ALIAS=einklauncher
 export EINK_RELEASE_KEY_PASSWORD=...

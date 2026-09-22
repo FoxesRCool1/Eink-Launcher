@@ -1,11 +1,9 @@
-# Eink Launcher
+# Margin
 
-[![CI](https://github.com/FoxesRCool1/Eink-Launcher/actions/workflows/ci.yml/badge.svg)](https://github.com/FoxesRCool1/Eink-Launcher/actions/workflows/ci.yml)
+[![CI](https://github.com/FoxesRCool1/Margin-Eink-Launcher/actions/workflows/ci.yml/badge.svg)](https://github.com/FoxesRCool1/Margin-Eink-Launcher/actions/workflows/ci.yml)
 
 An Android home screen for e-ink tablets. It replaces the launcher with a
 calm, text first screen and four places to go: Read, Write, Journal and Apps.
-
-"Eink Launcher" is a working name.
 
 Made for the ViWoods AiPaper Mini (8.2 inch E Ink Carta 1000, 1440 x 1920,
 Wacom EMR pen, Android 13). The `generic` build runs on any Android 10 or
@@ -66,7 +64,7 @@ domain.
 Everything you make is a plain file in one folder on the tablet:
 
 ```
-EinkLauncher/
+Margin/
   books/          the EPUB and PDF files you imported
   annotations/    <book>.json, <book>/page-0001.strokes, reading-log.csv
   notes/          your folders, *.md typed, *.inknote handwritten
@@ -88,12 +86,12 @@ download it. A book you read cannot go online at all.
 
 `adb install` does not work on these tablets, so the APK goes over by file.
 
-1. On the tablet, open the [Releases page](https://github.com/FoxesRCool1/Eink-Launcher/releases)
-   in the browser and download `eink-launcher-<version>-viwoods.apk`. You can
+1. On the tablet, open the [Releases page](https://github.com/FoxesRCool1/Margin-Eink-Launcher/releases)
+   in the browser and download `margin-<version>-viwoods.apk`. You can
    also copy the file over USB into the Download folder.
 2. Open the file. Android asks whether the browser or the file manager may
    install apps. Allow it, then press Install.
-3. Open Eink Launcher from the stock launcher.
+3. Open Margin from the stock launcher.
 
 While the app is being tested, take the file that ends in `-viwoods-debug.apk`.
 It has the device test and the dev tools in it. A debug file and a release
@@ -108,23 +106,23 @@ press downloads and installs. Android asks once for the permission to install,
 and asks "update this app?" each time. Your notes, books and settings stay.
 
 Right after an update, Android may show the stock launcher. Press the Home
-key and Eink Launcher is back.
+key and Margin is back.
 
 No account and no token is needed. If you run your own private fork, the
 update screen can take a fine-grained access token after a check fails.
 
 ### Make it the home screen
 
-4. In Eink Launcher: Settings, then "Set as home". One of three things
+4. In Margin: Settings, then "Set as home". One of three things
    happens:
-   - A system dialog asks which home app to use. Pick Eink Launcher.
-   - A settings screen opens. Pick Eink Launcher there.
+   - A system dialog asks which home app to use. Pick Margin.
+   - A settings screen opens. Pick Margin there.
    - The app shows written steps. The stock ViWoods launcher hides the
      Android settings, so on some firmware this is the only way:
      1. Install **DevCheck** from the Play Store.
-     2. Open DevCheck, go to the Apps tab and tap Eink Launcher.
+     2. Open DevCheck, go to the Apps tab and tap Margin.
      3. Tap Manage. The standard app info screen opens.
-     4. Tap "Set as default", then "Home app", then Eink Launcher.
+     4. Tap "Set as default", then "Home app", then Margin.
 5. Press the Home key. You should land on Home.
 
 ### Go back to the stock launcher
@@ -134,7 +132,7 @@ the Pinned page, lists the stock launcher, the ViWoods settings app and the
 Android settings. They are always there and cannot be unpinned.
 
 To make the stock launcher the home screen again, do step 4 again and pick
-the stock launcher (it is called WiskyLauncher), or uninstall Eink Launcher.
+the stock launcher (it is called WiskyLauncher), or uninstall Margin.
 Your files stay where they are unless you uninstall: **back up first**, with
 Settings, Storage, "Back up".
 

@@ -31,18 +31,18 @@ val appVersionCode: Int = run {
 }
 
 android {
-    namespace = "io.github.foxesrcool1.einklauncher"
+    namespace = "io.github.foxesrcool1.margin"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "io.github.foxesrcool1.einklauncher"
+        applicationId = "io.github.foxesrcool1.margin"
         minSdk = 29
         targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
 
         // Where the in-app updater looks for releases. A fork changes this line.
-        buildConfigField("String", "UPDATE_REPOSITORY", "\"FoxesRCool1/Eink-Launcher\"")
+        buildConfigField("String", "UPDATE_REPOSITORY", "\"FoxesRCool1/Margin-Eink-Launcher\"")
     }
 
     // The release key is never in the repository. It comes from four values,

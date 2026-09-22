@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Runs Eink Launcher in an Android emulator on the dev machine.
+# Runs Margin in an Android emulator on the dev machine.
 #
 #   tools/emulator.sh            build, start the emulator, install, open the app
 #   tools/emulator.sh install    build and install again into a running emulator
@@ -28,7 +28,7 @@ AVDMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager"
 
 AVD="eink_tablet"
 IMAGE="system-images;android-33;google_apis;x86_64"
-PACKAGE="io.github.foxesrcool1.einklauncher"
+PACKAGE="io.github.foxesrcool1.margin"
 # 320 dpi is what a 292 PPI panel most likely reports. Pass EINK_DENSITY=480
 # to see the layout the screenshot tests use.
 DENSITY="${EINK_DENSITY:-320}"
@@ -137,7 +137,7 @@ case "${1:-start}" in
     open_app
     cat <<TIPS
 
-Eink Launcher is open in the emulator window.
+Margin is open in the emulator window.
 
   Mouse click     a finger tap
   Mouse drag      draws on a handwriting page. In a PDF, press "Mouse turns"

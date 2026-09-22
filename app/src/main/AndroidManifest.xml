@@ -47,7 +47,7 @@
     </queries>
 
     <application
-        android:name=".EinkLauncherApp"
+        android:name=".MarginApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -55,7 +55,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="false"
-        android:theme="@style/Theme.EinkLauncher">
+        android:theme="@style/Theme.Margin">
 
         <!--
           Turning the screen. No activity below is locked upright in this
@@ -83,7 +83,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
-            android:theme="@style/Theme.EinkLauncher">
+            android:theme="@style/Theme.Margin">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -106,7 +106,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.EinkLauncher"
+            android:theme="@style/Theme.Margin"
             android:windowSoftInputMode="adjustResize" />
 
         <!--
@@ -118,7 +118,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/demo_title"
-            android:theme="@style/Theme.EinkLauncher" />
+            android:theme="@style/Theme.Margin" />
 
         <!-- The EPUB reader, on the Readium toolkit. Its own activity, as the plan says. -->
         <activity
@@ -126,7 +126,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.EinkLauncher"
+            android:theme="@style/Theme.Margin"
             android:windowSoftInputMode="adjustResize" />
 
         <!-- The PDF reader: one screen of a page at a time, with ink on top. -->
@@ -135,7 +135,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.EinkLauncher"
+            android:theme="@style/Theme.Margin"
             android:windowSoftInputMode="adjustResize" />
 
         <!--
@@ -147,7 +147,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.EinkLauncher" />
+            android:theme="@style/Theme.Margin" />
 
         <!--
           One page of the launcher in a task of its own, so Android's split
@@ -160,7 +160,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.EinkLauncher"
+            android:theme="@style/Theme.Margin"
             android:windowSoftInputMode="adjustResize" />
 
         <!-- The Step 2 device spike: refresh modes, fast pen paths, home role. -->
@@ -169,14 +169,14 @@
             android:exported="false"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.EinkLauncher" />
+            android:theme="@style/Theme.Margin" />
 
         <activity
             android:name=".ui.devicetest.PenTestActivity"
             android:exported="false"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.EinkLauncher" />
+            android:theme="@style/Theme.Margin" />
 
         <!-- Android reports the result of an update install here. -->
         <receiver

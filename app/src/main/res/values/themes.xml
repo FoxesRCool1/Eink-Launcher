@@ -5,7 +5,7 @@
       E-ink rule 1: no animations. The window animation style below turns off
       every activity and task transition the platform would otherwise play.
     -->
-    <style name="Animation.EinkLauncher.None" parent="@android:style/Animation">
+    <style name="Animation.Margin.None" parent="@android:style/Animation">
         <item name="android:activityOpenEnterAnimation">@null</item>
         <item name="android:activityOpenExitAnimation">@null</item>
         <item name="android:activityCloseEnterAnimation">@null</item>
@@ -30,7 +30,7 @@
         <item name="android:windowExitAnimation">@null</item>
     </style>
 
-    <style name="Theme.EinkLauncher" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.Margin" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/eink_paper</item>
         <item name="android:colorBackground">@color/eink_paper</item>
         <item name="android:textColorPrimary">@color/eink_ink</item>
@@ -39,11 +39,11 @@
         <item name="android:navigationBarColor">@color/eink_paper</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowAnimationStyle">@style/Animation.EinkLauncher.None</item>
+        <item name="android:windowAnimationStyle">@style/Animation.Margin.None</item>
         <item name="android:windowDisablePreview">true</item>
         <item name="android:windowContentTransitions">false</item>
-        <item name="android:dialogTheme">@style/Theme.EinkLauncher.Dialog</item>
-        <item name="android:alertDialogTheme">@style/Theme.EinkLauncher.Dialog</item>
+        <item name="android:dialogTheme">@style/Theme.Margin.Dialog</item>
+        <item name="android:alertDialogTheme">@style/Theme.Margin.Dialog</item>
     </style>
 
     <!--
@@ -52,8 +52,8 @@
       when the dialog comes and another when it goes. The theme is read before
       the window first shows, which code in the dialog itself is too late for.
     -->
-    <style name="Theme.EinkLauncher.Dialog" parent="@android:style/Theme.Material.Light.Dialog">
-        <item name="android:windowAnimationStyle">@style/Animation.EinkLauncher.None</item>
+    <style name="Theme.Margin.Dialog" parent="@android:style/Theme.Material.Light.Dialog">
+        <item name="android:windowAnimationStyle">@style/Animation.Margin.None</item>
         <item name="android:backgroundDimEnabled">false</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsFloating">true</item>

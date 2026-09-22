@@ -129,10 +129,10 @@ jobs:
           mkdir -p dist
           for FLAVOUR in viwoods generic; do
             cp "app/build/outputs/apk/$FLAVOUR/debug/app-$FLAVOUR-debug.apk" \
-               "dist/eink-launcher-${GITHUB_REF_NAME}-$FLAVOUR-debug.apk"
+               "dist/margin-${GITHUB_REF_NAME}-$FLAVOUR-debug.apk"
             if [ "$HAS_KEY" = "true" ]; then
               cp "app/build/outputs/apk/$FLAVOUR/release/app-$FLAVOUR-release.apk" \
-                 "dist/eink-launcher-${GITHUB_REF_NAME}-$FLAVOUR.apk"
+                 "dist/margin-${GITHUB_REF_NAME}-$FLAVOUR.apk"
             fi
           done
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
@@ -160,6 +160,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
-            --title "Eink Launcher $GITHUB_REF_NAME" \
+            --title "Margin $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --verify-tag --latest

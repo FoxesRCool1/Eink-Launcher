@@ -62,9 +62,9 @@ SIZE="$(du -h "$APK" | cut -f1)"
 cat > "$SERVE_DIR/index.html" <<HTML
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Eink Launcher build</title></head>
+<head><meta charset="utf-8"><title>Margin build</title></head>
 <body style="font-family: sans-serif; font-size: 20px; padding: 24px;">
-<h1>Eink Launcher</h1>
+<h1>Margin</h1>
 <p>Flavour: $FLAVOUR. Size: $SIZE.</p>
 <p><a href="$APK_NAME">Download $APK_NAME</a></p>
 </body>

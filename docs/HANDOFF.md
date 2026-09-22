@@ -172,6 +172,11 @@ decision 0020. What a new session must know:
   E-Ink-Launcher, MobileRead threads, F-Droid) is summed up in the PROGRESS
   section. What is left on that list either needs root, is vendor locked, or
   is against the design. Gestures on Home were the one open idea.
+- **The name is Margin**, decision 0021. Package `io.github.foxesrcool1.margin`,
+  data folder `Margin/`, release files `margin-<tag>-<flavour>.apk`,
+  repository `FoxesRCool1/Margin-Eink-Launcher`. "Eink Launcher" in an old
+  doc is the working name, not a different app. The tablet needs a fresh
+  install once, with a backup and restore around it.
 
 ---
 

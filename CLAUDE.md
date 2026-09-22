@@ -147,7 +147,7 @@ https://ko-fi.com/foxesrcool. That link lives in three places: the README,
 ## Layout of the code
 
 ```
-app/src/main/kotlin/io/github/foxesrcool1/einklauncher/
+app/src/main/kotlin/io/github/foxesrcool1/margin/
   core/log/      file logger, crash handler
   core/storage/  data folder, file store, backup, index
   core/apps/     the folders on the Apps tab. No Android.

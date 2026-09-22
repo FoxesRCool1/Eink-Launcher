@@ -2,6 +2,7 @@
 
 ## 0.4.0
 
+- The app is called Margin now. It is a new package, so this one time: back up in the old app, uninstall it, install Margin, restore
 - Free and open source. The source is public, and Settings, Help has a "Support this app" row for people who want to help pay for it
 - Apps: type to find an app, and hide the apps you never open
 - The updater needs no token now that the source is public

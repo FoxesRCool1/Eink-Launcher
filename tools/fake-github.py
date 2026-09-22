@@ -44,7 +44,7 @@ def release_list(host: str) -> bytes:
     for index, flavour in enumerate(("viwoods", "generic"), start=1):
         assets.append({
             "id": index,
-            "name": f"eink-launcher-v{VERSION}-{flavour}-debug.apk",
+            "name": f"margin-v{VERSION}-{flavour}-debug.apk",
             "size": len(APK),
             "state": "uploaded",
             "digest": f"sha256:{SHA256}",
@@ -52,7 +52,7 @@ def release_list(host: str) -> bytes:
         })
     release = {
         "tag_name": f"v{VERSION}",
-        "name": f"Eink Launcher v{VERSION}",
+        "name": f"Margin v{VERSION}",
         "draft": False,
         "prerelease": False,
         "body": "- This release comes from tools/fake-github.py.\n- Nothing was sent to GitHub.",

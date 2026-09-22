@@ -5,7 +5,7 @@ ViWoods developer contact. Part 1 is the letter. Part 2 says what each answer
 would change in the app.
 
 Before you send it: the fast pen list at ViWoods is kept by package name. The
-package name in the letter is `io.github.foxesrcool1.einklauncher`, which is
+package name in the letter is `io.github.foxesrcool1.margin`, which is
 still the suggestion from step 1. If the app will get another name or package
 before many people use it, choose it first. An entry on ViWoods' list for the old name
 would be of no use.
@@ -24,7 +24,7 @@ well on the tablet. The one thing it cannot match is the pen. In your own
 notes app the line follows the pen at once. In a third-party app the line
 lags, because the app has to draw it itself.
 
-The package name of the app is `io.github.foxesrcool1.einklauncher`.
+The package name of the app is `io.github.foxesrcool1.margin`.
 
 I have four requests, most important first.
 

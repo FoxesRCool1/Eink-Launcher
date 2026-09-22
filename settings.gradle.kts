@@ -14,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "EinkLauncher"
+rootProject.name = "Margin"
 
 include(":app")

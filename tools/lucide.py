@@ -36,7 +36,7 @@ SHA256 = "b47744c9f7b385c25fb27d212cf9830947030a57a635f8b11a5473a72ec57cfd"
 ROOT = Path(__file__).resolve().parent.parent
 NAMES_FILE = ROOT / "tools" / "lucide-icons.txt"
 KOTLIN_FILE = (
-    ROOT / "app/src/main/kotlin/io/github/foxesrcool1/einklauncher/design/icons/LucideIcons.kt"
+    ROOT / "app/src/main/kotlin/io/github/foxesrcool1/margin/design/icons/LucideIcons.kt"
 )
 APP_ICON_FILE = ROOT / "app/src/main/res/drawable/ic_launcher_foreground.xml"
 
@@ -213,7 +213,7 @@ def write_kotlin(icons: dict) -> None:
         "//",
         f"// Lucide {VERSION}, https://lucide.dev. ISC licence, and MIT for the icons that",
         "// come from Feather. The licence text is in licenses/lucide/LICENSE.",
-        "package io.github.foxesrcool1.einklauncher.design.icons",
+        "package io.github.foxesrcool1.margin.design.icons",
         "",
         "/** Every Lucide icon the app draws. The shapes live in a 24 by 24 box. */",
         "object Lucide {",

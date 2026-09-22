@@ -1,6 +1,6 @@
-# Eink Launcher: build plan
+# Margin: build plan
 
-Working name: "Eink Launcher". Pick a final name before the public release. Do not use the name "Prose". That name belongs to the concept that inspired this project.
+Name: "Margin", chosen by the owner on 2026-09-22 after a search of app stores, GitHub and trademarks. Decision 0021. The working name until then was "Margin". Do not use the name "Prose". That name belongs to the concept that inspired this project.
 
 Owner: Caleb (GitHub: FoxesRCool1)
 Target device: ViWoods AiPaper Mini (8.2 inch e-ink, EMR stylus)
@@ -100,7 +100,7 @@ Source: the public repo `jdkruzr/ViwoodsAppDev` (README and `VIWOODS_APP_DEV.md`
 | Build | Gradle wrapper + Android command-line tools. No Android Studio needed. Dev machine is Arch Linux (Omarchy) with VS Code. |
 | SDK levels | `minSdk 29`. `compileSdk` = latest stable. |
 | Build flavours | `viwoods`: `targetSdk 30` if Step 2 proves that the fast pen path needs it. `generic`: latest `targetSdk`, Jetpack Ink rendering only. |
-| Package id | Suggestion: `io.github.foxesrcool1.einklauncher`. The owner confirms in Step 1. |
+| Package id | Suggestion: `io.github.foxesrcool1.margin`. The owner confirms in Step 1. |
 | Device layer | Interface `EinkDevice` (refresh modes, full refresh, fast pen on/off, pen tool, pen width). Implementations: `ViwoodsEinkDevice` (reflection, fully guarded with try/catch) and `GenericEinkDevice` (no-op). This keeps the app useful on Boox and other tablets later. |
 | EPUB | Readium Kotlin Toolkit 3.x (BSD-3). Paginated mode. Page turns with `animated = false`. Highlights through its Decorator API. |
 | PDF | Own paged view. Render one page to a bitmap with PdfiumAndroid (through the Readium PDFium adapter or direct) or with the platform `PdfRenderer`. Choose in Step 8. Do not use MuPDF (AGPL). |
@@ -115,7 +115,7 @@ Source: the public repo `jdkruzr/ViwoodsAppDev` (README and `VIWOODS_APP_DEV.md`
 Data folder layout (draft, finalize in Step 4):
 
 ```
-EinkLauncher/
+Margin/
   books/          imported EPUB and PDF copies
   annotations/    <book-id>.json, <book-id>/page-0001.strokes
   notes/          user folders, *.md (typed), *.inknote (handwritten)
@@ -236,7 +236,7 @@ Model: Opus
 - Create the Gradle project: Kotlin, Compose, two flavours, stable debug keystore so each build installs over the last one.
 - Add `CLAUDE.md` (short project rules taken from sections 1 and 5), `PROGRESS.md`, `ASSETS.md`, `docs/decisions/`, licence file, `.gitignore`, GitHub Actions workflow.
 - Build the design system: theme, type scale, fonts, no-animation defaults, `PagedList`, `WordMenu`, `CapsLabel`, `HairlineDivider`, `InvertPressButton`, confirm dialog. Add Roborazzi screenshot tests for each component.
-- Add the file logger, crash handler and in-app log viewer. Logs go to `logs/` and to `Download/EinkLauncher/`.
+- Add the file logger, crash handler and in-app log viewer. Logs go to `logs/` and to `Download/Margin/`.
 - Add `tools/deploy.sh`: build the debug APK, serve it on the LAN with `/usr/bin/python3 -m http.server`, print the URL.
 - Add a debug-only dev screen: "Get latest build" downloads the APK from the dev machine URL and starts the installer.
 
