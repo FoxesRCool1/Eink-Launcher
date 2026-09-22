@@ -23,7 +23,14 @@ Decision 0022.
    machine with the key, checked with `apksigner`: signed, not debuggable.
    Installed in the emulator: Home, Read, Write, Journal, Apps and Settings
    opened with no crash.
-4. **Docs:** README install steps name the signed files and say how to move
+4. **The real update was tested after the release.** In the emulator, a
+   0.4.0 build signed with the release key found 1.0.0 on GitHub, downloaded
+   the 38 MB file, checked it, and Android installed it over the old one.
+   1.0.0 then started with no crash. The Release workflow's signature check
+   passed for both files.
+5. **The old releases 0.1.0 to 0.4.0 were deleted from GitHub.** They held
+   debug files only. The git tags stay.
+6. **Docs:** README install steps name the signed files and say how to move
    from a test version. `docs/RELEASING.md` has the key, the secrets and the
    fingerprint. Three places said Settings, Help for updates; it is
    Settings, Updates.
