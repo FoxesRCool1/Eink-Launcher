@@ -6,18 +6,14 @@ name: Release
 #
 # What the release holds depends on the release key:
 #
-#   Key in the repository secrets   signed release APKs and debug APKs
-#   No key                          debug APKs only
+#   Key in the repository secrets   signed release APKs only
+#   No key (a fork, say)            debug APKs only
 #
-# Both are normal releases. A release with debug files only used to be marked
-# as a pre-release, and GitHub does not show a pre-release as "Latest", so the
-# front page of the repository looked as if nothing had been released. The
-# mark was never what kept the wrong file away from the wrong build: the app
-# picks its file by the end of the name.
-#
-# A debug APK is signed with the fixed key in keystore/debug.keystore, so a
-# debug build from here installs over a debug build from anywhere. That is
-# what the tablet runs while the app is being tested. See docs/RELEASING.md.
+# A debug APK is signed with the fixed key in keystore/debug.keystore. That
+# key is public, so anyone can sign a file with it. That is why a release
+# with the key holds no debug file: people install only files that the
+# release key signed, and nobody else can make an update for those.
+# See docs/RELEASING.md and docs/decisions/0022-release-key-and-no-play-store.md.
 
 on:
   push:
@@ -91,7 +87,7 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
             echo "present=true" >> "$GITHUB_OUTPUT"
-            echo "The release key is set. Building signed release APKs and debug APKs."
+            echo "The release key is set. Building signed release APKs only."
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "No release key. Building debug APKs only."
@@ -109,9 +105,11 @@ jobs:
           EINK_RELEASE_KEY_ALIAS: ${{ secrets.EINK_RELEASE_KEY_ALIAS }}
           EINK_RELEASE_KEY_PASSWORD: ${{ secrets.EINK_RELEASE_KEY_PASSWORD }}
         run: |
-          TASKS="testViwoodsDebugUnitTest testGenericDebugUnitTest assembleViwoodsDebug assembleGenericDebug"
+          TASKS="testViwoodsDebugUnitTest testGenericDebugUnitTest"
           if [ "$HAS_KEY" = "true" ]; then
             TASKS="$TASKS assembleViwoodsRelease assembleGenericRelease"
+          else
+            TASKS="$TASKS assembleViwoodsDebug assembleGenericDebug"
           fi
           ./gradlew $TASKS < /dev/null
 
@@ -128,15 +126,40 @@ jobs:
         run: |
           mkdir -p dist
           for FLAVOUR in viwoods generic; do
-            cp "app/build/outputs/apk/$FLAVOUR/debug/app-$FLAVOUR-debug.apk" \
-               "dist/margin-${GITHUB_REF_NAME}-$FLAVOUR-debug.apk"
             if [ "$HAS_KEY" = "true" ]; then
               cp "app/build/outputs/apk/$FLAVOUR/release/app-$FLAVOUR-release.apk" \
                  "dist/margin-${GITHUB_REF_NAME}-$FLAVOUR.apk"
+            else
+              cp "app/build/outputs/apk/$FLAVOUR/debug/app-$FLAVOUR-debug.apk" \
+                 "dist/margin-${GITHUB_REF_NAME}-$FLAVOUR-debug.apk"
             fi
           done
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
           ls -la dist
+
+      # With one of the four secrets missing, Gradle makes an unsigned APK
+      # and says nothing. Android refuses to install one, so a release must
+      # never hold it. A release APK must also carry the one release key of
+      # this project: a different key would make an "update" that no phone
+      # or tablet can install. The fingerprint below is public, and is also
+      # in docs/RELEASING.md. A fork puts its own here.
+      - name: Check the signatures
+        env:
+          HAS_KEY: ${{ steps.key.outputs.present }}
+          RELEASE_CERT_SHA256: cf1a386562eea922fe7e431874b015961fdfce618b382eec0216dd87ee0efdb6
+        run: |
+          SDKROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          APKSIGNER="$(find "$SDKROOT/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -1)"
+          [ -n "$APKSIGNER" ] || { echo "No apksigner on this runner."; exit 1; }
+          for APK in dist/*.apk; do
+            echo "== $APK"
+            CERTS="$("$APKSIGNER" verify --print-certs "$APK")"
+            echo "$CERTS" | grep "SHA-256"
+            if [ "$HAS_KEY" = "true" ] && ! echo "$CERTS" | grep -qi "SHA-256 digest: $RELEASE_CERT_SHA256"; then
+              echo "$APK is not signed with the release key of this project."
+              exit 1
+            fi
+          done
 
       # Only the part of docs/RELEASE_NOTES.md that belongs to this version.
       # The app shows it under "What is new".

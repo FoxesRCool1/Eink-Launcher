@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.0
+
+- The first full release. Every file is signed with the release key of the project, so only the owner can make an update for it
+- Coming from a test version (0.4.0 or older)? This one time: back up in the old app, uninstall it, install 1.0.0, then restore. The test versions used another key, so Android cannot update them
+- For a ViWoods tablet take the file that ends in -viwoods.apk. For any other tablet, -generic.apk
+
 ## 0.4.0
 
 - The app is called Margin now. It is a new package, so this one time: back up in the old app, uninstall it, install Margin, restore

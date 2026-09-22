@@ -5,7 +5,7 @@ that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9. Section 2b was
 added the same day by the session that built the in-app update, and section
 2c by the session that did the owner's first list of changes. Sections 2d and
 2e came with the second and third lists, on 2026-09-22, and 2f with the open
-source pass the same day.
+source pass the same day. Section 2g came with 1.0.0 and the release key.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
@@ -13,7 +13,11 @@ Read `CLAUDE.md` first for the rules, then this file for the state.
 
 ## 1. The one thing that shapes everything now
 
-**All ten steps have code. None of it has run on the tablet.**
+**All ten steps have code. 1.0.0 is out, signed with the release key.**
+
+The owner used the test builds on the tablet and ended the testing phase on
+2026-09-22. Section 2g has the release. The rest of this section is from
+before, and still true for any part the owner did not name.
 
 The dev machine can build now. The Android SDK is in `~/Android/Sdk`, and
 every step was built, unit tested and linted locally and on GitHub Actions.
@@ -55,7 +59,7 @@ and their pull requests are gone. Every commit from them is in `main` and
 
 ### 2b. The app updates itself now
 
-Settings, Help, "Check for
+Settings, Updates, "Check for
 updates" looks at the GitHub Releases of this repository, downloads the APK
 that fits the build, and hands it to Android. `tools/release.sh 0.1.1 "what
 changed"` makes a release with one command. Decision 0012 and
@@ -178,6 +182,26 @@ decision 0020. What a new session must know:
   doc is the working name, not a different app. The tablet needs a fresh
   install once, with a backup and restore around it.
 
+### 2g. 1.0.0: the release key, and GitHub only
+
+On 2026-09-22 the owner ended testing and asked for 1.0.0, a clean-up of the
+debug releases, and a secure key. Decision 0022. What a new session must
+know:
+
+- **The release key exists.** The owner has it in `~/margin-release/` on the
+  dev machine, and GitHub has it in four secrets. It is never in the
+  repository. `docs/RELEASING.md`, "The release key".
+- **A release holds signed files only**: `margin-v1.0.0-viwoods.apk`,
+  `margin-v1.0.0-generic.apk`, `SHA256SUMS.txt`. No debug file, because the
+  debug key is public. The workflow refuses a file that is not signed with
+  the fingerprint in `.github/workflows/release.yml`.
+- **Releases 0.1.0 to 0.4.0 are gone from GitHub.** Their tags stay.
+- **A debug build finds no update on GitHub now.** That is expected.
+- **The release build was run in the emulator before 1.0.0**: Home and every
+  tab opened, no crash. It had never run anywhere before.
+- **No Play Store.** GitHub Releases only. The owner registers with Google's
+  developer verification for the package name and the release key.
+
 ---
 
 ## 3. What to do next, in order
@@ -212,13 +236,12 @@ Still open from step 4. Settings, Help, "Design demo", Dev, "Time 500 files".
    temporary path. See decision 0011.
 3. A read-ahead for PDF screens, only if the log says the render is slow.
 4. Cover pictures in the library. The plan calls them optional.
-5. The first signed release. `docs/RELEASING.md` has the steps, and the
-   release key is the one thing still to make. Pick the final name first:
-   the plan says the working name must go before a wide release. Test
-   releases for the tablet need neither.
+5. Done on 2026-09-22: the first signed release, 1.0.0. See 2g.
 5b. F-Droid, now that the source is public. It needs a build F-Droid can
    repeat, and the `generic` flavour is the one to offer, since the
-   `viwoods` flavour targets SDK 30. Not started.
+   `viwoods` flavour targets SDK 30. F-Droid signs with its own key, so
+   check Google's developer verification rules for a second key first.
+   Decision 0022. Not started.
 6. Done on 2026-09-22: `TextPromptDialog` takes the focus when it opens.
    Whether the ViWoods keyboard then comes by itself is for the tablet to say.
 7. Done on 2026-09-22: any page in the second half, and a book opened from

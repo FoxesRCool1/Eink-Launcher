@@ -4,6 +4,89 @@ One section per step. Newest step at the top.
 
 ---
 
+## 1.0.0: the first full release, with a release key
+
+Date: 2026-09-22. Branch `Dev`. The owner said the testing phase is over
+and asked for 1.0.0, a clean-up of the old debug releases, and a secure key.
+Decision 0022.
+
+### What was done
+
+1. **The release key.** RSA 4096, alias `margin`, valid to 2054. It is in
+   `~/margin-release/` on the dev machine, with a random password in a file
+   beside it, both readable by the owner only. It is in the GitHub secrets.
+   It is not in the repository. Fingerprint in `docs/RELEASING.md`.
+2. **The Release workflow** publishes signed files only when the key is
+   there, and debug files only when it is not (a fork). It checks every file
+   before it publishes: signed, and with this project's key.
+3. **The signed build was tested before the release.** Built on the dev
+   machine with the key, checked with `apksigner`: signed, not debuggable.
+   Installed in the emulator: Home, Read, Write, Journal, Apps and Settings
+   opened with no crash.
+4. **Docs:** README install steps name the signed files and say how to move
+   from a test version. `docs/RELEASING.md` has the key, the secrets and the
+   fingerprint. Three places said Settings, Help for updates; it is
+   Settings, Updates.
+
+### What the owner must do
+
+1. Copy `~/margin-release/margin-release.keystore` and
+   `~/margin-release/password.txt` to a safe place away from this computer,
+   such as a password manager. Without them, no update can ever reach
+   anyone.
+2. On the tablet: back up, uninstall the test build, install
+   `margin-v1.0.0-viwoods.apk`, restore.
+3. Register with Google's developer verification (personal account), and
+   register the package name with the release key fingerprint.
+
+### Device test list
+
+- 1.0.0 installs from the releases page in the browser.
+- Restore brings back books, notes, journal and habits.
+- Settings, Home app, "Set as home app" makes Margin the home screen again.
+- Settings, Updates, "Check for updates" says there is nothing newer.
+
+---
+
+## A simple README, and the way the app reaches people
+
+Date: 2026-09-22. Branch `Dev`. Docs only, no code changed.
+
+### What was done
+
+1. **The README is short and checked against the code.** It is written for
+   a person who wants to install the app. The build details moved to
+   `CONTRIBUTING.md`. Five lines were wrong and are fixed:
+   - Updates are under Settings, Updates, not Settings, Help.
+   - The home app row is Settings, Home app, "Set as home app".
+   - Backup is under Settings, "Backup and files", not Settings, Storage.
+   - The releases hold only `-debug.apk` files, because there is no release
+     key yet. The README named a `-viwoods.apk` file that does not exist.
+   - The log has no Share button. Its download icon copies the files to
+     `Download/Margin`. Also fixed in `CONTRIBUTING.md` and the bug report
+     template.
+   The README now also says that an uninstall deletes the data folder.
+2. **The owner asked if the app must go on Google Play.** It does not.
+   GitHub Releases and the in-app updater stay the way to get the app. The
+   plan already kept Play for the `generic` flavour only, and the updater
+   would have to come out for it (decision 0012).
+
+### What the owner must know
+
+- **Release key.** Every release is signed with the debug key, and that key
+  is in the public repository. Anyone can sign a file with it that installs
+  over Margin. That is fine for testing, not for strangers. Make the release
+  key before the app is shared widely. `docs/RELEASING.md` has the steps.
+- **Google developer verification.** From 2027, certified Android devices
+  refuse apps from developers who have not registered with Google, even as
+  APK files. It starts on 2026-09-30 in Brazil, Indonesia, Singapore and
+  Thailand. Registration is a one-time fee of 25 US dollars and an ID check.
+  Users can still install an app from a developer who did not register,
+  through a one-time "advanced flow". The tablet has Google Play, so this
+  probably applies to it.
+
+---
+
 ## The open source pass: free, public, Ko-fi, wanted features, bug check
 
 Date: 2026-09-22. Branch `Dev`. Not released yet: the notes for 0.4.0 are

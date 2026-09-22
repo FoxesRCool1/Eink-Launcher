@@ -17,5 +17,6 @@ The steps, in order.
 **What you expected**
 
 **The log**
-Settings, Help, Log, then Share. Attach the file here. It holds no personal
-data beyond the names of the files you opened.
+Settings, Help, Log, then the download icon. The files go to the
+`Download/Margin` folder. Attach them here. They hold no personal data
+beyond the names of the files you opened.

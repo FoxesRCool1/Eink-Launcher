@@ -31,6 +31,42 @@ The screenshots land in `app/build/outputs/roborazzi/`. They are the only
 eyes there are, because `adb` does not work on the tablet this was made for.
 Look at them.
 
+There are two flavours:
+
+- `viwoods` reaches the hidden ViWoods display and pen calls by reflection.
+  Every call is guarded, and none can crash the app. It targets SDK 30,
+  because the fast pen is said to need that.
+- `generic` has no vendor code and targets the newest SDK.
+
+## Try it
+
+In an Android emulator the size of the panel:
+
+```
+tools/emulator.sh
+```
+
+It needs the `emulator` and `system-images;android-33;google_apis;x86_64`
+packages of the Android SDK, and KVM. The mouse draws on handwriting pages.
+It is not e-ink, so it shows layout and bugs, not ghosting.
+
+On a tablet on your local network:
+
+```
+tools/deploy.sh viwoods 8000
+```
+
+It builds the APK, serves it on the local network and prints the address.
+Open that address in the browser of the tablet.
+
+## Where things are
+
+- `CLAUDE.md`: the rules of the code.
+- `docs/HANDOFF.md`: the state of the work.
+- `docs/decisions/`: one short file per decision.
+- `PROGRESS.md`: what works, and what still needs a test on the tablet.
+- `docs/RELEASING.md`: how a release is made. Only the owner can publish one.
+
 ## Send a change
 
 1. Fork the repository and make your change on a branch of the fork.
@@ -46,7 +82,8 @@ Look at them.
 
 ## Report a problem
 
-Open an issue. Attach the log: Settings, Help, Log, then Share. Say which
+Open an issue. Attach the log: Settings, Help, Log, then the download icon.
+The files go to the `Download/Margin` folder. Say which
 tablet, which version (Settings shows it at the top), and what you did just
 before. The log holds the vendor calls that worked and did not, which is the
 one thing a report from a tablet with no `adb` can give.

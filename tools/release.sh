@@ -3,7 +3,7 @@
 # Make a release. One command: it sets the version, writes the notes, makes
 # the commit and the tag, and pushes both. GitHub Actions then builds the APK
 # files and makes the GitHub Release, and the app on the tablet finds it:
-# Settings, Help, "Check for updates".
+# Settings, Updates, "Check for updates".
 #
 # Usage:
 #   tools/release.sh <version> ["what changed"]
@@ -90,4 +90,4 @@ echo "Pushed $TAG from the branch $BRANCH."
 echo "GitHub is building it now. It takes about 15 minutes."
 echo
 echo "  Watch:   gh run watch \$(gh run list --workflow=release.yml --limit 1 --json databaseId -q '.[0].databaseId')"
-echo "  After:   on the tablet, Settings, Help, \"Check for updates\"."
+echo "  After:   on the tablet, Settings, Updates, \"Check for updates\"."
