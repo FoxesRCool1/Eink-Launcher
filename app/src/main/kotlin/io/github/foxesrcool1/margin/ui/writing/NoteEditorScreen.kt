@@ -215,8 +215,9 @@ fun NoteField(editor: NoteEditor, modifier: Modifier = Modifier) {
                 .padding(14.dp),
         )
         Spacer(modifier = Modifier.height(8.dp))
+        val words = NoteText.wordCount(editor.text)
         CapsLabel(
-            text = "${NoteText.wordCount(editor.text)} words  .  ${editor.status}",
+            text = "$words ${if (words == 1) "word" else "words"}  .  ${editor.status}",
             style = EinkType.capsSmall.copy(color = EinkColors.Faded),
         )
     }

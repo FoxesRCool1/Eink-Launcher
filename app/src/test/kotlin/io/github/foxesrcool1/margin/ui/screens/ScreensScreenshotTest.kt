@@ -464,14 +464,14 @@ abstract class ScreensScreenshotBase(private val suffix: String) {
     @Test
     fun pdfReaderSplitWithATypedNote() {
         compose.setContent { EinkTheme(botanicalArt = false) { PdfReaderScreenshotSupport.Screen(split = true) } }
-        waitForText("words")
+        waitForText("word")
         capture("pdf_reader_split_typed")
     }
 
     @Test
     fun pdfReaderSplitWithAHandwrittenNote() {
         compose.setContent { EinkTheme(botanicalArt = false) { PdfReaderScreenshotSupport.Screen(split = true) } }
-        waitForText("words")
+        waitForText("word")
         compose.onNodeWithContentDescription("Handwritten note").performClick()
         // The page has an Undo of its own. The second one is the note's, and it
         // is there once the note has been read from the disk.
@@ -492,7 +492,7 @@ abstract class ScreensScreenshotBase(private val suffix: String) {
                 }
             }
         }
-        waitForText("words")
+        waitForText("word")
         capture("note_pane")
     }
 
