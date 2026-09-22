@@ -1,12 +1,21 @@
 # Margin
 
+[![Latest release](https://img.shields.io/github/v/release/FoxesRCool1/Margin-Eink-Launcher)](https://github.com/FoxesRCool1/Margin-Eink-Launcher/releases/latest)
+[![Licence](https://img.shields.io/github/license/FoxesRCool1/Margin-Eink-Launcher)](LICENSE)
 [![CI](https://github.com/FoxesRCool1/Margin-Eink-Launcher/actions/workflows/ci.yml/badge.svg)](https://github.com/FoxesRCool1/Margin-Eink-Launcher/actions/workflows/ci.yml)
 
-A calm home screen for e-ink Android tablets. It has four places to go:
-Read, Write, Journal and Apps. No animations, no scrolling, black on white.
+**Turn your e-ink Android tablet into a place to read and write.**
 
-Free and open source. Made for the ViWoods AiPaper Mini. It is built to run
-on any tablet with Android 10 or newer.
+Margin is a calm home screen (a launcher) for e-ink tablets. It has four
+places to go: Read, Write, Journal and Apps. No animations, no scrolling,
+black on white.
+
+**[Download the free APK](https://github.com/FoxesRCool1/Margin-Eink-Launcher/releases/latest)**
+· [How to install](#install)
+
+Free and open source. Needs Android 10 or newer. Tested on the ViWoods
+AiPaper Mini. Other tablets are not tested yet: see
+[Which tablets](#which-tablets).
 
 | Home | Reading | Handwriting |
 | --- | --- | --- |
@@ -18,6 +27,18 @@ on any tablet with Android 10 or newer.
 
 The pictures come from the screenshot tests. The book in them is *Walden*
 by Henry David Thoreau (1854), which is in the public domain.
+
+## Why Margin
+
+An e-ink tablet has a screen like paper, but a home screen made for a phone.
+
+- A phone screen moves. On e-ink, each animation makes the screen flash and
+  leaves faint ghosts of the last picture.
+- A wall of apps pulls you away from the book or the note you came for.
+- Notes that live inside one app are hard to take with you.
+
+Margin fixes all three. Nothing moves. Home has four places, not a wall of
+apps. Every note is a plain file in one folder.
 
 ## What it does
 
@@ -57,11 +78,6 @@ the install file of an Android app.)
    then press Install.
 4. Open Margin.
 
-**Had a test version before 1.0.0?** It cannot update to 1.0.0, because the
-test versions were signed with a different key. Back up in the old app
-(Settings, Backup and files, "Back up"). Uninstall it. Install 1.0.0. Then
-restore (Settings, Backup and files, "Restore").
-
 ### Make it the home screen
 
 In Margin, go to Settings, Home app, "Set as home app", and choose Margin.
@@ -82,6 +98,11 @@ press downloads and installs it. Your books, notes and settings stay.
 
 After an update, Android may show the stock launcher once. Press the Home
 key.
+
+**Had a test version before 1.0.0?** It cannot update to 1.0.0, because the
+test versions were signed with a different key. Back up in the old app
+(Settings, Backup and files, "Back up"). Uninstall it. Install 1.0.0. Then
+restore (Settings, Backup and files, "Restore").
 
 ### A faster pen on ViWoods
 

@@ -4,6 +4,36 @@ One section per step. Newest step at the top.
 
 ---
 
+## The README as a landing page
+
+Date: 2026-09-22. Branch `Dev`. The owner asked for an audit of the README
+as the page a new user lands on, then for the top five fixes.
+
+### What was done
+
+1. A download link and a device line at the top: Android 10 or newer,
+   tested on the ViWoods AiPaper Mini, other tablets not tested yet.
+2. A "Why Margin" section: what goes wrong with a phone home screen on
+   e-ink.
+3. The note for test versions before 1.0.0 moved from Install to the end of
+   Updates.
+4. Version and licence badges first, the CI badge after them.
+5. The word "launcher" once, near the top, for search.
+
+The full audit, with copy for a later FAQ and a final download link, is in
+`founder/landing-page.md`. That folder is not in the repository.
+
+### What the owner must do
+
+- Look at the README on the `Dev` branch on GitHub.
+- In the GitHub settings: add a social preview image, set the homepage to
+  the latest release, add the topics `android-launcher`, `e-reader`,
+  `distraction-free` and `boox`.
+
+No app code changed. Nothing to test on the tablet.
+
+---
+
 ## 1.0.0: the first full release, with a release key
 
 Date: 2026-09-22. Branch `Dev`. The owner said the testing phase is over
