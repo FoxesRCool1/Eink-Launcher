@@ -94,4 +94,17 @@ class NoteTextTest {
         assertEquals(true, preview.endsWith("..."))
         assertEquals(true, preview.length <= 23)
     }
+
+    @Test
+    fun `a new title replaces the heading and keeps its level`() {
+        assertEquals("# New\n\nText", NoteText.withTitle("# Old\n\nText", "New"))
+        assertEquals("\n## New\nText", NoteText.withTitle("\n## Old\nText", " New "))
+    }
+
+    @Test
+    fun `a note without a heading gets no new title`() {
+        assertEquals(null, NoteText.withTitle("Just text\n# Later heading", "New"))
+        assertEquals(null, NoteText.withTitle("", "New"))
+        assertEquals(null, NoteText.withTitle("#\nText", "New"))
+    }
 }

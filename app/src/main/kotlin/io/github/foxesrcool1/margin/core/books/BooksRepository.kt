@@ -76,7 +76,20 @@ class BooksRepository(private val data: DataRepository) {
     fun byTitle(): List<LibraryBook> =
         list().sortedBy { it.metadata.title.lowercase(Locale.ROOT) }
 
-    fun byRecent(): List<LibraryBook> = list().sortedByDescending { it.stored.lastModified }
+    /**
+     * The book read last comes first. The date of the book file is only the
+     * day it was imported, because the reader never writes to the book. The
+     * reader saves the place in the book to the annotations file each time it
+     * closes, so the date of that file is when the book was last read. A book
+     * that was never opened counts from the day it came in.
+     */
+    fun byRecent(): List<LibraryBook> =
+        list().map { it to lastReadAt(it) }.sortedByDescending { it.second }.map { it.first }
+
+    private fun lastReadAt(book: LibraryBook): Long = maxOf(
+        book.stored.lastModified,
+        data.store.lastModified(StorageLayout.annotationsPath(book.bookId)),
+    )
 
     /** Copies a picked file into `books/`. */
     fun import(input: InputStream, displayName: String, sizeHintBytes: Long = -1L) =

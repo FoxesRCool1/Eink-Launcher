@@ -44,6 +44,26 @@ object NoteText {
         return fallback
     }
 
+    /**
+     * The note with a new title, or null when its title is not a heading.
+     *
+     * The Writing tab shows the first heading as the name of a note, so a
+     * rename has to change that heading, or the row keeps the old name. Only
+     * a heading is changed. A note that starts with a plain line keeps it:
+     * that line is the user's text, not a title this app gave it.
+     */
+    fun withTitle(text: String, title: String): String? {
+        val lines = text.split('\n')
+        val index = lines.indexOfFirst { it.isNotBlank() }
+        if (index < 0) return null
+        val line = lines[index].trim()
+        val marks = line.takeWhile { it == '#' }
+        if (marks.isEmpty() || line.drop(marks.length).isBlank()) return null
+        val renamed = lines.toMutableList()
+        renamed[index] = "$marks ${title.trim()}"
+        return renamed.joinToString("\n")
+    }
+
     /** One line of the note, for a row in the browser. */
     fun preview(text: String, maxCharacters: Int = 90): String {
         val flattened = text

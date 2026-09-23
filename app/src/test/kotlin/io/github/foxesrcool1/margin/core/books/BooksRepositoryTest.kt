@@ -83,4 +83,28 @@ class BooksRepositoryTest {
         assertEquals("Anna Karenina, the longer title", books.list().single().metadata.title)
         assertEquals(2 * oneRead, store.opened)
     }
+
+    @Test
+    fun `the book read last comes first, not the book added last`() {
+        val folder = temporary.newFolder("Margin")
+        val store = LocalFileStore(folder)
+        val books = BooksRepository(DataRepository(store))
+        store.write("books/old.epub", epub("Read today"))
+        store.write("books/new.epub", epub("Added yesterday"))
+        store.write("books/never.epub", epub("Added last week"))
+        File(folder, "books/old.epub").setLastModified(1_000_000_000_000L)
+        File(folder, "books/new.epub").setLastModified(1_000_000_200_000L)
+        File(folder, "books/never.epub").setLastModified(1_000_000_100_000L)
+
+        // The reader saves the place in the book when it closes.
+        val read = books.list().single { it.metadata.title == "Read today" }
+        val place = "annotations/${read.bookId}.json"
+        store.writeText(place, "{}")
+        File(folder, place).setLastModified(1_000_000_300_000L)
+
+        assertEquals(
+            listOf("Read today", "Added yesterday", "Added last week"),
+            books.byRecent().map { it.metadata.title },
+        )
+    }
 }

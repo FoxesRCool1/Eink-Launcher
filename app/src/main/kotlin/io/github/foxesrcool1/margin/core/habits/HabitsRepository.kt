@@ -50,6 +50,20 @@ class HabitsRepository(private val data: DataRepository) {
 
     fun add(name: String, today: LocalDate): HabitsDocument = synchronized(LOCK) {
         val current = load()
+
+        // The Journal has no list of archived habits. Adding one again by its
+        // name is the way back, and it comes back with the days it was done,
+        // not as a second habit that starts from nothing.
+        val archived = current.habits.firstOrNull { it.archived && it.name.equals(name.trim(), ignoreCase = true) }
+        if (archived != null) {
+            val next = current.copy(
+                habits = current.habits.map { if (it.id == archived.id) it.copy(archived = false) else it },
+            )
+            save(next)
+            AppLog.i(TAG, "Brought back the archived habit ${archived.id}")
+            return@synchronized next
+        }
+
         val id = HabitsFile.idFor(name, current.habits.map { it.id }.toSet())
         val next = current.copy(habits = current.habits + Habit(id, name.trim(), today))
         save(next)

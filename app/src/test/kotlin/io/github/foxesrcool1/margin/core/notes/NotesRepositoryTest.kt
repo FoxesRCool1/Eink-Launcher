@@ -70,6 +70,18 @@ class NotesRepositoryTest {
     }
 
     @Test
+    fun `a row has the start of the note under its title, from the same read`() {
+        val path = notes.createNote(notes.rootPath, "Shopping")!!
+        notes.write(path, "# Shopping\n\nBread, milk")
+        store.createDirectories("notes/Ideas")
+
+        val rows = notes.list(notes.rootPath)
+
+        assertEquals("Bread, milk", rows.single { it.name == "Shopping.md" }.preview)
+        assertEquals("", rows.single { it.isFolder }.preview)
+    }
+
+    @Test
     fun `folders come before files`() {
         notes.createNote(notes.rootPath, "aaa")
         notes.createFolder(notes.rootPath, "zzz")
@@ -151,5 +163,59 @@ class NotesRepositoryTest {
         store.write("notes/Garden plan.inknote", byteArrayOf(1))
         val entry = notes.list(notes.rootPath).single { it.name == "Garden plan.inknote" }
         assertEquals("Garden plan", entry.title)
+    }
+
+    @Test
+    fun `renaming a typed note changes the heading the row shows`() {
+        val path = notes.createNote(notes.rootPath, "Shopping")!!
+        notes.write(path, "# Shopping\n\nBread, milk")
+
+        val renamed = notes.rename(path, "Groceries")!!
+
+        assertEquals("notes/Groceries.md", renamed)
+        assertEquals("# Groceries\n\nBread, milk", notes.read(renamed))
+        assertEquals("Groceries", notes.list(notes.rootPath).single().title)
+    }
+
+    @Test
+    fun `a note that starts with plain text keeps its text when renamed`() {
+        store.writeText("notes/list.md", "Bread, milk\neggs")
+
+        val renamed = notes.rename("notes/list.md", "Groceries")!!
+
+        assertEquals("notes/Groceries.md", renamed)
+        assertEquals("Bread, milk\neggs", notes.read(renamed))
+    }
+
+    @Test
+    fun `renaming to the same name keeps the name and gets no number`() {
+        val path = notes.createNote(notes.rootPath, "Plan")!!
+
+        assertEquals(path, notes.rename(path, "Plan"))
+        assertEquals(listOf("Plan.md"), notes.list(notes.rootPath).map { it.name })
+    }
+
+    @Test
+    fun `renaming that only changes the capitals gets no number`() {
+        val path = notes.createNote(notes.rootPath, "plan")!!
+
+        assertEquals("notes/Plan.md", notes.rename(path, "Plan"))
+        assertEquals(listOf("Plan.md"), notes.list(notes.rootPath).map { it.name })
+        assertEquals("Plan", notes.list(notes.rootPath).single().title)
+    }
+
+    @Test
+    fun `a folder with a dot in its name is renamed without keeping a part of it`() {
+        notes.createFolder(notes.rootPath, "Drafts v1.2")
+
+        assertEquals("notes/Drafts", notes.rename("notes/Drafts v1.2", "Drafts"))
+    }
+
+    @Test
+    fun `a handwritten note is renamed and its ink is left alone`() {
+        store.write("notes/Garden.inknote", byteArrayOf(1, 2, 3))
+
+        assertEquals("notes/Garden plan.inknote", notes.rename("notes/Garden.inknote", "Garden plan"))
+        assertEquals(listOf<Byte>(1, 2, 3), store.readBytes("notes/Garden plan.inknote")!!.toList())
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.margin.core.log.AppLog
 import io.github.foxesrcool1.margin.core.log.LogLine
+import io.github.foxesrcool1.margin.core.threads.AppDispatchers
 import io.github.foxesrcool1.margin.design.EinkColors
 import io.github.foxesrcool1.margin.design.EinkDimens
 import io.github.foxesrcool1.margin.design.EinkType
@@ -29,6 +31,8 @@ import io.github.foxesrcool1.margin.design.icons.Lucide
 import io.github.foxesrcool1.margin.design.components.PagedList
 import io.github.foxesrcool1.margin.design.components.rememberPagedListState
 import io.github.foxesrcool1.margin.ui.common.ScreenScaffold
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The in-app log viewer.
@@ -45,8 +49,10 @@ fun LogViewerScreen(
     onBack: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var refreshToken by remember { mutableStateOf(0) }
     var status by remember { mutableStateOf<String?>(null) }
+    var copying by remember { mutableStateOf(false) }
 
     val lines = remember(refreshToken) { linesProvider().asReversed() }
     val state = rememberPagedListState()
@@ -64,11 +70,25 @@ fun LogViewerScreen(
                 icon = Lucide.Download,
                 label = "Copy the log files to the Download folder",
                 bordered = true,
+                enabled = !copying,
                 onClick = {
-                    val copied = onCopyToDownloads?.invoke()
-                        ?: AppLog.copyAllToDownloads(context)
-                    status = "Copied $copied file(s) to Download/Margin"
-                    refreshToken++
+                    // The copy waits for the log writer and then writes files,
+                    // so it runs off the main thread. It froze the screen for
+                    // up to two seconds.
+                    copying = true
+                    status = "Copying the log files"
+                    scope.launch {
+                        val copied = withContext(AppDispatchers.io) {
+                            onCopyToDownloads?.invoke() ?: AppLog.copyAllToDownloads(context)
+                        }
+                        status = when (copied) {
+                            0 -> "No log file could be copied"
+                            1 -> "Copied 1 file to Download/Margin"
+                            else -> "Copied $copied files to Download/Margin"
+                        }
+                        copying = false
+                        refreshToken++
+                    }
                 },
             )
         },

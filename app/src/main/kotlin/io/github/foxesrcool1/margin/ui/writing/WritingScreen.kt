@@ -25,7 +25,6 @@ import io.github.foxesrcool1.margin.core.log.AppLog
 import io.github.foxesrcool1.margin.core.threads.AppDispatchers
 import io.github.foxesrcool1.margin.ui.ink.InkExport
 import io.github.foxesrcool1.margin.core.notes.NoteEntry
-import io.github.foxesrcool1.margin.core.notes.NoteText
 import io.github.foxesrcool1.margin.core.notes.NotesRepository
 import io.github.foxesrcool1.margin.core.storage.DataRoot
 import io.github.foxesrcool1.margin.core.storage.RelativePaths
@@ -215,7 +214,6 @@ fun WritingScreen(
             NoteRow(
                 entry = row,
                 marked = marked?.path == row.path,
-                notes = notes,
                 onOpen = {
                     if (row.isFolder) {
                         folder = row.path
@@ -324,11 +322,22 @@ fun WritingScreen(
     if (beingRenamed != null) {
         TextPromptDialog(
             title = "Rename",
-            initialValue = beingRenamed.name.substringBeforeLast('.'),
+            // The name the row shows. For a typed note that is its heading.
+            initialValue = when {
+                beingRenamed.isFolder -> beingRenamed.name
+                StorageLayout.isTypedNote(beingRenamed.name) -> beingRenamed.title
+                else -> beingRenamed.name.substringBeforeLast('.')
+            },
             onConfirm = { name ->
                 renaming = null
                 scope.launch {
-                    withContext(AppDispatchers.io) { notes.rename(beingRenamed.path, name) }
+                    val renamed = withContext(AppDispatchers.io) { notes.rename(beingRenamed.path, name) }
+                    // The move waited for the old name, which is gone now.
+                    if (isAtOrInside(marked, beingRenamed.path)) {
+                        marked = null
+                        status = null
+                    }
+                    if (renamed == null) status = "Could not rename it"
                     refresh++
                 }
             },
@@ -353,7 +362,8 @@ fun WritingScreen(
                     val gone = withContext(AppDispatchers.io) { notes.delete(beingDeleted.path) }
                     status = if (gone) "Deleted ${beingDeleted.name}" else "Could not delete it"
                     AppLog.i(TAG, "Delete of ${beingDeleted.path}: $gone")
-                    if (marked?.path == beingDeleted.path) marked = null
+                    // A note marked for a move is gone too when its folder is.
+                    if (isAtOrInside(marked, beingDeleted.path)) marked = null
                     refresh++
                 }
             },
@@ -362,22 +372,17 @@ fun WritingScreen(
     }
 }
 
+/** True when [entry] is the thing at [path], or inside the folder at [path]. */
+private fun isAtOrInside(entry: NoteEntry?, path: String): Boolean =
+    entry != null && (entry.path == path || entry.path.startsWith("$path/"))
+
 @Composable
 private fun NoteRow(
     entry: NoteEntry,
     marked: Boolean,
-    notes: NotesRepository,
     onOpen: () -> Unit,
     onOptions: () -> Unit,
 ) {
-    var preview by remember(entry.path) { mutableStateOf("") }
-
-    LaunchedEffect(entry.path) {
-        if (!entry.isFolder && StorageLayout.isTypedNote(entry.name)) {
-            preview = withContext(AppDispatchers.io) { NoteText.preview(notes.read(entry.path)) }
-        }
-    }
-
     EinkRow(onClick = onOpen, onLongClick = onOptions) { pressed ->
         val foreground = if (pressed) EinkColors.Paper else EinkColors.Ink
         val faded = if (pressed) EinkColors.Paper else EinkColors.Faded
@@ -403,7 +408,7 @@ private fun NoteRow(
             )
             val second = when {
                 entry.isFolder -> "Folder"
-                preview.isNotBlank() -> preview
+                entry.preview.isNotBlank() -> entry.preview
                 StorageLayout.isInkNote(entry.name) -> "Handwritten note"
                 else -> RelativePaths.extensionOf(entry.name).uppercase()
             }

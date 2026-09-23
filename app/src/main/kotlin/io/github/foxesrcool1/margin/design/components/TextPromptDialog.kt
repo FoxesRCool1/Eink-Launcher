@@ -37,6 +37,7 @@ fun TextPromptDialog(
     onDismiss: () -> Unit,
 ) {
     var value by remember { mutableStateOf(initialValue) }
+    val canConfirm = allowEmpty || value.isNotBlank()
     // The field takes the focus as the dialog opens, so the keyboard comes
     // at once. Without this every prompt cost one extra tap.
     val focus = remember { FocusRequester() }
@@ -61,6 +62,8 @@ fun TextPromptDialog(
                 onValueChange = { value = it },
                 textStyle = EinkType.body,
                 singleLine = true,
+                // Enter is the same as the confirm button, for a keyboard user.
+                onSubmit = { if (canConfirm) onConfirm(value.trim()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focus)
@@ -78,7 +81,7 @@ fun TextPromptDialog(
                 Spacer(modifier = Modifier.width(EinkDimens.targetGap))
                 InvertPressButton(
                     text = confirmText,
-                    enabled = allowEmpty || value.isNotBlank(),
+                    enabled = canConfirm,
                     onClick = { onConfirm(value.trim()) },
                 )
             }

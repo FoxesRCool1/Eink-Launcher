@@ -124,7 +124,10 @@ fun SettingsScreen(
     var isDefaultChecks by remember { mutableStateOf(0) }
     LaunchedEffect(isDefaultChecks) {
         isDefault = withContext(AppDispatchers.io) { DefaultLauncher.isDefault(context) }
-        if (isDefaultChecks > 0) AppLog.i(TAG, "Home role request came back. Default now: $isDefault")
+        if (isDefaultChecks > 0) {
+            AppLog.i(TAG, "Home role checked again. Default now: $isDefault")
+            status = if (isDefault) "Margin is the home app" else "Margin is not the home app yet"
+        }
     }
     var showManualSteps by remember { mutableStateOf(false) }
     val roleLauncher = rememberLauncherForActivityResult(
@@ -179,10 +182,8 @@ fun SettingsScreen(
                 help = "Press this after you changed the home app in the tablet settings.",
                 icon = Lucide.RefreshCw,
                 trailing = null,
-                onClick = {
-                    isDefault = DefaultLauncher.isDefault(context)
-                    status = if (isDefault) "Margin is the home app" else "Margin is not the home app yet"
-                },
+                // The answer comes from the check above, off the main thread.
+                onClick = { isDefaultChecks++ },
             ),
         )
 
@@ -281,7 +282,6 @@ fun SettingsScreen(
                                         }
                                         crashedPens = crashedPens - setOfNotNull(path)
                                     }
-                                    Unit
                                 }
                             },
                             current = PEN_MODES.indexOf(fastPen),
@@ -312,7 +312,7 @@ fun SettingsScreen(
                             title = "Redraw Delay",
                             message = REDRAW_DELAY_HELP,
                             options = REDRAW_DELAYS.map { millis ->
-                                "$millis ms" to { scope.launch { settings.setInkRedrawDelayMillis(millis) }; Unit }
+                                "$millis ms" to { scope.launch { settings.setInkRedrawDelayMillis(millis) } }
                             },
                             current = REDRAW_DELAYS.indexOf(inkDelay),
                         )

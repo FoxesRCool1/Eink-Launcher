@@ -238,6 +238,12 @@ fun AppsScreen(
                 onValueChange = { search = it },
                 textStyle = EinkType.body,
                 singleLine = true,
+                // Enter opens the first app the search found, so a keyboard
+                // user types three letters and is there.
+                onSubmit = {
+                    val first = listed.firstNotNullOfOrNull { (it as? AllPageRow.App)?.entry }
+                    if (!typed.isBlank() && first != null) opener.openApp(first)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(searchFocus)

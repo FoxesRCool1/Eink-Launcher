@@ -135,7 +135,11 @@ fun ReadingScreen(
 
     ScreenScaffold(
         title = "Read",
-        overline = if (rows.isEmpty()) "Library" else "${rows.size} books",
+        overline = when (rows.size) {
+            0 -> "Library"
+            1 -> "1 book"
+            else -> "${rows.size} books"
+        },
         plant = Plants.Reading,
         onBack = onBack,
         modifier = modifier,

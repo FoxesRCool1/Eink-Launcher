@@ -12,6 +12,8 @@ private const val TAG = "NotesRepository"
 data class NoteEntry(
     val stored: StoredEntry,
     val title: String,
+    /** The start of a typed note, under its title. Empty for anything else. */
+    val preview: String = "",
 ) {
     val isFolder: Boolean get() = stored.isDirectory
     val path: String get() = stored.relativePath
@@ -42,22 +44,27 @@ class NotesRepository(private val data: DataRepository) {
      * One folder, folders first and then files.
      *
      * The title of a typed note is read from the file, because the first
-     * heading tells the user far more than `note-3.md` does.
+     * heading tells the user far more than `note-3.md` does. The preview
+     * comes from the same read. Read by the row itself, a moment later, it
+     * was a second trip to the disk for each note and a second repaint of
+     * each row.
      */
     fun list(folderPath: String): List<NoteEntry> =
         data.store.list(folderPath).map { stored ->
-            val title = when {
-                stored.isDirectory -> stored.name
-                StorageLayout.isTypedNote(stored.name) ->
-                    NoteText.titleFrom(
-                        data.store.readText(stored.relativePath).orEmpty(),
-                        stored.name.substringBeforeLast('.'),
+            when {
+                stored.isDirectory -> NoteEntry(stored, stored.name)
+                StorageLayout.isTypedNote(stored.name) -> {
+                    val text = data.store.readText(stored.relativePath).orEmpty()
+                    NoteEntry(
+                        stored = stored,
+                        title = NoteText.titleFrom(text, stored.name.substringBeforeLast('.')),
+                        preview = NoteText.preview(text),
                     )
+                }
                 // A handwritten note has no text to take a title from.
-                StorageLayout.isInkNote(stored.name) -> stored.name.substringBeforeLast('.')
-                else -> stored.name
+                StorageLayout.isInkNote(stored.name) -> NoteEntry(stored, stored.name.substringBeforeLast('.'))
+                else -> NoteEntry(stored, stored.name)
             }
-            NoteEntry(stored, title)
         }
 
     fun read(path: String): String = data.store.readText(path).orEmpty()
@@ -98,20 +105,52 @@ class NotesRepository(private val data: DataRepository) {
         return data.store.createDirectories(path)
     }
 
-    /** Renames in place, keeping the extension a typed note needs. */
+    /**
+     * Renames in place, keeping the extension a typed note needs. The
+     * heading of a typed note gets the new name too, because the Writing tab
+     * shows the heading and not the file name.
+     */
     fun rename(path: String, newName: String): String? {
-        val extension = RelativePaths.extensionOf(path)
+        val clean = RelativePaths.normalise(path)
+        // A folder called "Drafts v1.2" has no extension to keep.
+        val extension = if (data.store.isDirectory(clean)) "" else RelativePaths.extensionOf(clean)
         val safe = StorageLayout.safeName(newName)
         val fileName = if (extension.isEmpty()) safe else "$safe.$extension"
-        val target = data.freePath(RelativePaths.join(RelativePaths.parentOf(path), fileName))
+        val wanted = RelativePaths.join(RelativePaths.parentOf(clean), fileName)
 
-        return if (data.store.move(path, target)) {
-            AppLog.i(TAG, "Renamed $path to $target")
-            target
-        } else {
-            AppLog.w(TAG, "Could not rename $path")
-            null
+        val target = when {
+            // The same name. Looking for a free name would find this very
+            // file in the way and make it "Name 2".
+            wanted == clean -> clean
+            // Only the capitals change. The shared storage of Android does
+            // not tell "note" from "Note", so the file itself is in the way
+            // there too. It goes by way of a name nothing else has.
+            wanted.equals(clean, ignoreCase = true) ->
+                if (moveByWayOfFreeName(clean, wanted)) wanted else null
+            else -> data.freePath(wanted).takeIf { data.store.move(clean, it) }
         }
+        if (target == null) {
+            AppLog.w(TAG, "Could not rename $clean")
+            return null
+        }
+        if (target != clean) AppLog.i(TAG, "Renamed $clean to $target")
+
+        if (StorageLayout.isTypedNote(target)) {
+            val text = data.store.readText(target)
+            val retitled = text?.let { NoteText.withTitle(it, newName) }
+            if (retitled != null && retitled != text && !data.store.writeText(target, retitled)) {
+                AppLog.w(TAG, "Renamed $target, but could not change its heading")
+            }
+        }
+        return target
+    }
+
+    private fun moveByWayOfFreeName(from: String, to: String): Boolean {
+        val between = data.freePath("$from.renaming")
+        if (!data.store.move(from, between)) return false
+        if (data.store.move(between, to)) return true
+        data.store.move(between, from)
+        return false
     }
 
     /**

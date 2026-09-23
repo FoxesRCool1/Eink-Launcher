@@ -5,7 +5,8 @@ that built steps 2, 5, 8 and 10 and finished steps 6, 7 and 9. Section 2b was
 added the same day by the session that built the in-app update, and section
 2c by the session that did the owner's first list of changes. Sections 2d and
 2e came with the second and third lists, on 2026-09-22, and 2f with the open
-source pass the same day. Section 2g came with 1.0.0 and the release key.
+source pass the same day. Section 2g came with 1.0.0 and the release key,
+and 2h with a pass over the app on 2026-09-23.
 
 Read `CLAUDE.md` first for the rules, then this file for the state.
 
@@ -201,6 +202,29 @@ know:
   tab opened, no crash. It had never run anywhere before.
 - **No Play Store.** GitHub Releases only. The owner registers with Google's
   developer verification for the package name and the release key.
+
+### 2h. A pass over the app: bugs and small improvements
+
+On 2026-09-23 the owner asked for any improvement that could be found.
+`PROGRESS.md`, top section. Released as 1.0.1 before any tablet test, at
+the owner's word. What a new session must know:
+
+- **A rename of a typed note changes its first heading too**, because the
+  Writing tab shows the heading as the name. A note that starts with plain
+  text keeps it. `NoteText.withTitle` and `NotesRepository.rename`.
+- **The shared storage of Android does not tell capitals apart.** Proven in
+  the emulator: "GROCERIES.md" exists when "groceries.md" does. A rename
+  that only changes capitals goes by way of a free name.
+- **A one-line field can take Enter**: `EinkTextField(onSubmit = ...)`.
+  `TextPromptDialog` and the app search use it.
+- **Back goes one level up**: `LauncherRoute.parent`. The log and the
+  updates are pages of Settings, and Home remembers which one.
+- **"Sort by last read" uses the date of the annotations file**, not of the
+  book. The reader never writes to the book.
+- **Adding a habit with the name of an archived one brings it back.** There
+  is no list of archived habits in the Journal.
+- The emulator holds the debug build now, not the signed 1.0.0.
+
 
 ---
 

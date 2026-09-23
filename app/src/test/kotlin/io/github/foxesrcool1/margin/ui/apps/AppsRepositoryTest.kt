@@ -58,4 +58,21 @@ class AppsRepositoryTest {
         val homes = AppsRepository(context).escapeEntries(emptyList()).filter { it.kind == EscapeKind.OtherHome }
         assertEquals(listOf("com.example.barehome"), homes.map { it.label })
     }
+
+    @Test
+    fun `this app is not in its own list of apps`() {
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            launcherIntent,
+            listOf(
+                home("com.example.reader", "com.example.reader.Main", "Reader", 0),
+                home(context.packageName, "io.github.foxesrcool1.margin.HomeActivity", "Margin", 0),
+            ),
+        )
+
+        val apps = AppsRepository(context).loadAll()
+
+        assertTrue(apps.any { it.packageName == "com.example.reader" })
+        assertTrue(apps.none { it.packageName == context.packageName })
+    }
 }

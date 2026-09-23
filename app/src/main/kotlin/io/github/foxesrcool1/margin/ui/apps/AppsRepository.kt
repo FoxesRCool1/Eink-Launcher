@@ -64,7 +64,10 @@ class AppsRepository(context: Context) {
             emptyList()
         }
 
+        // This app has a launcher entry too, so the stock launcher can open
+        // it. In its own list it would only lead back to where the user is.
         val entries = fromLauncherApps.ifEmpty { loadFromPackageManager() }
+            .filter { it.packageName != appContext.packageName }
 
         AppLog.i(TAG, "Loaded ${entries.size} apps")
         return entries.sortedBy { it.label.lowercase(Locale.ROOT) }

@@ -38,6 +38,7 @@ import io.github.foxesrcool1.margin.ui.reading.ReadingScreen
 import io.github.foxesrcool1.margin.ui.ink.InkCanvasView
 import io.github.foxesrcool1.margin.ui.writing.WritingScreen
 import io.github.foxesrcool1.margin.ui.log.LogViewerScreen
+import io.github.foxesrcool1.margin.ui.settings.SettingsPage
 import io.github.foxesrcool1.margin.ui.settings.SettingsScreen
 import io.github.foxesrcool1.margin.ui.split.BesideActivity
 import io.github.foxesrcool1.margin.ui.split.LocalPageOpener
@@ -320,10 +321,19 @@ private fun LauncherHost(
         context.findActivity()?.let(io.github.foxesrcool1.margin.core.eink.ScreenRefresh::run)
     }
 
-    // Back goes to Home. On Home it closes the split screen, and does nothing
+    // The page of Settings the log or the updates were opened from, so the
+    // way back from them lands there and not on the Settings menu. Anywhere
+    // outside Settings it is forgotten, so Settings opens on its menu.
+    var settingsPage by remember { mutableIntStateOf(0) }
+    LaunchedEffect(route) {
+        if (route != LauncherRoute.Settings && route.parent != LauncherRoute.Settings) settingsPage = 0
+    }
+
+    // Back goes one level up: from the log and the updates to Settings, from
+    // a tab to Home. On Home it closes the split screen, and does nothing
     // else, because a home screen has nowhere behind it.
     BackHandler(enabled = true) {
-        if (route != LauncherRoute.Home) onRoute(LauncherRoute.Home) else onBackAtHome()
+        if (route != LauncherRoute.Home) onRoute(route.parent) else onBackAtHome()
     }
 
     when (route) {
@@ -349,7 +359,7 @@ private fun LauncherHost(
                     // An item with nothing to open is just something to tick
                     // off, so Start marks it done and moves to the next one.
                     else -> scope.launch {
-                        kotlinx.coroutines.withContext(io.github.foxesrcool1.margin.core.threads.AppDispatchers.io) {
+                        next = kotlinx.coroutines.withContext(io.github.foxesrcool1.margin.core.threads.AppDispatchers.io) {
                             val data = DataRoot.repository(context)
                             val hour = HabitsRepository(data).load().dayBoundaryHour
                             val today = DayBoundary(hour).dateOf(
@@ -358,7 +368,7 @@ private fun LauncherHost(
                             )
                             val routine = RoutineRepository(data)
                             routine.toggle(item.id, today)
-                            next = routine.next(today)
+                            routine.next(today)
                         }
                     }
                 }
@@ -386,17 +396,24 @@ private fun LauncherHost(
 
         LauncherRoute.Settings -> SettingsScreen(
             onBack = { onRoute(LauncherRoute.Home) },
-            onOpenLog = { onRoute(LauncherRoute.Log) },
+            onOpenLog = {
+                settingsPage = SettingsPage.Help.ordinal
+                onRoute(LauncherRoute.Log)
+            },
             onOpenDemo = onOpenDemo,
-            onOpenUpdates = { onRoute(LauncherRoute.Update) },
+            onOpenUpdates = {
+                settingsPage = SettingsPage.Updates.ordinal
+                onRoute(LauncherRoute.Update)
+            },
+            initialPage = settingsPage,
         )
 
         LauncherRoute.Log -> LogViewerScreen(
-            onBack = { onRoute(LauncherRoute.Settings) },
+            onBack = { onRoute(route.parent) },
         )
 
         LauncherRoute.Update -> UpdateScreen(
-            onBack = { onRoute(LauncherRoute.Settings) },
+            onBack = { onRoute(route.parent) },
         )
     }
 }

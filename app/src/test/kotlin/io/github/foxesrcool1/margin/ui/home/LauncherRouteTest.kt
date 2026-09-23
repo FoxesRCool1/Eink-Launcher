@@ -20,4 +20,12 @@ class LauncherRouteTest {
         assertFalse(LauncherRoute.tabs.contains(LauncherRoute.Settings))
         assertFalse(LauncherRoute.tabs.contains(LauncherRoute.Log))
     }
+
+    @Test
+    fun `back from the log and the updates goes to settings, from anything else to home`() {
+        assertEquals(LauncherRoute.Settings, LauncherRoute.Log.parent)
+        assertEquals(LauncherRoute.Settings, LauncherRoute.Update.parent)
+        LauncherRoute.tabs.forEach { assertEquals(LauncherRoute.Home, it.parent) }
+        assertEquals(LauncherRoute.Home, LauncherRoute.Settings.parent)
+    }
 }

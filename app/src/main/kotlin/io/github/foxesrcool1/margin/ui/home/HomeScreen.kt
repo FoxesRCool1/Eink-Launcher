@@ -79,7 +79,8 @@ fun HomeScreen(
     onStartNext: () -> Unit = {},
     modifier: Modifier = Modifier,
     now: LocalDateTime? = null,
-    use24Hour: Boolean = true,
+    /** Null: the way the tablet is set, in its date and time settings. */
+    use24Hour: Boolean? = null,
     battery: Int? = null,
     wifi: Boolean? = null,
     /** The name of each tab under its icon. It is a setting, and it starts off. */
@@ -89,10 +90,13 @@ fun HomeScreen(
     val clock by rememberMinuteClock()
     val time = now ?: clock
 
-    // Both are read once a minute, with the clock, and not on a timer of their
-    // own. E-ink rule 7: as few screen changes as possible.
+    // All three are read once a minute, with the clock, and not on a timer of
+    // their own. E-ink rule 7: as few screen changes as possible.
     val batteryPercent = remember(time.minute, battery) { battery ?: batteryPercent(context) }
     val onWifi = remember(time.minute, wifi) { wifi ?: onWifi(context) }
+    val twentyFourHour = remember(time.minute, use24Hour) {
+        use24Hour ?: runCatching { android.text.format.DateFormat.is24HourFormat(context) }.getOrDefault(true)
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val wide = maxWidth > maxHeight
@@ -127,7 +131,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
             if (wide) {
                 CapsLabel(
-                    text = HomeStrings.date(time) + "   .   " + HomeStrings.time(time, use24Hour),
+                    text = HomeStrings.date(time) + "   .   " + HomeStrings.time(time, twentyFourHour),
                     style = EinkType.caps.copy(textAlign = TextAlign.Center),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -139,7 +143,7 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 CapsLabel(
-                    text = HomeStrings.time(time, use24Hour),
+                    text = HomeStrings.time(time, twentyFourHour),
                     style = EinkType.caps.copy(textAlign = TextAlign.Center),
                     modifier = Modifier.fillMaxWidth(),
                 )

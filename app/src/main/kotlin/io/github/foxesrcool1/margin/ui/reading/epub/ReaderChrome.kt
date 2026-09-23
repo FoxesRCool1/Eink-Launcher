@@ -256,7 +256,7 @@ private fun HighlightPanel(state: ReaderUiState, highlightId: String, actions: R
             EinkText(text = highlight?.text.orEmpty(), style = EinkType.body, maxLines = 3)
             if (!highlight?.note.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                EinkText(text = "Note: ${highlight?.note}", style = EinkType.body, maxLines = 4)
+                EinkText(text = "Note: ${highlight.note}", style = EinkType.body, maxLines = 4)
             }
             Spacer(modifier = Modifier.height(EinkDimens.targetGap))
             Row(horizontalArrangement = Arrangement.spacedBy(EinkDimens.targetGap)) {

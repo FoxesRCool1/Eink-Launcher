@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.0.1
+
+- Read: "Sort by last read" puts the book you read last on top. It sorted by the day a book was added
+- Write: a rename changes the name you see in the list. Renaming to the same name, or changing only the capitals, no longer adds a "2"
+- The Home clock follows the 12 or 24 hour setting of the tablet
+- Enter confirms a name you type. In the app search, Enter opens the first app found
+- The Back key on the log and the updates page goes back to Settings
+- An archived habit comes back, with its days, when you add a habit with the same name
+- Smaller fixes: Margin is not in its own app list, copying the log no longer stops the screen, a note row shows its first line at once
+
 ## 1.0.0
 
 - The first full release. Every file is signed with the release key of the project, so only the owner can make an update for it

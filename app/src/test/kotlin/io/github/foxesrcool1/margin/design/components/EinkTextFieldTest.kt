@@ -13,7 +13,12 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.margin.design.EinkTheme
@@ -25,6 +30,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+@OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "sw480dp-w480dp-h640dp-port-xxhdpi")
 class EinkTextFieldTest {
@@ -122,6 +128,34 @@ class EinkTextFieldTest {
         text = ""
         compose.waitForIdle()
         compose.onNodeWithTag("field").assertTextEquals("")
+    }
+
+    @Test
+    fun `enter in a field of one line submits, from the screen keyboard and from a real one`() {
+        var submitted = 0
+
+        compose.setContent {
+            EinkTheme {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    EinkTextField(
+                        value = "",
+                        onValueChange = {},
+                        singleLine = true,
+                        onSubmit = { submitted++ },
+                        modifier = Modifier.fillMaxWidth().testTag("field"),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("field").performClick()
+        compose.onNodeWithTag("field").performImeAction()
+        compose.waitForIdle()
+        assertEquals(1, submitted)
+
+        compose.onNodeWithTag("field").performKeyInput { pressKey(Key.Enter) }
+        compose.waitForIdle()
+        assertEquals(2, submitted)
     }
 }
 

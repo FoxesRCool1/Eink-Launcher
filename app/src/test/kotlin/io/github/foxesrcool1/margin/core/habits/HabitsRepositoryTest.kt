@@ -161,4 +161,18 @@ class HabitsRepositoryTest {
         assertTrue(store.exists("habits/log.csv"))
         assertTrue(store.readText("habits/log.csv")!!.startsWith("date,habit"))
     }
+
+    @Test
+    fun `adding an archived habit again brings it back with its days`() {
+        habits.add("Read", today)
+        habits.toggle("read", today.minusDays(1))
+        habits.setArchived("read", true)
+
+        habits.add(" read ", today)
+
+        val document = habits.load()
+        assertEquals(listOf("read"), document.habits.map { it.id })
+        assertFalse(document.habits.single().archived)
+        assertEquals(setOf(today.minusDays(1)), habits.datesFor("read"))
+    }
 }

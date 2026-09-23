@@ -18,6 +18,13 @@ enum class LauncherRoute(val title: String) {
     Update("Updates"),
     ;
 
+    /** Where Back goes from here. The log and the updates are pages of Settings. */
+    val parent: LauncherRoute
+        get() = when (this) {
+            Log, Update -> Settings
+            else -> Home
+        }
+
     /** The four tabs on Home, in the order they are shown. */
     companion object {
         val tabs: List<LauncherRoute> = listOf(Reading, Writing, Journal, Apps)

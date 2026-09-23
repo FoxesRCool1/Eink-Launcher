@@ -3,6 +3,8 @@ package io.github.foxesrcool1.margin.design.components
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import io.github.foxesrcool1.margin.design.EinkColors
 import io.github.foxesrcool1.margin.design.EinkType
@@ -46,10 +49,17 @@ fun EinkTextField(
     textStyle: TextStyle = EinkType.body,
     singleLine: Boolean = false,
     enabled: Boolean = true,
+    /**
+     * What the Enter key does in a field of one line: the key on a Bluetooth
+     * keyboard, and the Done key on the screen keyboard. Null leaves Enter
+     * doing nothing, as before.
+     */
+    onSubmit: (() -> Unit)? = null,
 ) {
     val state = rememberTextFieldState(initialText = value)
     val latestValue by rememberUpdatedState(value)
     val latestOnChange by rememberUpdatedState(onValueChange)
+    val latestOnSubmit by rememberUpdatedState(onSubmit)
     val reported = remember { ReportedValues() }
 
     // From outside in: a note that finished loading, or a field that was reset.
@@ -82,6 +92,12 @@ fun EinkTextField(
         enabled = enabled,
         textStyle = textStyle,
         lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.Default,
+        keyboardOptions = if (singleLine && onSubmit != null) {
+            KeyboardOptions(imeAction = ImeAction.Done)
+        } else {
+            KeyboardOptions.Default
+        },
+        onKeyboardAction = if (onSubmit != null) KeyboardActionHandler { latestOnSubmit?.invoke() } else null,
         cursorBrush = SolidColor(Color.Transparent),
         scrollState = scroll,
         onTextLayout = { getResult -> layout = getResult },

@@ -1,6 +1,6 @@
 # Margin: build plan
 
-Name: "Margin", chosen by the owner on 2026-09-22 after a search of app stores, GitHub and trademarks. Decision 0021. The working name until then was "Margin". Do not use the name "Prose". That name belongs to the concept that inspired this project.
+Name: "Margin", chosen by the owner on 2026-09-22 after a search of app stores, GitHub and trademarks. Decision 0021. The working name until then was "Eink Launcher". Do not use the name "Prose". That name belongs to the concept that inspired this project.
 
 Owner: Caleb (GitHub: FoxesRCool1)
 Target device: ViWoods AiPaper Mini (8.2 inch e-ink, EMR stylus)

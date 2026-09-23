@@ -4,6 +4,116 @@ One section per step. Newest step at the top.
 
 ---
 
+## A pass over the app: bugs and small improvements
+
+Date: 2026-09-23. Branch `Dev`. The owner asked for a pass over the whole
+app and for any improvement that could be found. Released as 1.0.1 the same
+day, at the owner's word, before the tablet tests below.
+
+### What was done
+
+Bugs:
+
+1. **"Sort by last read" sorted by the day a book was added.** The reader
+   never writes to the book file, so its date is the import date. The sort
+   now uses the date of the book's annotations file, which the reader writes
+   each time it closes. A book never opened counts from the day it came in.
+2. **"Check again" on the Home app page of Settings asked Android on the
+   main thread.** It is a binder call. It runs in the background now, and
+   the answer comes back as the status line. The answer also shows after
+   the system's own "choose a home app" question closes.
+3. **"Copy to Download" in the log froze the screen** for up to two
+   seconds: it waited for the log writer and copied the files on the main
+   thread. It runs in the background now, and the button is off while it
+   works. "Copied 1 file(s)" is now "Copied 1 file".
+4. **Back from the log and from the updates went to Home.** The arrow on
+   the screen went to Settings. Now Back does the same, and lands on the
+   page of Settings the log or the updates came from (Help or Updates), not
+   on the menu. `LauncherRoute.parent` says where Back goes.
+5. **Renaming a note to its own name made "Name 2".** The same for a change
+   of capitals only, on the tablet's shared storage, which does not tell
+   "note" from "Note". Both keep the name now.
+6. **A rename of a typed note did not change the name on the row.** The row
+   shows the first heading of the note, and the rename only changed the file
+   name. Now the heading changes too. A note that starts with plain text
+   keeps its text: only the file name changes then. The rename box starts
+   with the name the row shows.
+7. **Renaming a folder with a dot in its name**, such as "Drafts v1.2",
+   kept ".2" on the end of the new name. Fixed.
+8. **A note marked for a move stayed marked** after its folder was renamed
+   or deleted, and Paste then failed. The mark goes now. A failed rename
+   says so.
+
+Small improvements:
+
+9. **The clock on Home follows the tablet's 12 or 24 hour setting.** It was
+   always 24 hour. It is read once a minute, with the clock.
+10. **Enter confirms a dialog that asks for a name**, from a Bluetooth
+    keyboard or the Done key of the screen keyboard. In the app search on
+    the A to Z page, Enter opens the first app found. `EinkTextField` has
+    an `onSubmit` for this.
+11. **Margin is not in its own list of apps** any more. It only led back to
+    where the user was.
+12. **An archived habit can come back.** The Journal has no list of
+    archived habits. Adding a habit with the same name as an archived one
+    now brings the old one back, with the days it was done.
+13. **A note row shows its first line at once.** The list read each note
+    for its title, and then each row read the note again for its first
+    line. The row showed "MD" first and the line a moment later: a second
+    repaint on e-ink. Now one read gives both.
+14. "1 books" is "1 book". Three compiler warnings are gone.
+    `plan.md` named the working name wrong.
+
+### What works
+
+Build, all 582 unit and screenshot tests, and lint pass. New tests cover the
+sort, every rename case, the heading change, the note preview, Enter in a
+field (a real key event, and the screen keyboard's action), the app list,
+the habit that comes back, and where Back goes.
+
+Checked by hand in the emulator, with the debug build:
+
+- Settings, Help, Log, "Copy to Download" said "Copied 1 file". The Back key
+  then went to Settings, Help. Settings opened on its menu the next time.
+- "Check again" said "Margin is not the home app yet", which was true.
+- A new folder was made with the Enter key. The Done key of the screen
+  keyboard shows a tick.
+- "Shopping" was renamed to "Groceries" with Enter: file and heading both
+  changed. Then to "groceries": the emulator's storage does not tell
+  capitals apart (it finds "GROCERIES.md"), and the note still became
+  "groceries.md" with no "2".
+- In the app search, "chr" and Enter opened Chrome. The list has 19 apps,
+  one fewer than the emulator has, because Margin is left out.
+- Home showed "4:41 PM", and "16:48" after the emulator was set to 24 hour.
+
+The emulator held the signed 1.0.0 from the update test, with an empty data
+folder. It holds the debug build now.
+
+### What does not work, or was left
+
+- The long note that scrolls inside its box (decision 0011) is still there.
+- Settings such as pinned apps are not in the backup zip. They live in
+  DataStore, which the plan calls cheap to rebuild. After a move to a new
+  tablet, the pinned apps have to be pinned again.
+
+### What the owner must test on the tablet
+
+1. Read, sort by last read: open a book that was near the bottom, read a
+   page, go back. It is at the top now.
+2. Settings, Home app, "Check again": the line at the top answers.
+3. Settings, Help, Log, "Copy to Download": the screen does not stop, and
+   the line says how many files. Then press the tablet's Back key: it goes
+   to Settings, Help.
+4. Write: hold a typed note, Rename, type a new name. The row shows the new
+   name. Rename it to the same name again: no "2" comes.
+5. With the tablet set to 12 hour time, Home shows "8:04 AM".
+6. With a Bluetooth keyboard: Write, new folder, type a name, press Enter.
+   Apps, A to Z, search, type three letters, press Enter.
+7. Journal: archive a habit, then add a habit with the same name. The old
+   one comes back with its dots.
+
+---
+
 ## The README as a landing page
 
 Date: 2026-09-22. Branch `Dev`. The owner asked for an audit of the README
